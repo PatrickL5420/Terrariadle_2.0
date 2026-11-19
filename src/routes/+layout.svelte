@@ -1,0 +1,56 @@
+<script lang="ts">
+	import Header from './Header.svelte';
+	import Footer from './Footer.svelte';
+	import '../app.css';
+	import { page } from '$app/state';
+	import { onMount, type Snippet } from 'svelte';
+	import { games, gameSlugs } from '$lib/games';
+	import { refreshCompletion } from '$lib/progress.svelte';
+
+	let { children }: { children: Snippet } = $props();
+
+	onMount(() => refreshCompletion(gameSlugs));
+
+	const home = {
+		title: '',
+		description: 'Test your Terraria knowledge with daily guessing games.'
+	};
+	const routeMeta: Record<string, { title: string; description: string }> = {
+		'/': home,
+		'/about': { title: '| About', description: 'How to play Terrariadle.' },
+		...Object.fromEntries(
+			games.map((g) => [`/${g.slug}`, { title: `| ${g.title}`, description: g.description }])
+		)
+	};
+
+	let meta = $derived(routeMeta[page.url.pathname] ?? home);
+</script>
+
+<svelte:head>
+	<title>Terrariadle {meta.title}</title>
+	<link rel="icon" href="/logos/TabLogo.ico" />
+	<meta name="description" content={meta.description} />
+
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="Terrariadle" />
+	<meta property="og:title" content={`Terrariadle ${meta.title}`} />
+	<meta property="og:description" content={meta.description} />
+	<meta property="og:image" content="/og-image.png" />
+	<meta name="twitter:card" content="summary_large_image" />
+</svelte:head>
+
+<div class="app">
+	<Header />
+
+	<main>
+		{@render children()}
+	</main>
+
+	<Footer />
+</div>
+
+<style>
+	main {
+		padding: 20px 0;
+	}
+</style>
