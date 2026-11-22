@@ -33,6 +33,7 @@
 
 	{#each games as game (game.slug)}
 		<h2><a class="link" href={resolve('/[mode=mode]', { mode: game.slug })}>{game.title}</a></h2>
+		<p class="game-desc">{game.description}</p>
 		<ul>
 			{#each game.attributes as attr (attr.key)}
 				<li><b>{attr.label}</b>: {attr.title}</li>
@@ -89,6 +90,12 @@
 	.how-to-play h2 {
 		padding-top: 10px;
 		margin-bottom: 0;
+	}
+
+	.how-to-play .game-desc {
+		margin: 2px 0 4px;
+		font-size: 17px;
+		color: lightgray;
 	}
 
 	.how-to-play ul {

@@ -78,7 +78,7 @@
 		busy = true;
 		try {
 			const res = await checkGuess(game.slug, id, today.day);
-			progress.guesses = [{ id, checks: res.checks }, ...progress.guesses];
+			progress.guesses = [{ id, checks: res.checks, detail: res.detail }, ...progress.guesses];
 			if (res.correct) {
 				progress.finished = true;
 				saveProgress(game.slug, progress);
@@ -123,6 +123,7 @@
 				guessCount={progress.guesses.length}
 				finished={progress.finished}
 				hints={progress.hints}
+				clue={today.clue}
 				onGuess={submitGuess}
 				onHint={revealHint}
 			/>

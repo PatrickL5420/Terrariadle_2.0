@@ -13,6 +13,7 @@
 		guessCount,
 		finished,
 		hints,
+		clue,
 		onGuess,
 		onHint
 	}: {
@@ -21,6 +22,7 @@
 		guessCount: number;
 		finished: boolean;
 		hints: (Hint | null)[];
+		clue?: string;
 		onGuess: (id: number) => void;
 		onHint: (n: number) => Promise<void>;
 	} = $props();
@@ -38,6 +40,13 @@
 {#if !finished}
 	<div class="guess-panel" out:slide={{ duration: 700, easing: cubicInOut }}>
 		<h2>Guess Today's {game.noun[0].toUpperCase() + game.noun.slice(1)}</h2>
+
+		{#if clue && game.clueLabel}
+			<div class="clue">
+				<span class="clue-label">{game.clueLabel}</span>
+				<p>{clue}</p>
+			</div>
+		{/if}
 
 		<div class="loading-bar">
 			<LoadingBar {guessCount} {finished} />
@@ -115,6 +124,29 @@
 
 		border-radius: 15px;
 		border: 2px solid black;
+	}
+
+	.clue {
+		max-width: 360px;
+		/* Room for the "Hint Progress Bar" label, which sits above the bar. */
+		margin: 6px auto 36px;
+		padding: 8px 12px;
+		background-color: rgba(10, 14, 40, 0.85);
+		border: 2px solid black;
+		border-radius: 8px;
+	}
+
+	.clue-label {
+		font-size: 13px;
+		color: var(--color-yellow);
+	}
+
+	.clue p {
+		margin: 4px 0 0;
+		font-size: 18px;
+		line-height: 1.25;
+		/* Tooltips keep their in-game line breaks. */
+		white-space: pre-line;
 	}
 
 	.hint-buttons {

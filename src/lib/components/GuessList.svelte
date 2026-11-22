@@ -71,6 +71,7 @@
 <div class="container" onscroll={hideInfo}>
 	<div class="header" style="--cols: {columns}">
 		<span>{game.firstColumn}</span>
+		{#if game.detailLabel}<span class="detail-head">{game.detailLabel}</span>{/if}
 		{#each game.attributes as attr (attr.key)}
 			<button
 				class="col-head"
@@ -101,6 +102,16 @@
 				{/if}
 			</div>
 
+			{#if game.detailLabel}
+				<div
+					class="tile detail-tile"
+					style:background-color={guess.id === answerId ? background.match : background.miss}
+					in:fly={{ x: flyX(1), duration: flyDuration() }}
+				>
+					<span class="name">{entry.name}</span>
+					<span class="detail">{guess.detail ?? ''}</span>
+				</div>
+			{/if}
 			{#each game.attributes as attr, i (attr.key)}
 				{@const result = guess.checks[attr.key]}
 				{@const lines = shown(attr, entry)}
@@ -328,6 +339,29 @@
 
 	.tile span.small {
 		font-size: 12px;
+	}
+
+	.header .detail-head {
+		width: 300px;
+	}
+
+	.tile.detail-tile {
+		width: 300px;
+		max-width: 60vw;
+		height: auto;
+		min-height: 80px;
+		padding: 6px 10px;
+	}
+
+	.detail-tile .name {
+		font-size: 15px;
+		margin-bottom: 2px;
+	}
+
+	.detail-tile .detail {
+		font-size: 13px;
+		line-height: 1.2;
+		white-space: pre-line;
 	}
 
 	.name-tile {

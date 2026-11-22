@@ -2,6 +2,7 @@ import { dev } from '$app/environment';
 import { json } from '@sveltejs/kit';
 import { compareEntries } from '$lib/engine/compare';
 import { answerFor, entryOr400, gameOr404, requireToday } from '$lib/server/answers';
+import { serverText } from '$lib/server/text';
 import type { RequestHandler } from './$types';
 
 export const prerender = false;
@@ -21,6 +22,7 @@ export const GET: RequestHandler = ({ params, url, setHeaders }) => {
 	setHeaders({ 'cache-control': dev ? 'no-store' : 'public, max-age=0, s-maxage=86400' });
 	return json({
 		correct: guess.id === answer.id,
-		checks: compareEntries(game.attributes, guess, answer)
+		checks: compareEntries(game.attributes, guess, answer),
+		detail: game.detailLabel ? serverText(game.slug, guess.id) : undefined
 	});
 };

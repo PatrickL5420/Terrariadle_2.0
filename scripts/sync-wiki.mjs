@@ -1161,9 +1161,94 @@ async function syncArmor() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Tooltips (Tooltipdle): guess the item from its tooltip
+
+/** Wiki tooltip HTML -> plain text, one game line per line, wiki markup removed. */
+function tooltipLines(html) {
+	return decode(
+		html
+			.replace(/\[\[File:[^\]]*\]\]/g, '')
+			.replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, '$1')
+			.replace(/<br\s*\/?>/g, '\n')
+			.replace(/<[^>]+>/g, '')
+	)
+		.split('\n')
+		.map((l) => l.replace(/\s+/g, ' ').trim())
+		.filter(Boolean)
+		.join('\n');
+}
+
+/** A painter's signature like 'V. Costa Moura' marks paintings (and a few dev pets). */
+const PAINTER_SIGNATURE = /^'[A-Z]\. ?[A-Z][\w .'-]*'$/m;
+
+function isTooltipCandidate(item, tip) {
+	const types = new Set(item.type.split('^'));
+	if (!tip || item.unobtainable === '1') return false;
+	if (types.has('armor') || types.has('vanity') || types.has('set')) return false;
+	if (types.has('grab bag') || /Treasure Bag/.test(item.name)) return false;
+	if (/ Banner$/.test(item.name)) return false;
+	if (PAINTER_SIGNATURE.test(tip)) return false;
+	return true;
+}
+
+async function syncTooltips() {
+	const existing = await load('tooltips.json').catch(() => []);
+	const items = await cargo(
+		'Items',
+		'itemid,name,type,tooltip,imagefile,unobtainable',
+		'tooltip IS NOT NULL AND tooltip <> ""'
+	);
+	// One entry per name (a few items have variants with the same name, e.g. Strange Plant).
+	const byName = new Map();
+	for (const item of items) {
+		const tip = tooltipLines(item.tooltip);
+		if (isTooltipCandidate(item, tip) && !byName.has(item.name))
+			byName.set(item.name, { item, tip });
+	}
+	const candidates = [...byName.values()];
+
+	// Only a tooltip that belongs to exactly one item can be an answer; the rest are still
+	// guessable so the search box doesn't give the answer pool away.
+	const count = new Map();
+	for (const { tip } of candidates) count.set(tip, (count.get(tip) ?? 0) + 1);
+
+	const entries = [];
+	const text = {};
+	for (const { item, tip } of candidates.sort((a, b) => a.item.name.localeCompare(b.item.name))) {
+		const id = toInt(item.itemid);
+		const old = existing.find((e) => e.id === id);
+		const entry = {
+			id,
+			name: item.name,
+			image: old?.image?.startsWith('/')
+				? old.image
+				: `wiki:${item.imagefile || `${item.name}.png`}`
+		};
+		if (count.get(tip) > 1) entry.pool = false;
+		entries.push(entry);
+		text[id] = tip;
+		if (!old) changes.push(`tooltips     ${item.name.padEnd(22)} added`);
+	}
+	for (const old of existing) {
+		if (!entries.some((e) => e.id === old.id))
+			changes.push(`tooltips     ${old.name.padEnd(22)} removed`);
+	}
+	entries.sort((a, b) => a.id - b.id);
+	if (WRITE) {
+		await save('tooltips.json', entries);
+		// Tooltip text is server-only, so the answer can't be looked up in the page's data.
+		await writeFile(
+			path.resolve(DATA, '../server/tooltip-text.json'),
+			`${JSON.stringify(text, null, '\t')}\n`
+		);
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
 
 await syncBosses();
 await syncArmor();
+await syncTooltips();
 await syncAccessories();
 await syncModifiers();
 

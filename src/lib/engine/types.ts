@@ -70,6 +70,13 @@ export interface GameConfig<E extends Entry = Entry> {
 	 * all-green row, so the item's own tile is coloured to show whether the guess was right.
 	 */
 	allowLookalikes?: boolean;
+	/**
+	 * Clue-style games (Tooltipdle): the server sends today's answer's text as a clue shown above
+	 * the search box, and each guess's own text in an extra column. The text stays server-side
+	 * (see $lib/server/text.ts) so it can't be looked up in the page's data.
+	 */
+	clueLabel?: string;
+	detailLabel?: string;
 }
 
 export type Checks = Record<string, CompareResult>;
@@ -77,6 +84,8 @@ export type Checks = Record<string, CompareResult>;
 export interface GuessRecord {
 	id: number;
 	checks: Checks;
+	/** Clue-style games: the guessed item's own text (e.g. its tooltip). */
+	detail?: string;
 }
 
 /** Guess counts at which hints 1, 2 and 3 unlock. */

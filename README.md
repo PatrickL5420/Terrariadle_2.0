@@ -1,7 +1,7 @@
 # Terrariadle
 
-Daily Terraria guessing games: **Boss Guesser**, **Accessory Guesser**, **Modifier Guesser** and
-**Armordle**.
+Daily Terraria guessing games: **Boss Guesser**, **Accessory Guesser**, **Modifier Guesser**,
+**Armordle** and **Tooltipdle** (guess the item from its tooltip).
 Pick a guess and every property is compared to the answer: 🟩 match, 🟨 partial, 🟥 miss,
 ▲▼ the answer is higher/lower. Hints unlock after 4, 7 and 12 guesses.
 
@@ -91,12 +91,13 @@ npm run sync-wiki -- --write
 
 The first reports differences; `--write` applies them.
 
-| Data        | From the wiki                                                                                         | Curated by hand                              |
-| ----------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                                            | stage, biome, summon, body type, time, hints |
-| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source              | function, class boost, source, "where found" |
-| Modifiers   | everything (rebuilt from the Modifiers page)                                                          | the skip list in the script                  |
-| Armor       | everything: every armor piece, its set, slot, defense, rarity, category, how it's obtained, set bonus | nothing                                      |
+| Data        | From the wiki                                                                                                                                                                  | Curated by hand                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                                                                                                                     | stage, biome, summon, body type, time, hints |
+| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source                                                                                       | function, class boost, source, "where found" |
+| Modifiers   | everything (rebuilt from the Modifiers page)                                                                                                                                   | the skip list in the script                  |
+| Armor       | everything: every armor piece, its set, slot, defense, rarity, category, how it's obtained, set bonus                                                                          | nothing                                      |
+| Tooltips    | every item with a tooltip (minus armor, paintings, treasure bags, banners); only unique tooltips are answers. Tooltip text is server-only (`src/lib/server/tooltip-text.json`) | nothing                                      |
 
 **Accessories are imported automatically.** Every playable accessory on the wiki is added
 (not vanity, music boxes, developer items or console-only items). New ones get best-guess
