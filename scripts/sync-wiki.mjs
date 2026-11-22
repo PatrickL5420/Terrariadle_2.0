@@ -998,7 +998,7 @@ async function syncModifiers() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Armor (Armordle): every armor piece, built entirely from the wiki
+// Armor (Armordle): every armor set (one entry per class variant), built entirely from the wiki
 
 const ARMOR_SECTIONS = {
 	'Pre-Hardmode': 'Pre-Hardmode',
@@ -1007,12 +1007,43 @@ const ARMOR_SECTIONS = {
 	'Miscellaneous armor': 'Other'
 };
 const SLOTS = { helmet: 'Head', shirt: 'Chest', pants: 'Legs' };
+const CLASSES = ['Melee', 'Ranged', 'Magic', 'Summon'];
 
-/** Rows of the Armor page: set (or single piece) -> its section and its bonus text. */
+/** "Magic: 21<br>Ranged: 23" -> [{label, value}]; "3 (2+1)" -> [{label: '', value: 3}]. */
+function labelledNumbers(html) {
+	const lines = text(html.replace(/<br\s*\/?>/g, '\n').replace(/\n/g, ' | ')).split('|');
+	const out = [];
+	for (const line of lines.map((l) => l.trim()).filter(Boolean)) {
+		const m = line.match(/^([A-Za-z ]+):\s*(-?\d+)/);
+		if (m) out.push({ label: m[1].trim(), value: Number(m[2]) });
+		else if (!out.length && /\d/.test(line)) out.push({ label: '', value: toInt(line) });
+	}
+	return out;
+}
+
+/**
+ * The notes cell is a nested list: a helmet's own set bonus is a sub-item under that helmet,
+ * while top-level items apply to the whole set. Returns each item with its nesting depth.
+ */
+function noteLines(html) {
+	const out = [];
+	let depth = 0;
+	for (const m of html.matchAll(/<(\/?)(ul|li)\b[^>]*>([\s\S]*?)(?=<\/?(?:ul|li)\b|$)/g)) {
+		const [, closing, tag, after] = m;
+		if (tag === 'ul') depth += closing ? -1 : 1;
+		if (tag === 'li' && !closing) {
+			const line = text(after.replace(/<br\s*\/?>/g, ' '));
+			if (line) out.push({ depth, text: line });
+		}
+	}
+	return out;
+}
+
+/** Rows of the Armor page: each set (or single piece) with its numbers, sprite and notes. */
 async function armorRows() {
 	const html = await pageHtml('Armor');
 	const parts = html.split(/<h([23])[^>]*>([\s\S]*?)<\/h\1>/);
-	const rows = new Map();
+	const rows = [];
 	for (let i = 1; i < parts.length; i += 3) {
 		const heading = text(parts[i + 1])
 			.replace(/\[\s*edit\s*\]/, '')
@@ -1025,28 +1056,28 @@ async function armorRows() {
 			if (cells.length < 4) continue;
 			const title = cells[1].match(/<a [^>]*title="([^"]+)"/)?.[1];
 			if (!title) continue;
-			// "Bonuses / Effects / Notes" is the second-to-last cell.
+			const setTable = cells.length >= 8; // Appearance|Set|Head|Chest|Legs|Total|Notes|Source
 			const notes = cells[cells.length - 2];
-			const lines = [...notes.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => text(m[1]));
-			const bonus = lines
-				.filter((l) => /^Set Bonus/i.test(l))
-				.map((l) => l.replace(/^Set Bonus:?\s*/i, ''));
-			const effect = lines.filter((l) => !/^Set Bonus/i.test(l) && !/interchangeable/i.test(l));
-			rows.set(decode(title), { category, bonus, effect });
+			rows.push({
+				name: decode(title),
+				category,
+				sprite: decode(cells[0].match(/alt="([^"]+)"/)?.[1] ?? ''),
+				heads: setTable ? labelledNumbers(cells[2]) : [],
+				totals: labelledNumbers(setTable ? cells[5] : cells[3]),
+				lines: noteLines(notes)
+			});
 		}
 	}
 	return rows;
 }
 
 /** A drop/loot source -> the wiki's obtain categories. */
-function armorDropKind(from, bosses) {
+function armorDropKind(from) {
 	if (/Treasure Bag|Goodie Bag|Present|Bag\b/.test(from)) return 'Bag loot';
 	if (/Crate/.test(from)) return 'Fished';
 	if (/Chest|Lock Box|Urn|Pot\b/.test(from)) return 'Loot';
-	return bosses.has(from) ? 'Drop' : 'Drop';
+	return 'Drop';
 }
-
-const WIZARD_ROBE = { category: 'Other', bonus: [], effect: [] };
 
 /** Set bonus text for the hint strip: wiki asides removed, cut to ~140 characters. */
 function shortBonus(textIn) {
@@ -1060,13 +1091,31 @@ function shortBonus(textIn) {
 	return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
 }
 
-async function syncArmor() {
-	const existing = await load('armor.json').catch(() => []);
-	const rows = await armorRows();
+/** Damage class from bonus text: the one class it mentions, "None", or "Mixed". */
+function classFromText(lines) {
+	const t = lines.join(' ').toLowerCase();
+	const found = [
+		/\bmelee\b/.test(t) && 'Melee',
+		/\branged\b|\barrow|\bbullet|\bammo\b/.test(t) && 'Ranged',
+		/\bmagic\b|\bmana\b/.test(t) && 'Magic',
+		/\bsummon|\bminion|\bsentr|\bwhip/.test(t) && 'Summon'
+	].filter(Boolean);
+	if (found.length === 1) return found[0];
+	return found.length ? 'Mixed' : 'None';
+}
+
+const mode = (values) => {
+	const counts = new Map();
+	for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1);
+	return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+};
+
+/** Every armor piece with its set, slot, defense, rarity and how it's obtained. */
+async function armorPieces() {
 	const items = (
 		await cargo(
 			'Items',
-			'name,type,bodyslot,defense,rare,hardmode,tag,imagefile,unobtainable',
+			'name,type,bodyslot,defense,rare,tag,imagefile,unobtainable',
 			'type HOLDS "armor"'
 		)
 	).filter((i) => SLOTS[i.bodyslot] && i.unobtainable !== '1');
@@ -1086,78 +1135,153 @@ async function syncArmor() {
 	}
 
 	const names = items.map((i) => i.name);
-	const recipes = (await cargoByNames('Recipes', 'result,station,version', 'result', names)).filter(
-		isCraftingRecipe
+	const crafted = new Set(
+		(await cargoByNames('Recipes', 'result,station,version', 'result', names))
+			.filter(isCraftingRecipe)
+			.map((r) => r.result)
 	);
-	const crafted = new Set(recipes.map((r) => r.result));
 	const drops = await cargoByNames('Drops', 'nameraw,item', 'item', names);
-	const bosses = new Set(
-		(
-			await cargoByNames('NPCs', 'nameraw,type', 'nameraw', [
-				...new Set(drops.map((d) => d.nameraw))
-			])
-		)
-			.filter((n) => /boss/i.test(n.type))
-			.map((n) => n.nameraw)
-	);
 
-	let nextId = Math.max(0, ...existing.map((e) => e.id)) + 1;
-	const out = [];
-	for (const item of [...items].sort((a, b) => a.name.localeCompare(b.name))) {
-		let set = setOf.get(item.name) ?? item.name;
-		let row = rows.get(set) ?? rows.get(item.name);
-		if (!rows.get(set) && row) set = item.name; // e.g. Empty Bucket redirects to "Buckets"
-		// Robes aren't rows of their own: they're the chest half of the Wizard set.
-		if (!row && / Robe$/.test(item.name)) {
-			set = 'Wizard set';
-			row = { ...WIZARD_ROBE, bonus: [...(rows.get('Wizard Hat')?.bonus ?? [])] };
-		}
-		if (!row) {
-			problems.push(`armor ${item.name}: its set "${set}" isn't on the Armor page; skipped`);
-			continue;
-		}
-		const rarity = RARITY[toInt(item.rare)];
-		if (!rarity) problems.push(`armor ${item.name}: unknown rarity ${item.rare}`);
-
+	return items.map((item) => {
 		const obtained = new Set();
 		if (crafted.has(item.name)) obtained.add('Craftable');
 		for (const d of drops.filter((x) => x.item === item.name))
-			obtained.add(armorDropKind(d.nameraw, bosses));
+			obtained.add(armorDropKind(d.nameraw));
 		const tags = (item.tag ?? '').toLowerCase();
 		if (/\bvendor\b|buyable|\bbuy\b/.test(tags)) obtained.add('Vendor');
 		if (/\bfish(ed|ing)\b/.test(tags)) obtained.add('Fished');
 		if (/quest rewards/.test(tags)) obtained.add('Quest reward');
 		if (/\bloot\b/.test(tags) && !obtained.size) obtained.add('Loot');
-		if (!obtained.size) {
-			obtained.add('Other');
-			problems.push(`armor ${item.name}: no source found on the wiki`);
-		}
-
-		const old = existing.find((e) => e.name === item.name);
-		out.push({
-			id: old?.id ?? nextId++,
+		// Robes aren't rows of their own: they're the chest half of the Wizard set.
+		const set = setOf.get(item.name) ?? (/ Robe$/.test(item.name) ? 'Wizard set' : item.name);
+		return {
 			name: item.name,
-			image: old?.image?.startsWith('/')
-				? old.image
-				: `wiki:${item.imagefile || `${item.name}.png`}`,
-			set: set === item.name ? '' : set,
+			set,
 			slot: SLOTS[item.bodyslot],
 			defense: toInt(item.defense),
-			rarity: rarity ?? 'White',
-			category: row.category,
+			rarity: RARITY[toInt(item.rare)],
 			obtained: [...obtained],
-			setBonus: row.bonus.length
-				? shortBonus(row.bonus.join(' / '))
-				: `No set bonus${row.effect.length ? `. ${shortBonus(row.effect[0])}` : ''}`
-		});
-		if (!old) changes.push(`armor        ${item.name.padEnd(22)} added`);
+			image: item.imagefile || `${item.name}.png`
+		};
+	});
+}
+
+async function syncArmor() {
+	const existing = await load('armor.json').catch(() => []);
+	const rows = await armorRows();
+	const pieces = await armorPieces();
+	const robes = pieces.filter((p) => p.set === 'Wizard set');
+
+	const entries = [];
+	for (const row of rows) {
+		// Wizard hats are worn with any robe; single pieces stand alone.
+		const own = pieces.filter(
+			(p) => p.set === row.name || (p.set === p.name && p.name === row.name)
+		);
+		const setPieces = own.length ? own : pieces.filter((p) => p.name === row.name);
+		const withRobes =
+			row.category === 'Other' && /Hat$/.test(row.name) ? [...setPieces, ...robes] : setPieces;
+		if (!setPieces.length) {
+			problems.push(`armor ${row.name}: no pieces found`);
+			continue;
+		}
+		const heads = setPieces.filter((p) => p.slot === 'Head');
+
+		// Nested "Set Bonus" items belong to the helmet above them; top-level ones to every variant.
+		const bonusFor = new Map();
+		const headLines = new Map();
+		const shared = [];
+		const generic = [];
+		let current = '';
+		for (const { depth, text: line } of row.lines) {
+			const head = depth === 1 && heads.find((h) => line.startsWith(`${h.name}:`));
+			if (depth === 1) current = head ? head.name : '';
+			if (head) headLines.set(head.name, line);
+			if (/^Set Bonus/i.test(line)) {
+				const b = line.replace(/^Set Bonus:?\s*/i, '');
+				if (depth > 1 && current) bonusFor.set(current, [...(bonusFor.get(current) ?? []), b]);
+				else shared.push(b);
+			} else if (depth === 1 && !head && !/^Set Effect|interchangeable/i.test(line)) {
+				generic.push(line);
+			}
+		}
+
+		// One entry per labelled variant (class or helmet), else one for the whole set.
+		const variants = row.heads.some((h) => h.label)
+			? row.heads.map((h) => ({
+					label: h.label,
+					head: heads.find((p) => p.defense === h.value),
+					total: row.totals.find((t) => t.label === h.label)?.value
+				}))
+			: [{ label: '', head: undefined, total: row.totals[0]?.value }];
+
+		for (const v of variants) {
+			const name = v.label ? `${row.name} (${v.label})` : row.name;
+			const used = v.head
+				? withRobes.filter((p) => p.slot !== 'Head' || p.name === v.head.name)
+				: withRobes;
+			const bonusLines = [...((v.head && bonusFor.get(v.head.name)) || []), ...shared];
+			const headLine = v.head && headLines.get(v.head.name) ? [headLines.get(v.head.name)] : [];
+			// Class: the variant's label if it's a class, else what the set bonus is about, else
+			// what the helmet and the set's other notes are about.
+			const fromBonus = classFromText(bonusLines);
+			const cls = CLASSES.includes(v.label)
+				? v.label
+				: fromBonus !== 'None'
+					? fromBonus
+					: classFromText([...headLine, ...generic]);
+			if (v.label && !v.head) problems.push(`armor ${name}: no helmet with ${v.label}'s defense`);
+			if (v.total === undefined) problems.push(`armor ${name}: no total defense`);
+
+			const old = existing.find((e) => e.name === name);
+			const effect = generic[0];
+			entries.push({
+				id: old?.id,
+				name,
+				// Class variants share the set sprite, so they use their own helmet's sprite instead.
+				image: old?.image?.startsWith('/')
+					? old.image
+					: `wiki:${v.head ? v.head.image : row.sprite || setPieces[0].image}`,
+				defense: v.total ?? 0,
+				rarity: mode(used.map((p) => p.rarity).filter(Boolean)) ?? 'White',
+				category: row.category,
+				class: cls,
+				obtained: [...new Set(used.flatMap((p) => p.obtained))],
+				setBonus: bonusLines.length
+					? shortBonus(bonusLines.join(' / '))
+					: `No set bonus${effect ? `. ${shortBonus(effect)}` : ''}`
+			});
+		}
+	}
+
+	// Keep ids for entries that existed before; new ones get new ids.
+	let nextId = Math.max(0, ...existing.map((e) => e.id)) + 1;
+	for (const e of entries) {
+		if (e.id === undefined) {
+			e.id = nextId++;
+			changes.push(`armor        ${e.name.padEnd(22)} added`);
+		}
+		if (!e.obtained.length) problems.push(`armor ${e.name}: no source found on the wiki`);
 	}
 	for (const old of existing) {
-		if (!out.some((o) => o.id === old.id))
+		if (!entries.some((e) => e.id === old.id))
 			changes.push(`armor        ${old.name.padEnd(22)} removed`);
 	}
-	out.sort((a, b) => a.id - b.id);
-	if (WRITE) await save('armor.json', out);
+	const ORDER = [
+		'id',
+		'name',
+		'image',
+		'defense',
+		'rarity',
+		'category',
+		'class',
+		'obtained',
+		'setBonus'
+	];
+	const tidy = entries
+		.sort((a, b) => a.id - b.id)
+		.map((e) => Object.fromEntries(ORDER.map((k) => [k, e[k]])));
+	if (WRITE) await save('armor.json', tidy);
 }
 
 // ---------------------------------------------------------------------------------------------

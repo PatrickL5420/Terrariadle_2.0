@@ -2,47 +2,46 @@ import data from '$lib/data/armor.json';
 import type { Entry, GameConfig } from '$lib/engine/types';
 import { RARITIES, rarityColors, type RarityName } from '$lib/rarity';
 
-/** One armor piece. Built entirely from the wiki by `npm run sync-wiki`. */
-export interface ArmorPiece extends Entry {
-	/** The set it belongs to ("" for standalone pieces like Goggles). */
-	set: string;
-	slot: 'Head' | 'Chest' | 'Legs';
+/**
+ * One armor set, or one class variant of a set (e.g. "Chlorophyte armor (Summon)"), or a
+ * single piece / Wizard hat from the Armor page's "Other" sections. Built entirely from the
+ * wiki by `npm run sync-wiki`.
+ */
+export interface ArmorSet extends Entry {
+	/** Total defense of the whole set (this variant's helmet + chest + legs). */
 	defense: number;
 	rarity: RarityName;
 	/** Section of the wiki's Armor page: Pre-Hardmode, Hardmode or Other. */
 	category: string;
-	/** The wiki's obtain categories: Craftable, Drop, Loot, Bag loot, Vendor, Fished, Quest reward. */
+	/** Melee, Ranged, Magic, Summon, None, or Mixed. */
+	class: string;
+	/** The wiki's obtain categories across its pieces: Craftable, Drop, Loot, Vendor, ... */
 	obtained: string[];
 	/** Set bonus text (or "No set bonus") for the first hint. */
 	setBonus: string;
 }
 
-export const armorGame: GameConfig<ArmorPiece> = {
+export const armorGame: GameConfig<ArmorSet> = {
 	slug: 'armor',
 	title: 'Armordle',
-	noun: 'armor piece',
-	description: "Guess today's Terraria armor piece from its stats!",
+	noun: 'armor set',
+	description: "Guess today's Terraria armor set from its stats!",
 	// Follows the data file, so it becomes a local image after `npm run fetch-images`.
-	icon: (data as ArmorPiece[]).find((a) => a.name === 'Mining Helmet')?.image ?? '',
-	entries: data as ArmorPiece[],
+	icon: (data as ArmorSet[]).find((a) => a.name === 'Mining armor')?.image ?? '',
+	entries: data as ArmorSet[],
 	firstColumn: 'Armor',
+	// Class variants like "Chlorophyte armor (Summon)" link to the set's page.
+	wikiPage: (a) => a.name.replace(/ \((?:Melee|Ranged|Magic|Summon|Hood|Mask)\)$/, ''),
 	theme: (a) => a.rarity,
-	// Pieces from sibling sets (e.g. Copper vs Tin) can share every column.
+	// Sibling sets (e.g. some wood sets) can share every column.
 	allowLookalikes: true,
 	attributes: [
 		{
 			key: 'defense',
 			label: 'Defense',
-			title: 'Defense of this piece',
+			title: 'Total defense of the whole set',
 			kind: 'number',
 			value: (a) => a.defense
-		},
-		{
-			key: 'slot',
-			label: 'Slot',
-			title: 'Which armor slot it goes in',
-			kind: 'exact',
-			value: (a) => a.slot
 		},
 		{
 			key: 'rarity',
@@ -60,6 +59,13 @@ export const armorGame: GameConfig<ArmorPiece> = {
 			title: "Section of the wiki's Armor page (Other = Wizard set and single pieces)",
 			kind: 'exact',
 			value: (a) => a.category
+		},
+		{
+			key: 'class',
+			label: 'Class',
+			title: 'Which damage class the set is for',
+			kind: 'exact',
+			value: (a) => a.class
 		},
 		{
 			key: 'obtained',

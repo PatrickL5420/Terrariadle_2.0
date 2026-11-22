@@ -35,7 +35,7 @@ const vocab: Record<string, Record<string, string[]>> = {
 		]
 	},
 	armor: {
-		slot: ['Head', 'Chest', 'Legs'],
+		class: ['Melee', 'Ranged', 'Magic', 'Summon', 'None', 'Mixed'],
 		category: ['Pre-Hardmode', 'Hardmode', 'Other'],
 		obtained: ['Craftable', 'Drop', 'Loot', 'Bag loot', 'Vendor', 'Fished', 'Quest reward']
 	},

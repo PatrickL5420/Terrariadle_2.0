@@ -91,13 +91,13 @@ npm run sync-wiki -- --write
 
 The first reports differences; `--write` applies them.
 
-| Data        | From the wiki                                                                                                                                                                  | Curated by hand                              |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                                                                                                                     | stage, biome, summon, body type, time, hints |
-| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source                                                                                       | function, class boost, source, "where found" |
-| Modifiers   | everything (rebuilt from the Modifiers page)                                                                                                                                   | the skip list in the script                  |
-| Armor       | everything: every armor piece, its set, slot, defense, rarity, category, how it's obtained, set bonus                                                                          | nothing                                      |
-| Tooltips    | every item with a tooltip (minus armor, paintings, treasure bags, banners); only unique tooltips are answers. Tooltip text is server-only (`src/lib/server/tooltip-text.json`) | nothing                                      |
+| Data        | From the wiki                                                                                                                                                                                        | Curated by hand                              |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                                                                                                                                           | stage, biome, summon, body type, time, hints |
+| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source                                                                                                             | function, class boost, source, "where found" |
+| Modifiers   | everything (rebuilt from the Modifiers page)                                                                                                                                                         | the skip list in the script                  |
+| Armor       | everything: every armor set (one entry per class variant, e.g. Chlorophyte armor (Summon)), plus Wizard hats and single pieces: total defense, rarity, category, class, how it's obtained, set bonus | nothing                                      |
+| Tooltips    | every item with a tooltip (minus armor, paintings, treasure bags, banners); only unique tooltips are answers. Tooltip text is server-only (`src/lib/server/tooltip-text.json`)                       | nothing                                      |
 
 **Accessories are imported automatically.** Every playable accessory on the wiki is added
 (not vanity, music boxes, developer items or console-only items). New ones get best-guess
