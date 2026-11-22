@@ -36,7 +36,16 @@ const vocab: Record<string, Record<string, string[]>> = {
 			'Utility'
 		],
 		classes: ['Melee', 'Ranged', 'Magic', 'Summon', 'All', 'None'],
-		sources: ['Crafted', 'Enemy drop', 'Boss/Treasure bag', 'Chest', 'NPC shop', 'Fishing/Crate']
+		sources: [
+			'Crafted',
+			'Enemy drop',
+			'Boss/Treasure bag',
+			'Chest',
+			'NPC shop',
+			'Fishing/Crate',
+			'Gathered',
+			'Shimmer'
+		]
 	},
 	modifier: {
 		appliesTo: ['Melee', 'Ranged', 'Magic', 'Summon', 'Accessory']
@@ -66,7 +75,7 @@ describe.each(games.map((g) => [g.slug, g] as const))('%s data', (slug, game) =>
 		}
 	});
 
-	it('every entry can be told apart from every other', () => {
+	it.skipIf(game.allowLookalikes)('every entry can be told apart from every other', () => {
 		const seen = new Map<string, string>();
 		for (const entry of game.entries) {
 			const fp = fingerprint(game.attributes, entry);

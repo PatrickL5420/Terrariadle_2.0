@@ -385,6 +385,11 @@ function autofill(item, ctx) {
 		sources.add('Fishing/Crate');
 		where.push('Caught while fishing');
 	}
+	const shimmered = ctx.shimmerFrom.get(item.name);
+	if (shimmered) {
+		sources.add('Shimmer');
+		where.push(`Shimmered from ${listText(shimmered.slice(0, 2))}`);
+	}
 	if (!sources.size) {
 		sources.add('Chest');
 		notes.push('source: nothing on the wiki, guessed Chest');
@@ -432,13 +437,20 @@ async function syncAccessories() {
 		(i) => isPlayableAccessory(i) && !notOnPc.has(i.name) && !DEVELOPER_ITEM.test(i.name)
 	);
 
-	const recipes = (
-		await cargoByNames('Recipes', 'result,ingredients,station,version', 'result', [...accNames])
-	).filter(isCraftingRecipe);
+	const allRecipes = await cargoByNames('Recipes', 'result,ingredients,station,version', 'result', [
+		...accNames
+	]);
+	const ingredientsOf = (r) => r.ingredients.split('^').map((x) => x.replaceAll('¦', '').trim());
 	const recipesFor = new Map();
-	for (const r of recipes) {
-		const ings = r.ingredients.split('^').map((x) => x.replaceAll('¦', '').trim());
-		recipesFor.set(r.result, [...(recipesFor.get(r.result) ?? []), ings]);
+	for (const r of allRecipes.filter(isCraftingRecipe)) {
+		recipesFor.set(r.result, [...(recipesFor.get(r.result) ?? []), ingredientsOf(r)]);
+	}
+	// Shimmer transmutations are their own Source ("Shimmer"), not crafting.
+	const shimmerFrom = new Map();
+	for (const r of allRecipes.filter((x) => x.station === 'Shimmer')) {
+		shimmerFrom.set(r.result, [
+			...new Set([...(shimmerFrom.get(r.result) ?? []), ...ingredientsOf(r)])
+		]);
 	}
 
 	const drops = await cargoByNames(
@@ -453,7 +465,7 @@ async function syncAccessories() {
 	const droppers = [...new Set(drops.map((d) => d.nameraw))];
 	const npcTypes = await cargoByNames('NPCs', 'nameraw,type', 'nameraw', droppers);
 	const bosses = new Set(npcTypes.filter((n) => /boss/i.test(n.type)).map((n) => n.nameraw));
-	const ctx = { recipesFor, dropsFor, bosses };
+	const ctx = { recipesFor, dropsFor, bosses, shimmerFrom };
 
 	// Crafting tier: 0 if not made from other accessories, else 1 + the deepest accessory
 	// ingredient; with several recipes, the shortest path wins.
@@ -482,7 +494,6 @@ async function syncAccessories() {
 			id: nextId++,
 			name: item.name,
 			image: `wiki:${item.imagefile || `${item.name}.png`}`,
-			pool: false,
 			reviewed: false
 		});
 		changes.push(`accessories  ${item.name.padEnd(22)} imported`);
@@ -518,17 +529,30 @@ async function syncAccessories() {
 			for (const k of ['functions', 'classes', 'sources', 'where'])
 				update('accessories', acc, k, guess[k]);
 			acc._notes = guess.notes;
-			if (acc.exclude?.startsWith(LOOKALIKE)) delete acc.exclude;
+		}
+		// Shimmer comes straight from the wiki's recipes, so it's kept in sync even on reviewed
+		// entries (an accessory can have several sources).
+		const canShimmer = ctx.shimmerFrom.has(acc.name);
+		if (canShimmer !== acc.sources.includes('Shimmer')) {
+			const next = canShimmer
+				? [...acc.sources, 'Shimmer']
+				: acc.sources.filter((x) => x !== 'Shimmer');
+			update('accessories', acc, 'sources', next);
 		}
 	}
 	await checkSources(
 		accessories.filter((a) => a.reviewed !== false),
 		ctx
 	);
-	parkLookalikes(accessories);
+	// Lookalikes are allowed (the name tile shows which guess is right); older versions of
+	// this script hid them, so un-hide those.
+	for (const acc of accessories) if (acc.exclude?.startsWith(LOOKALIKE)) delete acc.exclude;
+	const twins = lookalikeGroups(accessories);
 
 	for (const acc of accessories) {
-		if (acc.reviewed === false && !acc.exclude) reviewRows.push({ ...acc });
+		if (acc.reviewed === false && !acc.exclude) {
+			reviewRows.push({ ...acc, _twins: twins.get(acc.name) ?? [] });
+		}
 		if (acc.exclude) parked.push({ name: acc.name, reason: acc.exclude });
 		delete acc._notes;
 	}
@@ -560,34 +584,24 @@ async function syncAccessories() {
 	}
 }
 
-/**
- * Entries players couldn't tell apart (every column identical) are parked with `exclude`.
- * Reviewed / answer-pool entries win; otherwise the simplest name is kept.
- */
-function parkLookalikes(accessories) {
+/** name -> the other accessories with identical values in every column. */
+function lookalikeGroups(accessories) {
 	const groups = new Map();
 	for (const a of accessories) {
 		if (a.exclude) continue;
 		const fp = accessoryFingerprint(a);
-		groups.set(fp, [...(groups.get(fp) ?? []), a]);
+		groups.set(fp, [...(groups.get(fp) ?? []), a.name]);
 	}
-	for (const group of groups.values()) {
-		if (group.length < 2) continue;
-		const rank = (a) => (a.reviewed !== false ? 0 : 2) + (a.pool !== false ? 0 : 1);
-		group.sort(
-			(a, b) => rank(a) - rank(b) || a.name.length - b.name.length || a.name.localeCompare(b.name)
-		);
-		const [keep, ...rest] = group;
-		for (const a of rest) {
-			if (a.reviewed !== false) {
-				problems.push(
-					`accessory ${a.name}: identical to ${keep.name}; change a column or set "exclude"`
+	const twins = new Map();
+	for (const names of groups.values()) {
+		for (const n of names)
+			if (names.length > 1)
+				twins.set(
+					n,
+					names.filter((x) => x !== n)
 				);
-				continue;
-			}
-			a.exclude = `${LOOKALIKE}${keep.name}`;
-		}
 	}
+	return twins;
 }
 
 const cell = (v) => (Array.isArray(v) ? v.join(', ') : String(v)).replace(/\|/g, '\\|');
@@ -605,26 +619,24 @@ async function writeReview(playableCount, wikiCount) {
 		'',
 		'**How to review an entry:** fix Function, Class Boost, Source or "where" in',
 		'`accessories.json` if needed, then delete its `"reviewed": false`. Reviewed entries are',
-		'never re-guessed. To make one a possible daily answer, delete its `"pool": false` too.',
+		'never re-guessed. Every accessory can be a daily answer; add `"pool": false` to keep one out.',
 		'',
 		`- Wiki accessories: ${wikiCount} (${playableCount} after removing vanity, music boxes, developer items and non-PC items)`,
 		`- Waiting for review: **${rows.length}** (${unsure} flagged as unsure, listed first)`,
-		`- Parked lookalikes: ${parked.length}`,
+		`- Hidden with "exclude": ${parked.length}`,
 		'',
 		'## Waiting for review',
 		'',
-		'| Accessory | Function | Class Boost | Source | Where found (hint) | Unsure about |',
-		'| --- | --- | --- | --- | --- | --- |',
+		'| Accessory | Function | Class Boost | Source | Where found (hint) | Unsure about | Same columns as |',
+		'| --- | --- | --- | --- | --- | --- | --- |',
 		...rows.map(
 			(r) =>
-				`| ${cell(r.name)} | ${cell(r.functions)} | ${cell(r.classes)} | ${cell(r.sources)} | ${cell(r.where)} | ${cell(r._notes?.join('; ') ?? '')} |`
+				`| ${cell(r.name)} | ${cell(r.functions)} | ${cell(r.classes)} | ${cell(r.sources)} | ${cell(r.where)} | ${cell(r._notes?.join('; ') ?? '')} | ${cell(r._twins.slice(0, 3).join(', ') + (r._twins.length > 3 ? ` +${r._twins.length - 3}` : ''))} |`
 		),
 		'',
-		'## Parked lookalikes',
+		'## Hidden',
 		'',
-		'Identical to another accessory in every column, so they are hidden from the game. Change a',
-		'column in `accessories.json` to tell them apart (and delete `"reviewed": false`), then run',
-		'the sync again.',
+		'Entries with `"exclude"` in `accessories.json` (hidden from the game).',
 		'',
 		'| Accessory | Reason |',
 		'| --- | --- |',
@@ -642,6 +654,8 @@ async function writeReview(playableCount, wikiCount) {
  */
 async function checkSources(accessories, ctx) {
 	for (const acc of accessories) {
+		// The wiki's drop table has no rows for these bosses, so there's nothing to check against.
+		if (/Empress of Light/.test(acc.where)) continue;
 		const from = ctx.dropsFor.get(acc.name) ?? [];
 		const kinds = new Set(from.map((f) => dropKind(f, ctx.bosses)));
 		const claimsDrop = acc.sources.some((x) => x === 'Enemy drop' || x === 'Boss/Treasure bag');

@@ -7,7 +7,11 @@
 	import { flip } from 'svelte/animate';
 	import { fly } from 'svelte/transition';
 
-	let { game, guesses }: { game: GameConfig<Entry>; guesses: GuessRecord[] } = $props();
+	let {
+		game,
+		guesses,
+		answerId
+	}: { game: GameConfig<Entry>; guesses: GuessRecord[]; answerId?: number } = $props();
 
 	const background: Record<CompareResult, string> = {
 		match: 'var(--color-green)',
@@ -83,7 +87,13 @@
 
 	{#each rows as { guess, entry } (guess.id)}
 		<div class="row" animate:flip>
-			<div class="tile name-tile" in:fly={{ x: flyX(0), duration: flyDuration() }}>
+			<!-- The item itself: green only for the right answer, so lookalike rows aren't ambiguous. -->
+			<div
+				class="tile name-tile"
+				style:background-color={guess.id === answerId ? background.match : background.miss}
+				title={guess.id === answerId ? 'Correct!' : 'Not this one'}
+				in:fly={{ x: flyX(0), duration: flyDuration() }}
+			>
 				{#if entry.image}
 					<img src={imageUrl(entry.image)} alt={entry.name} title={entry.name} />
 				{:else}

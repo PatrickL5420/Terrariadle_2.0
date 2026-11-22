@@ -151,7 +151,7 @@
 				</div>
 			{:else}
 				<p class="mobile-msg" in:scale>← swipe to view →</p>
-				<GuessList {game} guesses={progress.guesses} />
+				<GuessList {game} guesses={progress.guesses} answerId={answer?.id} />
 			{/if}
 
 			<Confetti finished={progress.finished} />

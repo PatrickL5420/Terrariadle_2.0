@@ -65,6 +65,11 @@ export interface GameConfig<E extends Entry = Entry> {
 	theme: (e: E) => RarityName;
 	/** Column header for the first (image/name) column. */
 	firstColumn: string;
+	/**
+	 * Allow entries with identical values in every column. A wrong guess can then show an
+	 * all-green row, so the item's own tile is coloured to show whether the guess was right.
+	 */
+	allowLookalikes?: boolean;
 }
 
 export type Checks = Record<string, CompareResult>;

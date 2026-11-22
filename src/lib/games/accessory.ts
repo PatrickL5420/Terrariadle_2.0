@@ -31,6 +31,8 @@ export const accessoryGame: GameConfig<Accessory> = {
 	icon: (data as Accessory[]).find((a) => a.name === 'Hermes Boots')?.image ?? '',
 	entries: (data as Accessory[]).filter((a) => !a.exclude),
 	firstColumn: 'Accessory',
+	// Many accessories differ only in details the columns don't cover (e.g. wing flight time).
+	allowLookalikes: true,
 	theme: (a) => a.rarity,
 	attributes: [
 		{
