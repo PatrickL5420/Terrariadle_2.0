@@ -1,96 +1,120 @@
-# Terrariadle_2.0
+# Terrariadle
 
-[Live Site](https://terrariadle.com) - ~~Report a Bug~~ (currently being implemented) - ~~Reach Out~~ (currently being implemented) - [Support Me](https://ko-fi.com/terrariadle)
+Daily Terraria guessing games: **Boss Guesser**, **Accessory Guesser**, **Modifier Guesser**,
+**Armordle** and **Tooltipdle** (guess the item from its tooltip).
+Pick a guess and every property is compared to the answer: 🟩 match, 🟨 partial, 🟥 miss,
+▲▼ the answer is higher/lower. Hints unlock after 4, 7 and 12 guesses.
 
----
+Visuals are from [Terrariadle](https://github.com/BradyDriebergen/Terrariadle_2.0) by Brady
+Driebergen (MIT). Game data and images come from the
+[Terraria Wiki](https://terraria.wiki.gg/) (CC BY-NC-SA 3.0). This is an unofficial fan project,
+not affiliated with Re-Logic.
 
-<!-- ![Terrariadle Screenshot](./frontend/static/terrariadle-screenshot.png) -->
+## How it works
 
-<img src="./docs/terrariadle-screenshot.png" alt="Terrariadle Screenshot" height="300">
-
----
-
-Welcome to Terrariadle! This is a passion project based on the best game ever, [Terraria](https://terraria.org/). I'm a solo developer that loved playing daily games such as [Wordle](https://www.nytimes.com/games/wordle/index.html), [Loldle](https://loldle.net/), [Connections](https://www.nytimes.com/games/connections), and [Crossword](https://puzzles.usatoday.com/). I wanted to make a version of these daily puzzles based on my all-time favorite game.
-
-This project aims to remake another developer's project: [Terradle](https://www.terradle.com/). They did an amazing job on his site, but I wanted to expand and improve on the idea.
-
-This site contains 5 different daily puzzles:
-
-- **Daily Slash** — Wordle type game based on Terraria's weapons
-- **Connections** — Terraria themed Connections game
-- **Guess the NPC** — Use the quote to guess the NPC
-- **Hangman** — Guess the enemy one letter at a time
-- **TerraTrivia** — Terraria themed Seven Little Words
-
-If your curious on how I made this project, or some of the design choices behind it, I encourage you to look into the [docs](./docs/) folder. I wrote a ton about my development throughout this rewrite and I hope my struggles can help you make your own project.
-
-## Why I built this
-
-Terraria is one of my all-time favorite games. I've put over 2,000 hours into the base game and another 500 into modded. I started playing back when Ocram was still a boss on the mobile version. Alongside Terraria, I've always been hooked on daily puzzle games. I would play games like Wordle, Connections, Loldle, the USA Today crossword during my courses.
-
-A year out of school, I wanted a project that was bigger than a simple class assignment. While struggling to come up with something meaningful, it clicked that no one had made a proper daily puzzle game for Terraria. I decided to fill this gap and make a daily puzzle game, **Terrariadle**.
-
-The goal of Terrariadle was not only to provide a fun puzzle game that gave back to the Terraria community, I wanted it to be a project that I owned. A project where I chose the architecture. It's the largest application I've built end-to-end, spanning over full-stack development and infrastructure. It's also a project I could be passionate about, encouraging me to update and rebuild the codebase until it felt right.
-
-I'm happy to share this site with you, and I hope it's useful if you're learning Svelte. It's still a relatively under-utilized framework, so feel free to dig through the code as a reference for your own projects.
-
-## History Behind this Game
-
-This repository is actually a remake of the first iteration of the game. If you've been playing before this release, I made the first version in college with little knowledge on full-stack development and deployment. While I learned a lot, version 1.0 was the definition of MVP.
-
-My backend was in `Node.js`, and was a combination of 2 JavaScript files. My frontend was built in `React`, with no experience in any frontend framework beforehand. The site was extremely buggy, always crashing, and throwing constant errors about rendering images. I've included some parts of my old project files in [Legacy Notes](./docs/legacy-notes/). I recommend looking if you want to know what not to do.
-
-After restarting my server constantly and taking a break from developing for a couple of months, I decided that this project needed a massive overhaul. I decided to ditch my stack in place for modern languages. I did a ton of research into different options for my stack, until I came across `Svelte` and `Go`. These two quickly became my favorite due to their speed and simplicity. I then spent 9 months learning and refactoring the entire app, which has led us to where we are today.
-
-## Tech Stack
-
-| Layer                      | Tech          |
-| -------------------------- | ------------- |
-| Frontend                   | SvelteKit     |
-| Backend                    | Go            |
-| Database                   | MongoDB Atlas |
-| Web Server / Reverse Proxy | Caddy         |
-| Hosting                    | Oracle Cloud  |
-
-I chose this stack because of its simplicity and speed. Sveltekit was easy to learn, and compiles down to HTML/JS. Go is known for its lightweight procedural design and amazing standard library, making things like concurrency and error handling very easy. Caddy makes reverse-proxies super easy and has automatic certificate renewals. Throughout this stack, I wanted to prioritize readability, reliability, and efficiency. I went into details about technical decisions and their upsides/downsides in [choosing my stack](docs/choosing-my-stack.md).
-
-This project is a culmination of my efforts to making the project the best it can be. I intentionally avoided AI-driven development tools, opting to get my hands dirty and learn as much as possible. While I did use AI to work through Go and Svelte documentation and as a sounding board for ideas, the large majority of the code was written by me. This hands-on approach is what taught me so much about system design, language architecture, and process flow.
-
-## File Structure
+- **SvelteKit on Vercel.** Pages are prerendered static HTML; `/api/*` runs as one serverless function.
+- **No database for game data.** Every boss, accessory and modifier is a JSON file in `src/lib/data/`.
+- **The daily answer is computed, not stored.** Each mode walks its answer pool in an order shuffled
+  by `DAILY_SECRET` (`src/lib/engine/daily.ts`). No repeats until the pool is used up, no cron jobs.
+  Puzzles reset at midnight US Eastern (`RESET_TIME_ZONE`).
+- **Player progress lives in the browser** (`localStorage`), like Wordle.
+- **The only server state** is the "you were the Nth person" counter, in Upstash Redis. Without
+  Redis configured it falls back to memory, which is fine for local development.
+- **Guesses and hints are cacheable.** `GET /api/boss/guess?id=…&day=…` depends only on its URL,
+  so Vercel's CDN serves repeat guesses without running a function. Requests for any day other
+  than today are rejected, so nobody can peek at tomorrow's answer.
 
 ```
-Terrariadle/
-├── docs/       # Dev notes, technical documents, diagrams
-├── internal/   # Go packages and services - see docs/architecture/backend
-├── frontend/   # SvelteKit pages - see docs/architecture/frontend
-├── go.mod
-├── go.sum
-├── Makefile
-└── main.go
+src/lib/engine/   compare.ts (green/yellow/red/arrows), daily.ts (answer picking), types.ts
+src/lib/games/    one config per mode: columns, hints, theme (+ data tests)
+src/lib/data/     bosses.json, accessories.json, modifiers.json
+src/lib/server/   answers.ts (secret answer), counter.ts (Redis)
+src/routes/[mode=mode]/   the game page, shared by every mode
+src/routes/api/[mode=mode]/   today, guess, hint, solve
 ```
 
-## Roadmap / What's Next
+## Develop
 
-While I talk a lot about this being a finished product, I'm still in the process of building out extra features in the game. Here are a few of the additions I plan on making in the game:
+```bash
+npm install
+```
 
-- Improved UI for winning cards in `Connections`, `Hangman`, and `TerraTrivia`
-- Improved UI and animations for word chunk options in `TerraTrivia`
-- Added loading animation for pages
-- Total user guess count on landing page
-- Overhaul of category options for `Connections`
-- Custom Terraria cursor
+```bash
+npm run dev
+```
 
-Here are the extras I'm planning on adding to the backend:
+```bash
+npm test && npm run check && npm run lint
+```
 
-- Logging on the backend
-- Outside monitoring with automatic app restart if it breaks
-- Add custom way to reach out for feedback or bugs
-- Better way of tracking what I'm working on (probably GitHub)
+`npm test` also validates the data: unknown values (typos), duplicate ids and any two entries with
+identical stats, which players couldn't tell apart, all fail the test run.
 
-More information on what I'm adding can currently be found in `/docs/Todo.md`.
+### Dev tools
 
-## License
+`npm run dev` adds a **🛠 Dev** button (or press the backtick key). The panel lets you:
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- **Answer:** see today's answer, reroll it at random, or pick a specific one. Forced answers
+  only last until the day changes, and rerolling clears your progress for that mode.
+- **Time travel:** move the game a day forward or back to test the reset and yesterday's answer.
+- **Player:** auto-solve through the real API, unlock all hints, reset your progress for one or
+  every mode, and reset the solve counts.
+- **Schedule:** the next 14 scheduled answers for each mode.
+- **Tasks:** run the wiki sync (report or write), image download, tests and type-check, with
+  their output in the panel.
 
-_Terrariadle is a fan project and is not affiliated with Re-Logic or the official Terraria game._
+All of it is off in production: `/api/dev` returns 404 and the panel is never loaded. Dev mode
+also uses its own `dev:` keys in Redis, so it can't touch real solve counts.
+
+## Deploy to Vercel
+
+1. Import the repository in Vercel. It detects SvelteKit; no settings needed.
+2. Add the environment variable `DAILY_SECRET` (any long random string). **Required**: without it
+   the API refuses to run, because anyone could compute the answers from this public code.
+3. Optional: add Upstash Redis from the Vercel Marketplace (Storage tab). It sets
+   `KV_REST_API_URL` / `KV_REST_API_TOKEN`, which enables solve counts.
+
+Changing `DAILY_SECRET`, or adding or removing entries, reshuffles the answer order, which can
+change the current day's answer. Deploy those changes just after midnight Eastern.
+
+## Game data and the wiki
+
+Stats come from the [Terraria Wiki](https://terraria.wiki.gg/)'s data tables:
+
+```bash
+npm run sync-wiki
+```
+
+```bash
+npm run sync-wiki -- --write
+```
+
+The first reports differences; `--write` applies them.
+
+| Data        | From the wiki                                                                                                                                                                  | Curated by hand                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                                                                                                                     | stage, biome, summon, body type, time, hints |
+| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source                                                                                       | function, class boost, source, "where found" |
+| Modifiers   | everything (rebuilt from the Modifiers page)                                                                                                                                   | the skip list in the script                  |
+| Armor       | everything: every armor piece, its set, slot, defense, rarity, category, how it's obtained, set bonus                                                                          | nothing                                      |
+| Tooltips    | every item with a tooltip (minus armor, paintings, treasure bags, banners); only unique tooltips are answers. Tooltip text is server-only (`src/lib/server/tooltip-text.json`) | nothing                                      |
+
+**Accessories are imported automatically.** Every playable accessory on the wiki is added
+(not vanity, music boxes, developer items or console-only items). New ones get best-guess
+Function, Class Boost, Source and "where" values from the wiki's tags, drops, recipes and
+tooltips, marked `"reviewed": false`, and are listed in
+[`review/accessories.md`](review/accessories.md). After checking one, delete its
+`"reviewed": false` and the sync won't touch those columns again. Imported accessories can be
+guessed but aren't daily answers until you delete their `"pool": false`. Entries that would be
+identical to another in every column are hidden with `"exclude"` and listed in the review file.
+
+Anything it can't decide is printed under "Needs attention". After adding entries, run
+`npm run fetch-images` to download their images into `static/` (the site never hotlinks the
+wiki) and `npm test` to catch typos and lookalike entries.
+
+## Adding a game mode
+
+1. Add `src/lib/data/<things>.json`.
+2. Add `src/lib/games/<thing>.ts` exporting a `GameConfig`: its columns (`exact`, `number`,
+   `ranked`, `set` or `stats`), three hints and a rarity theme.
+3. Register it in `src/lib/games/index.ts`. The routes, header and home page pick it up.

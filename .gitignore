@@ -1,10 +1,26 @@
-.env
+node_modules
 
-# Mac specific
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
 .DS_Store
+Thumbs.db
 
-/internal/web/build
-/bin
-/backups
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
 
-deploy.sh
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Python helper caches
+__pycache__/

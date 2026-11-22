@@ -1,0 +1,46 @@
+{
+	"name": "terrariadle",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"format": "prettier --write .",
+		"lint": "prettier --check . && eslint .",
+		"test": "vitest run",
+		"fetch-images": "node scripts/fetch-images.mjs",
+		"sync-wiki": "node scripts/sync-wiki.mjs"
+	},
+	"devDependencies": {
+		"@eslint/compat": "^2.1.0",
+		"@eslint/js": "^10.0.1",
+		"@sveltejs/adapter-vercel": "^6.3.5",
+		"@sveltejs/kit": "^2.64.0",
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"@types/node": "^25",
+		"eslint": "^10.4.1",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.19.0",
+		"globals": "^17.6.0",
+		"prettier": "^3.8.3",
+		"prettier-plugin-svelte": "^4.1.0",
+		"svelte": "^5.56.3",
+		"svelte-check": "^4.6.0",
+		"svelte-confetti": "^2.3.2",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.61.0",
+		"vite": "^8.0.16",
+		"vitest": "^5.1.1"
+	},
+	"allowScripts": {
+		"fsevents@2.3.3": true
+	},
+	"engines": {
+		"node": ">=22.13"
+	}
+}
