@@ -16,7 +16,7 @@ not affiliated with Re-Logic.
 - **No database for game data.** Every boss, accessory and modifier is a JSON file in `src/lib/data/`.
 - **The daily answer is computed, not stored.** Each mode walks its answer pool in an order shuffled
   by `DAILY_SECRET` (`src/lib/engine/daily.ts`). No repeats until the pool is used up, no cron jobs.
-  Puzzles reset at midnight US Eastern (`RESET_TIME_ZONE`).
+  Puzzles reset at midnight Sydney time (`RESET_TIME_ZONE`).
 - **Player progress lives in the browser** (`localStorage`), like Wordle.
 - **The only server state** is the "you were the Nth person" counter, in Upstash Redis. Without
   Redis configured it falls back to memory, which is fine for local development.
@@ -75,7 +75,7 @@ also uses its own `dev:` keys in Redis, so it can't touch real solve counts.
    `KV_REST_API_URL` / `KV_REST_API_TOKEN`, which enables solve counts.
 
 Changing `DAILY_SECRET`, or adding or removing entries, reshuffles the answer order, which can
-change the current day's answer. Deploy those changes just after midnight Eastern.
+change the current day's answer. Deploy those changes just after midnight Sydney time.
 
 ## Game data and the wiki
 

@@ -2,7 +2,7 @@
  * Every puzzle rolls over at midnight in this time zone.
  * Shared by the browser and the server so both agree on what "today" is.
  */
-export const RESET_TIME_ZONE = 'America/New_York';
+export const RESET_TIME_ZONE = 'Australia/Sydney';
 
 const DAY_MS = 86_400_000;
 

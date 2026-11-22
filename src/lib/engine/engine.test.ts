@@ -70,11 +70,16 @@ describe('pickDaily', () => {
 });
 
 describe('daily clock', () => {
-	it('rolls over at midnight in the reset time zone', () => {
-		const before = new Date('2026-03-01T04:59:59Z'); // 23:59:59 in New York (EST)
-		const after = new Date('2026-03-01T05:00:00Z');
+	it('rolls over at midnight in Sydney, with daylight saving', () => {
+		// 2 March 2026 starts at 13:00 UTC (AEDT, UTC+11)...
+		const before = new Date('2026-03-01T12:59:59Z');
+		const after = new Date('2026-03-01T13:00:00Z');
 		expect(dayNumber(after) - dayNumber(before)).toBe(1);
 		expect(secondsUntilReset(before)).toBe(1);
 		expect(secondsUntilReset(after)).toBe(86400);
+		// ...and 1 July 2026 at 14:00 UTC (AEST, UTC+10).
+		expect(
+			dayNumber(new Date('2026-06-30T14:00:00Z')) - dayNumber(new Date('2026-06-30T13:59:59Z'))
+		).toBe(1);
 	});
 });
