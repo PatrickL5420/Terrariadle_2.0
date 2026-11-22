@@ -26,7 +26,15 @@
 
 	$effect(() => {
 		const query = input.toLowerCase();
-		filtered = itemList.filter((item) => item.name.toLowerCase().includes(query)).slice(0, 20);
+		// Best matches first, so Enter picks "Hallowed Mask" over "Ancient Hallowed Mask".
+		const rank = (name: string) => {
+			const n = name.toLowerCase();
+			return n === query ? 0 : n.startsWith(query) ? 1 : 2;
+		};
+		filtered = itemList
+			.filter((item) => item.name.toLowerCase().includes(query))
+			.sort((a, b) => rank(a.name) - rank(b.name))
+			.slice(0, 20);
 		dropdownIndex = -1;
 	});
 

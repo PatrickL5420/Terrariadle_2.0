@@ -1,6 +1,7 @@
 # Terrariadle
 
-Daily Terraria guessing games: **Boss Guesser**, **Accessory Guesser** and **Modifier Guesser**.
+Daily Terraria guessing games: **Boss Guesser**, **Accessory Guesser**, **Modifier Guesser** and
+**Armordle**.
 Pick a guess and every property is compared to the answer: 🟩 match, 🟨 partial, 🟥 miss,
 ▲▼ the answer is higher/lower. Hints unlock after 4, 7 and 12 guesses.
 
@@ -90,11 +91,12 @@ npm run sync-wiki -- --write
 
 The first reports differences; `--write` applies them.
 
-| Data        | From the wiki                                                                            | Curated by hand                              |
-| ----------- | ---------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                               | stage, biome, summon, body type, time, hints |
-| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source | function, class boost, source, "where found" |
-| Modifiers   | everything (rebuilt from the Modifiers page)                                             | the skip list in the script                  |
+| Data        | From the wiki                                                                                         | Curated by hand                              |
+| ----------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                                            | stage, biome, summon, body type, time, hints |
+| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source              | function, class boost, source, "where found" |
+| Modifiers   | everything (rebuilt from the Modifiers page)                                                          | the skip list in the script                  |
+| Armor       | everything: every armor piece, its set, slot, defense, rarity, category, how it's obtained, set bonus | nothing                                      |
 
 **Accessories are imported automatically.** Every playable accessory on the wiki is added
 (not vanity, music boxes, developer items or console-only items). New ones get best-guess

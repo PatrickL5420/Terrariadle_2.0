@@ -998,8 +998,172 @@ async function syncModifiers() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Armor (Armordle): every armor piece, built entirely from the wiki
+
+const ARMOR_SECTIONS = {
+	'Pre-Hardmode': 'Pre-Hardmode',
+	Hardmode: 'Hardmode',
+	'Wizard set': 'Other',
+	'Miscellaneous armor': 'Other'
+};
+const SLOTS = { helmet: 'Head', shirt: 'Chest', pants: 'Legs' };
+
+/** Rows of the Armor page: set (or single piece) -> its section and its bonus text. */
+async function armorRows() {
+	const html = await pageHtml('Armor');
+	const parts = html.split(/<h([23])[^>]*>([\s\S]*?)<\/h\1>/);
+	const rows = new Map();
+	for (let i = 1; i < parts.length; i += 3) {
+		const heading = text(parts[i + 1])
+			.replace(/\[\s*edit\s*\]/, '')
+			.trim();
+		const category = ARMOR_SECTIONS[heading];
+		if (!category) continue;
+		const table = parts[i + 2].match(/<table[\s\S]*?<\/table>/)?.[0] ?? '';
+		for (const [, row] of table.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)) {
+			const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((c) => c[1]);
+			if (cells.length < 4) continue;
+			const title = cells[1].match(/<a [^>]*title="([^"]+)"/)?.[1];
+			if (!title) continue;
+			// "Bonuses / Effects / Notes" is the second-to-last cell.
+			const notes = cells[cells.length - 2];
+			const lines = [...notes.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => text(m[1]));
+			const bonus = lines
+				.filter((l) => /^Set Bonus/i.test(l))
+				.map((l) => l.replace(/^Set Bonus:?\s*/i, ''));
+			const effect = lines.filter((l) => !/^Set Bonus/i.test(l) && !/interchangeable/i.test(l));
+			rows.set(decode(title), { category, bonus, effect });
+		}
+	}
+	return rows;
+}
+
+/** A drop/loot source -> the wiki's obtain categories. */
+function armorDropKind(from, bosses) {
+	if (/Treasure Bag|Goodie Bag|Present|Bag\b/.test(from)) return 'Bag loot';
+	if (/Crate/.test(from)) return 'Fished';
+	if (/Chest|Lock Box|Urn|Pot\b/.test(from)) return 'Loot';
+	return bosses.has(from) ? 'Drop' : 'Drop';
+}
+
+const WIZARD_ROBE = { category: 'Other', bonus: [], effect: [] };
+
+/** Set bonus text for the hint strip: wiki asides removed, cut to ~140 characters. */
+function shortBonus(textIn) {
+	const t = textIn
+		.replace(/\(\s*[^)]*see [^)]*\)/gi, '')
+		.replace(/\s+([;,.)])/g, '$1')
+		.replace(/\s{2,}/g, ' ')
+		.trim();
+	if (t.length <= 140) return t;
+	const cut = t.slice(0, 140);
+	return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+}
+
+async function syncArmor() {
+	const existing = await load('armor.json').catch(() => []);
+	const rows = await armorRows();
+	const items = (
+		await cargo(
+			'Items',
+			'name,type,bodyslot,defense,rare,hardmode,tag,imagefile,unobtainable',
+			'type HOLDS "armor"'
+		)
+	).filter((i) => SLOTS[i.bodyslot] && i.unobtainable !== '1');
+
+	// Piece -> set: piece pages redirect to their set's page.
+	const setOf = new Map();
+	for (let i = 0; i < items.length; i += 50) {
+		const r = await api({
+			action: 'query',
+			redirects: '1',
+			titles: items
+				.slice(i, i + 50)
+				.map((x) => x.name)
+				.join('|')
+		});
+		for (const red of r.query.redirects ?? []) setOf.set(red.from, red.to);
+	}
+
+	const names = items.map((i) => i.name);
+	const recipes = (await cargoByNames('Recipes', 'result,station,version', 'result', names)).filter(
+		isCraftingRecipe
+	);
+	const crafted = new Set(recipes.map((r) => r.result));
+	const drops = await cargoByNames('Drops', 'nameraw,item', 'item', names);
+	const bosses = new Set(
+		(
+			await cargoByNames('NPCs', 'nameraw,type', 'nameraw', [
+				...new Set(drops.map((d) => d.nameraw))
+			])
+		)
+			.filter((n) => /boss/i.test(n.type))
+			.map((n) => n.nameraw)
+	);
+
+	let nextId = Math.max(0, ...existing.map((e) => e.id)) + 1;
+	const out = [];
+	for (const item of [...items].sort((a, b) => a.name.localeCompare(b.name))) {
+		let set = setOf.get(item.name) ?? item.name;
+		let row = rows.get(set) ?? rows.get(item.name);
+		if (!rows.get(set) && row) set = item.name; // e.g. Empty Bucket redirects to "Buckets"
+		// Robes aren't rows of their own: they're the chest half of the Wizard set.
+		if (!row && / Robe$/.test(item.name)) {
+			set = 'Wizard set';
+			row = { ...WIZARD_ROBE, bonus: [...(rows.get('Wizard Hat')?.bonus ?? [])] };
+		}
+		if (!row) {
+			problems.push(`armor ${item.name}: its set "${set}" isn't on the Armor page; skipped`);
+			continue;
+		}
+		const rarity = RARITY[toInt(item.rare)];
+		if (!rarity) problems.push(`armor ${item.name}: unknown rarity ${item.rare}`);
+
+		const obtained = new Set();
+		if (crafted.has(item.name)) obtained.add('Craftable');
+		for (const d of drops.filter((x) => x.item === item.name))
+			obtained.add(armorDropKind(d.nameraw, bosses));
+		const tags = (item.tag ?? '').toLowerCase();
+		if (/\bvendor\b|buyable|\bbuy\b/.test(tags)) obtained.add('Vendor');
+		if (/\bfish(ed|ing)\b/.test(tags)) obtained.add('Fished');
+		if (/quest rewards/.test(tags)) obtained.add('Quest reward');
+		if (/\bloot\b/.test(tags) && !obtained.size) obtained.add('Loot');
+		if (!obtained.size) {
+			obtained.add('Other');
+			problems.push(`armor ${item.name}: no source found on the wiki`);
+		}
+
+		const old = existing.find((e) => e.name === item.name);
+		out.push({
+			id: old?.id ?? nextId++,
+			name: item.name,
+			image: old?.image?.startsWith('/')
+				? old.image
+				: `wiki:${item.imagefile || `${item.name}.png`}`,
+			set: set === item.name ? '' : set,
+			slot: SLOTS[item.bodyslot],
+			defense: toInt(item.defense),
+			rarity: rarity ?? 'White',
+			category: row.category,
+			obtained: [...obtained],
+			setBonus: row.bonus.length
+				? shortBonus(row.bonus.join(' / '))
+				: `No set bonus${row.effect.length ? `. ${shortBonus(row.effect[0])}` : ''}`
+		});
+		if (!old) changes.push(`armor        ${item.name.padEnd(22)} added`);
+	}
+	for (const old of existing) {
+		if (!out.some((o) => o.id === old.id))
+			changes.push(`armor        ${old.name.padEnd(22)} removed`);
+	}
+	out.sort((a, b) => a.id - b.id);
+	if (WRITE) await save('armor.json', out);
+}
+
+// ---------------------------------------------------------------------------------------------
 
 await syncBosses();
+await syncArmor();
 await syncAccessories();
 await syncModifiers();
 

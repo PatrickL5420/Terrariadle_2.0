@@ -34,6 +34,11 @@ const vocab: Record<string, Record<string, string[]>> = {
 			'Shimmer'
 		]
 	},
+	armor: {
+		slot: ['Head', 'Chest', 'Legs'],
+		category: ['Pre-Hardmode', 'Hardmode', 'Other'],
+		obtained: ['Craftable', 'Drop', 'Loot', 'Bag loot', 'Vendor', 'Fished', 'Quest reward']
+	},
 	modifier: {
 		category: ['Universal', 'Common', 'Melee', 'Ranged', 'Magic', 'Summon', 'Accessory']
 	}

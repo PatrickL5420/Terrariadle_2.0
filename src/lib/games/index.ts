@@ -1,10 +1,16 @@
 import type { Entry, GameConfig } from '$lib/engine/types';
 import { accessoryGame } from './accessory';
+import { armorGame } from './armor';
 import { bossGame } from './boss';
 import { modifierGame } from './modifier';
 
 /** Every game mode, in the order shown in the header and on the home page. */
-export const games = [bossGame, accessoryGame, modifierGame] as unknown as GameConfig<Entry>[];
+export const games = [
+	bossGame,
+	accessoryGame,
+	modifierGame,
+	armorGame
+] as unknown as GameConfig<Entry>[];
 
 export const gameSlugs = games.map((g) => g.slug);
 

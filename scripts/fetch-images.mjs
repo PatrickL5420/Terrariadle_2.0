@@ -10,7 +10,8 @@ import path from 'node:path';
 
 const FILES = {
 	'bosses.json': 'bosses',
-	'accessories.json': 'accessories'
+	'accessories.json': 'accessories',
+	'armor.json': 'armor'
 };
 const WIKI = 'https://terraria.wiki.gg/wiki/Special:FilePath/';
 const root = path.resolve(import.meta.dirname, '..');
