@@ -44,8 +44,10 @@ function numberRange<E extends Entry>(
 	attr: Attribute<E>,
 	entries: E[]
 ): [string, string] | undefined {
-	if (!entries.length) return undefined;
-	const sorted = [...entries].sort((a, b) => (attr.value(a) as number) - (attr.value(b) as number));
+	// Entries without a number (e.g. Mechdusa's "Mixed" defense) aren't on the scale.
+	const numeric = entries.filter((e) => typeof attr.value(e) === 'number');
+	if (!numeric.length) return undefined;
+	const sorted = numeric.sort((a, b) => (attr.value(a) as number) - (attr.value(b) as number));
 	return [shown(attr, sorted[0]).join(', '), shown(attr, sorted[sorted.length - 1]).join(', ')];
 }
 

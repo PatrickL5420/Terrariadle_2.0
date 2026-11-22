@@ -14,7 +14,7 @@ export type CompareKind = 'exact' | 'number' | 'ranked' | 'set' | 'stats';
 /** `higher` / `lower` describe the answer relative to the guess. */
 export type CompareResult = 'match' | 'miss' | 'partial' | 'higher' | 'lower';
 
-export type AttrValue = string | number | boolean | string[];
+export type AttrValue = string | number | boolean | string[] | null;
 
 export interface Entry {
 	id: number;

@@ -82,7 +82,8 @@ const decode = (s) =>
 		.replace(/&#0?39;|&apos;/g, "'")
 		.replace(/&lt;/g, '<')
 		.replace(/&gt;/g, '>')
-		.replace(/&#8722;|−/g, '-');
+		.replace(/&#8722;|−/g, '-')
+		.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
 
 const text = (html) =>
 	decode(html.replace(/<[^>]+>/g, ' '))
@@ -142,8 +143,8 @@ async function save(file, entries) {
 // Bosses
 
 /**
- * Per-boss lookup rules: which wiki page holds the infobox, which NPC part's defense to use,
- * and drop hints the drop table can't confirm (checked by hand).
+ * Per-boss lookup rules: which wiki page holds the infobox, which NPC part's stats to use, and
+ * drop hints the drop table can't confirm (checked by hand).
  */
 const BOSS_SOURCES = {
 	'Eater of Worlds': { defensePart: 'Eater of Worlds Body' },
@@ -155,13 +156,92 @@ const BOSS_SOURCES = {
 	'Empress of Light': { dropUnchecked: true }, // no rows in the wiki's drop table
 	'Lunatic Cultist': { defensePart: '' },
 	Pumpking: { defensePart: '' },
-	'Celestial Pillars': { page: 'Solar Pillar', npc: 'Solar Pillar', dropUnchecked: true }
+	'Martian Saucer': { defensePart: '' },
+	// Old One's Army minibosses come in tiers; the game uses the first tier they appear in.
+	'Dark Mage': { defensePart: 'T1' },
+	Ogre: { defensePart: 'T2' },
+	// A fusion of the three mechanical bosses with no single defense: shown as "Mixed".
+	Mechdusa: { defense: null }
 };
+
+/** Sections of the wiki's "Bosses" page -> the Category column. */
+const BOSS_CATEGORY = {
+	'Pre-Hardmode bosses': 'Pre-Hardmode',
+	'Hardmode bosses': 'Hardmode',
+	'Event bosses': 'Event',
+	'Special world seed-exclusive boss': 'Special seed'
+};
+
+async function bossCategories() {
+	const html = await pageHtml('Bosses');
+	const parts = html.split(/<h([23])[^>]*>([\s\S]*?)<\/h\1>/);
+	const categories = new Map();
+	let current;
+	for (let i = 1; i < parts.length; i += 3) {
+		const heading = text(parts[i + 1])
+			.replace(/\[\s*edit\s*\]/, '')
+			.trim();
+		if (parts[i] === '2') current = BOSS_CATEGORY[heading];
+		else if (current) categories.set(heading, current);
+	}
+	return categories;
+}
+
+/**
+ * The wiki's environment ("The Crimson/Underground Crimson", "Surface+Night/Space+Night",
+ * "Frost Moon") -> the Biome column. Time-of-day markers go to the Time column instead.
+ */
+const BIOME_NAMES = {
+	'The Crimson': 'Crimson',
+	'Underground Crimson': 'Crimson',
+	'The Corruption': 'Corruption',
+	'Underground Corruption': 'Corruption',
+	'The Hallow': 'Hallow',
+	'The Underworld': 'Underworld',
+	'Snow biome': 'Snow',
+	'Bee Hive (biome)': 'Bee Hive',
+	'Dungeon entrance': 'Dungeon'
+};
+const NOT_BIOMES = new Set(['Night', 'Day', 'Blizzard']);
+
+function biomesFrom(environment) {
+	const out = [];
+	// Infoboxes separate alternatives with spaces ("Surface + Night Space + Night").
+	const normalized = environment
+		.replace(/\s*\+\s*/g, '+')
+		.replace(/\b(Night|Day)\s+(?=[A-Z])/g, '$1/');
+	for (const token of normalized
+		.split(/[/+]/)
+		.map((t) => t.trim())
+		.filter(Boolean)) {
+		if (NOT_BIOMES.has(token)) continue;
+		const name = BIOME_NAMES[token] ?? token;
+		if (!out.includes(name)) out.push(name);
+	}
+	return out.length ? out : ['Any'];
+}
+
+/** Night where the wiki says so, plus night-only summons the environment doesn't mention. */
+const NIGHT_EVENTS = /Pumpkin Moon|Frost Moon/;
+const NIGHT_SUMMONS = new Set(['Empress of Light']);
+function timeFrom(name, environment) {
+	if (/\bNight\b/.test(environment) || NIGHT_EVENTS.test(environment) || NIGHT_SUMMONS.has(name)) {
+		return 'Night';
+	}
+	if (/\bDay\b/.test(environment)) return 'Day';
+	return 'Any';
+}
 
 async function syncBosses() {
 	const bosses = await load('bosses.json');
+	const categories = await bossCategories();
 	const npcNames = bosses.map((b) => BOSS_SOURCES[b.name]?.npc ?? b.name);
-	const npcs = await cargoByNames('NPCs', 'name,nameraw,life,defense', 'nameraw', npcNames);
+	const npcs = await cargoByNames(
+		'NPCs',
+		'name,nameraw,life,defense,environment',
+		'nameraw',
+		npcNames
+	);
 
 	for (const boss of bosses) {
 		const src = BOSS_SOURCES[boss.name] ?? {};
@@ -172,19 +252,39 @@ async function syncBosses() {
 			src.defensePart !== undefined
 				? parts.find((n) => partName(n) === src.defensePart)
 				: (parts.find((n) => !partName(n)) ?? parts[0]);
-		// The infobox's first "Max Life" is the total across all parts (Classic first).
 		const infobox = text(await pageHtml(src.page ?? boss.name));
-		if (main) update('bosses', boss, 'defense', toInt(classic(main.defense)));
+
+		const category = categories.get(boss.name);
+		if (category) update('bosses', boss, 'category', category);
+		else problems.push(`boss ${boss.name}: not listed on the wiki's Bosses page`);
+
+		// Defense of the main part; bosses without an NPC row fall back to the infobox, and
+		// combined bosses (Mechdusa) can set a fixed value.
+		if (src.defense !== undefined) update('bosses', boss, 'defense', src.defense);
+		else if (main) update('bosses', boss, 'defense', toInt(classic(main.defense)));
 		else {
-			// A few bosses have no NPC table row; fall back to the infobox.
 			const def = infobox.match(/Defense\s+(\d+)/);
 			if (def) update('bosses', boss, 'defense', toInt(def[1]));
-			else problems.push(`boss ${boss.name}: no defense found`);
+			else problems.push(`boss ${boss.name}: no defense on the wiki; set BOSS_SOURCES.defense`);
 		}
+
+		// The infobox's first "Max Life" is the total across all parts (Classic first).
+		// Tiered bosses (Old One's Army) have no single total, so use the chosen tier's row.
 		const life = infobox.match(/Max Life\s+([\d,]+)/);
-		if (!life) problems.push(`boss ${boss.name}: no Max Life on wiki page`);
-		else update('bosses', boss, 'hp', toInt(life[1]));
+		if (life) update('bosses', boss, 'hp', toInt(life[1]));
+		else if (main) update('bosses', boss, 'hp', toInt(classic(main.life)));
+		else problems.push(`boss ${boss.name}: no Max Life on the wiki`);
+
+		const environment = main
+			? text(main.environment)
+			: (infobox.match(/Environment\s+(.*?)\s+(?:Max Life|AI Type|Damage)/)?.[1] ?? '');
+		if (!environment) problems.push(`boss ${boss.name}: no environment on the wiki`);
+		else {
+			update('bosses', boss, 'biomes', biomesFrom(environment));
+			update('bosses', boss, 'time', timeFrom(boss.name, environment));
+		}
 	}
+
 	// The "signature drop" hint is hand-written; make sure the boss really drops it.
 	const drops = await cargoByNames('Drops', 'nameraw,item', 'item', [
 		...new Set(bosses.map((b) => b.drop))

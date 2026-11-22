@@ -5,21 +5,8 @@ import { games } from '.';
 /** Allowed values for list/exact attributes, so typos in the data files fail the build. */
 const vocab: Record<string, Record<string, string[]>> = {
 	boss: {
-		biomes: [
-			'Any',
-			'Forest',
-			'Corruption',
-			'Crimson',
-			'Jungle',
-			'Underground',
-			'Dungeon',
-			'Snow',
-			'Hallow',
-			'Ocean',
-			'Underworld',
-			'Temple'
-		],
-		summon: ['Item', 'Break object', 'Event', 'Other'],
+		category: ['Pre-Hardmode', 'Hardmode', 'Event', 'Special seed'],
+		summon: ['Item', 'Break object', 'Event', 'Kill mob', 'Other'],
 		body: ['Worm', 'Flying', 'Ground', 'Multi-part', 'Humanoid', 'Stationary'],
 		time: ['Day', 'Night', 'Any']
 	},
@@ -66,7 +53,7 @@ describe.each(games.map((g) => [g.slug, g] as const))('%s data', (slug, game) =>
 			for (const entry of game.entries) {
 				const v = attr.value(entry);
 				if (attr.kind === 'ranked') expect(attr.order, entry.name).toContain(v);
-				if (attr.kind === 'number') expect(Number.isFinite(v), entry.name).toBe(true);
+				if (attr.kind === 'number') expect(v === null || Number.isFinite(v), entry.name).toBe(true);
 				if (allowed) {
 					for (const item of Array.isArray(v) ? v : [v])
 						expect(allowed, entry.name).toContain(item);

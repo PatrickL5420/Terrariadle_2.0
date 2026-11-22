@@ -3,9 +3,11 @@ import type { Entry, GameConfig } from '$lib/engine/types';
 import type { RarityName } from '$lib/rarity';
 
 export interface Boss extends Entry {
-	stage: string;
+	/** The wiki's boss category: Pre-Hardmode, Hardmode, Event or Special seed. */
+	category: string;
 	hp: number;
-	defense: number;
+	/** null when there's no single value (Mechdusa's parts all differ); shown as "Mixed". */
+	defense: number | null;
 	biomes: string[];
 	summon: string;
 	body: string;
@@ -14,22 +16,11 @@ export interface Boss extends Entry {
 	drop: string;
 }
 
-export const STAGES = [
-	'Pre-Hardmode',
-	'Early Hardmode',
-	'Post-Mech',
-	'Post-Plantera',
-	'Post-Golem',
-	'Endgame'
-] as const;
-
-const stageTheme: Record<string, RarityName> = {
+const categoryTheme: Record<string, RarityName> = {
 	'Pre-Hardmode': 'Green',
-	'Early Hardmode': 'Light Red',
-	'Post-Mech': 'Pink',
-	'Post-Plantera': 'Lime',
-	'Post-Golem': 'Yellow',
-	Endgame: 'Red'
+	Hardmode: 'Pink',
+	Event: 'Orange',
+	'Special seed': 'Red'
 };
 
 export const bossGame: GameConfig<Boss> = {
@@ -40,15 +31,16 @@ export const bossGame: GameConfig<Boss> = {
 	icon: '/bosses/Eye of Cthulhu.png',
 	entries: data as Boss[],
 	firstColumn: 'Boss',
-	theme: (b) => stageTheme[b.stage] ?? 'White',
+	theme: (b) => categoryTheme[b.category] ?? 'White',
+	// The four Celestial Pillars share every stat; the name tile shows which guess is right.
+	allowLookalikes: true,
 	attributes: [
 		{
-			key: 'stage',
-			label: 'Stage',
-			title: 'When in progression the game expects you to fight it',
-			kind: 'ranked',
-			order: STAGES,
-			value: (b) => b.stage
+			key: 'category',
+			label: 'Category',
+			title: "The wiki's boss category",
+			kind: 'exact',
+			value: (b) => b.category
 		},
 		{
 			key: 'hp',
@@ -63,19 +55,20 @@ export const bossGame: GameConfig<Boss> = {
 			label: 'Defense',
 			title: 'Defense of the main body',
 			kind: 'number',
-			value: (b) => b.defense
+			value: (b) => b.defense,
+			display: (b) => (b.defense === null ? 'Mixed' : String(b.defense))
 		},
 		{
 			key: 'biomes',
 			label: 'Biome',
-			title: 'Where it is fought',
+			title: 'Where it is fought, or the event it belongs to',
 			kind: 'set',
 			value: (b) => b.biomes
 		},
 		{
 			key: 'summon',
 			label: 'Summon',
-			title: 'How the fight starts',
+			title: 'How the fight starts: item, breaking something, an event, killing a mob, or other',
 			kind: 'exact',
 			value: (b) => b.summon
 		},

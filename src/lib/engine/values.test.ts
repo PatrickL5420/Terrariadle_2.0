@@ -11,22 +11,23 @@ const attr = <T extends { attributes: { key: string }[] }>(g: T, key: string) =>
 
 describe('summarizeValues', () => {
 	it('lists ranked values low to high, only those used', () => {
-		const s = summarizeValues(attr(bossGame, 'stage'), bossGame.entries);
+		const s = summarizeValues(attr(accessoryGame, 'rarity'), accessoryGame.entries);
 		expect(s.ordered).toBe(true);
-		expect(s.values[0]).toBe('Pre-Hardmode');
-		expect(s.values.at(-1)).toBe('Endgame');
+		expect(s.values[0]).toBe('White');
+		expect(s.values.at(-1)).toBe('Expert');
 	});
 
 	it('gives number columns a formatted range', () => {
 		const s = summarizeValues(attr(bossGame, 'hp'), bossGame.entries);
 		expect(s.values).toEqual([]);
-		expect(s.range).toEqual(['1,250', '145,000']);
+		expect(s.range).toEqual(['800', '256,800']); // Dark Mage (tier 1) to Mechdusa
 	});
 
-	it('flattens list columns and puts catch-alls last', () => {
+	it('flattens list columns into a sorted list', () => {
 		const s = summarizeValues(attr(bossGame, 'biomes'), bossGame.entries);
-		expect(s.values).toContain('Jungle');
-		expect(s.values.at(-1)).toBe('Any');
+		expect(s.values).toContain('Jungle Temple');
+		expect(s.values).toContain('Frost Moon');
+		expect([...s.values]).toEqual([...s.values].sort((a, b) => a.localeCompare(b)));
 		expect(new Set(s.values).size).toBe(s.values.length);
 	});
 
@@ -95,21 +96,28 @@ describe('crossing out values a tile has ruled out', () => {
 		const time = knowledge('time', [boss('Eye of Cthulhu')], boss('Golem')); // Night vs Any
 		expect([...time.ruledOut]).toEqual(['Night']);
 		const biome = knowledge('biomes', [boss('Golem')], boss('Golem'));
-		expect([...biome.confirmed].sort()).toEqual(['Jungle', 'Temple']);
+		expect([...biome.confirmed]).toEqual(['Jungle Temple']);
 		expect(biome.ruledOut.has('Forest')).toBe(true);
 	});
 
 	it('arrows cut the scale, and only for the guesses that were made', () => {
-		const stage = knowledge('stage', [boss('King Slime')], boss('Golem')); // answer is later
-		expect(stage.ruledOut.has('Pre-Hardmode')).toBe(true);
-		expect(stage.ruledOut.has('Endgame')).toBe(false);
+		const accAttrs = accessoryGame.attributes as Attribute<Entry>[];
+		const acc = accessoryGame.entries as Entry[];
+		const item = (name: string) => acc.find((a) => a.name === name)!;
+		const rarity = accAttrs.find((a) => a.key === 'rarity')!;
+		const known = valueKnowledge(rarity, summarizeValues(rarity, acc), [
+			seen(accAttrs, item('Hermes Boots'), item('Ankh Shield')) // Blue -> answer is higher
+		]);
+		expect(known.ruledOut.has('White')).toBe(true);
+		expect(known.ruledOut.has('Blue')).toBe(true);
+		expect(known.ruledOut.has('Red')).toBe(false);
 		const hp = knowledge('hp', [boss('King Slime'), boss('Moon Lord')], boss('Golem'));
 		expect(hp.bounds).toBe('More than 2,000; Less than 145,000');
 	});
 
 	it('yellow crosses out nothing', () => {
-		// Plantera is Jungle + Underground; Golem is Jungle + Temple: partial overlap.
-		const biome = knowledge('biomes', [boss('Plantera')], boss('Golem'));
+		// Queen Bee is Bee Hive + Jungle + Underground Jungle; Plantera is Underground Jungle.
+		const biome = knowledge('biomes', [boss('Queen Bee')], boss('Plantera'));
 		expect(biome.ruledOut.size).toBe(0);
 	});
 });

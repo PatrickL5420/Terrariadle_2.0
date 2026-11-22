@@ -36,7 +36,10 @@ export function compareAttribute<E extends Entry>(
 		case 'exact':
 			return g === a ? 'match' : 'miss';
 		case 'number':
-			return ordered(a as number, g as number);
+			// A missing number (e.g. Mechdusa's "Mixed" defense) only matches another missing one,
+			// and gets no arrow since it isn't on the scale.
+			if (typeof a !== 'number' || typeof g !== 'number') return a === g ? 'match' : 'miss';
+			return ordered(a, g);
 		case 'ranked': {
 			const order = attr.order ?? [];
 			const ai = order.indexOf(a as string);
