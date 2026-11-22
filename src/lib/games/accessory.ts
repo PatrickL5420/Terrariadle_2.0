@@ -14,6 +14,10 @@ export interface Accessory extends Entry {
 	expertOnly: boolean;
 	where: string;
 	tooltip: string;
+	/** false = imported from the wiki with guessed Function/Class/Source/where; see review/. */
+	reviewed?: boolean;
+	/** Hidden from the game, with the reason (e.g. identical to another accessory). */
+	exclude?: string;
 }
 
 const yesNo = (v: boolean) => (v ? 'Yes' : 'No');
@@ -25,7 +29,7 @@ export const accessoryGame: GameConfig<Accessory> = {
 	description: "Guess today's Terraria accessory from its stats!",
 	// Follows the data file, so it becomes a local image after `npm run fetch-images`.
 	icon: (data as Accessory[]).find((a) => a.name === 'Hermes Boots')?.image ?? '',
-	entries: data as Accessory[],
+	entries: (data as Accessory[]).filter((a) => !a.exclude),
 	firstColumn: 'Accessory',
 	theme: (a) => a.rarity,
 	attributes: [

@@ -250,28 +250,211 @@ function tooltipText(html) {
 const isCraftingRecipe = (r) =>
 	r.station !== 'Shimmer' && (!r.version || /desktop/.test(r.version));
 
+/** Wiki accessories that aren't real gameplay accessories. */
+const isPlayableAccessory = (item) =>
+	/accessory/.test(item.type) &&
+	!/vanity|furniture|boss summon/.test(item.type) &&
+	item.unobtainable !== '1';
+
+/**
+ * Developer items (each developer's wings/cape from the dev vanity drops) are obscure, have no
+ * real source on the wiki, and are named after their owner.
+ */
+const DEVELOPER_ITEM =
+	/^(Aaron|Arkhalis|Cenx|Chicken Bones|Chippy|Crowno|D-Town|FoodBarbarian|Ghostar|Grox The Great|Heroicis|Jim|Kazzymodus|Lazure|Leinfors|Loki|Red|Safeman|Skiphs|Will|Yoraiz0r)('s|') /;
+
+/** Where a "drop" row comes from, mapped onto the Source column. */
+function dropKind(from, bosses) {
+	if (/Treasure Bag/.test(from) || bosses.has(from)) return 'Boss/Treasure bag';
+	if (/Crate/.test(from)) return 'Fishing/Crate';
+	if (/Chest|Lock Box|Present|Goodie Bag|Bag|Urn|Pot\b/.test(from)) return 'Chest';
+	return 'Enemy drop';
+}
+
+const listText = (items) =>
+	items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
+
+const FUNCTION_ORDER = [
+	'Wings',
+	'Movement',
+	'Defense',
+	'Immunity',
+	'Combat',
+	'Info',
+	'Fishing',
+	'Building',
+	'Utility'
+];
+
+/**
+ * Best guesses for the hand-curated columns, from wiki tags and tooltip keywords.
+ * Returns the values plus notes on anything shaky, for the review list.
+ */
+function autofill(item, ctx) {
+	const notes = [];
+	const tip = decode((item.tooltip ?? '').replace(/<[^>]+>/g, ' ')).toLowerCase();
+	const tags = (item.tag ?? '').toLowerCase();
+
+	// Function
+	const fn = new Set();
+	if (/\bwings\b/.test(tags)) fn.add('Wings');
+	if (
+		/boots/.test(item.type) ||
+		/\brun|jump|flight|\bfly|dash|climb|swim|movement speed|fall damage|fall resistance|hover|walk on|mobility/.test(
+			tip
+		)
+	)
+		fn.add('Movement');
+	if (
+		/shield/.test(item.type) ||
+		toInt(item.defense) > 0 ||
+		/damage taken|invincibility|dodge|absorbs|defense/.test(tip)
+	)
+		fn.add('Defense');
+	if (/immunity|immune to|negates/.test(tip)) fn.add('Immunity');
+	if (
+		/damage|critical|attack speed|melee speed|knockback|armor penetration|minion|sentr|arrow|bullet|yoyo|inflict|mana/.test(
+			tip
+		)
+	)
+		fn.add('Combat');
+	if (/informational/.test(tags) || /^\s*(displays|shows|tells)|detects/.test(tip)) fn.add('Info');
+	if (/fishing|bait|fishing line/.test(tip)) fn.add('Fishing');
+	if (/construction/.test(tags) || /placement|tile|reach|wire|paint|actuat/.test(tip))
+		fn.add('Building');
+	if (fn.has('Wings')) fn.delete('Movement');
+	let functions = FUNCTION_ORDER.filter((f) => fn.has(f)).slice(0, 2);
+	if (!functions.length) {
+		functions = ['Utility'];
+		notes.push('function: no keyword matched, guessed Utility');
+	}
+
+	// Class boost
+	const cls = [];
+	if (/\bmelee\b|yoyo|\bswing/.test(tip)) cls.push('Melee');
+	if (/\branged\b|arrow|bullet|rocket|\bgun/.test(tip)) cls.push('Ranged');
+	if (/\bmagic\b|\bmana\b/.test(tip)) cls.push('Magic');
+	if (/summon|minion|sentr|whip/.test(tip)) cls.push('Summon');
+	let classes = cls.length === 4 ? ['All'] : cls;
+	if (!classes.length && /increased damage|critical strike chance|armor penetration/.test(tip)) {
+		classes = ['All'];
+		notes.push('class: generic damage bonus, guessed All');
+	}
+	if (!classes.length) classes = ['None'];
+
+	// Source + the "where found" hint
+	const sources = new Set();
+	const where = [];
+	const recipe = ctx.recipesFor.get(item.name)?.[0];
+	if (recipe) {
+		sources.add('Crafted');
+		where.push(`Crafted from ${listText(recipe.slice(0, 3))}`);
+	}
+	const from = ctx.dropsFor.get(item.name) ?? [];
+	const byKind = (k) => from.filter((f) => dropKind(f, ctx.bosses) === k);
+	const bossFrom = byKind('Boss/Treasure bag').map((f) =>
+		f.replace(/^Treasure Bag \((.*)\)$/, '$1')
+	);
+	const enemyFrom = byKind('Enemy drop');
+	const chestFrom = byKind('Chest');
+	const crateFrom = byKind('Fishing/Crate');
+	if (bossFrom.length) sources.add('Boss/Treasure bag');
+	if (enemyFrom.length) sources.add('Enemy drop');
+	const droppedBy = [...new Set([...bossFrom, ...enemyFrom])];
+	if (droppedBy.length) {
+		where.push(
+			`Dropped by ${listText(droppedBy.slice(0, 2))}${droppedBy.length > 2 ? ' and others' : ''}`
+		);
+	}
+	if (chestFrom.length || crateFrom.length) {
+		if (chestFrom.length) sources.add('Chest');
+		if (crateFrom.length) sources.add('Fishing/Crate');
+		const places = [...chestFrom, ...crateFrom].map((f) => (f === 'Chest' ? 'chests' : f));
+		where.push(`Found in ${listText(places.slice(0, 2))}`);
+	}
+	const vendor = (item.tag ?? '').match(/vendor:([^^]+)/)?.[1];
+	if (vendor || /\bvendor\b|buyable/.test(tags)) {
+		sources.add('NPC shop');
+		where.push(vendor ? `Sold by the ${vendor}` : 'Sold by an NPC');
+	}
+	if (/quest rewards/.test(tags)) {
+		sources.add('NPC shop');
+		where.push('Rewarded by the Angler for fishing quests');
+	}
+	if (/\bfish(ed|ing)\b/.test(tags) && !crateFrom.length) {
+		sources.add('Fishing/Crate');
+		where.push('Caught while fishing');
+	}
+	if (!sources.size) {
+		sources.add('Chest');
+		notes.push('source: nothing on the wiki, guessed Chest');
+	}
+	return {
+		functions,
+		classes,
+		sources: [...sources],
+		where: where.slice(0, 2).join('; ') || 'Found somewhere in the world',
+		notes
+	};
+}
+
+/** Same idea as fingerprint() in src/lib/engine/compare.ts, for the accessory columns. */
+const accessoryFingerprint = (a) =>
+	JSON.stringify([
+		a.rarity,
+		a.hardmode,
+		[...a.functions].sort(),
+		[...a.classes].sort(),
+		[...a.sources].sort(),
+		a.tier,
+		a.defense,
+		a.expertOnly
+	]);
+
+const LOOKALIKE = 'Looks identical to ';
+const reviewRows = [];
+const parked = [];
+
 async function syncAccessories() {
 	const accessories = await load('accessories.json');
 
-	// Every accessory on the wiki, so crafting tiers can follow ingredients we don't list.
-	const allAcc = await cargo('Items', 'name', 'type HOLDS LIKE "%accessory%"');
+	const allAcc = await cargo(
+		'Items',
+		'name,type,tag,rare,hardmode,defense,tooltip,imagefile,unobtainable',
+		'type HOLDS LIKE "%accessory%"'
+	);
 	const accNames = new Set(allAcc.map((r) => r.name));
 
-	const items = await cargoByNames(
-		'Items',
-		'name,type,rare,hardmode,defense,tooltip,imagefile',
-		'name',
-		accessories.map((a) => a.name)
+	// Items that don't exist on PC (old console / 3DS / mobile exclusives).
+	const exclusive = await cargoByNames('Exclusive', 'pagename,desktop', 'pagename', [...accNames]);
+	const notOnPc = new Set(exclusive.filter((e) => e.desktop !== '1').map((e) => e.pagename));
+	const playable = allAcc.filter(
+		(i) => isPlayableAccessory(i) && !notOnPc.has(i.name) && !DEVELOPER_ITEM.test(i.name)
 	);
+
 	const recipes = (
 		await cargoByNames('Recipes', 'result,ingredients,station,version', 'result', [...accNames])
 	).filter(isCraftingRecipe);
-
 	const recipesFor = new Map();
 	for (const r of recipes) {
-		const ings = r.ingredients.split('^').map((s) => s.replaceAll('¦', '').trim());
+		const ings = r.ingredients.split('^').map((x) => x.replaceAll('¦', '').trim());
 		recipesFor.set(r.result, [...(recipesFor.get(r.result) ?? []), ings]);
 	}
+
+	const drops = await cargoByNames(
+		'Drops',
+		'nameraw,item',
+		'item',
+		playable.map((p) => p.name)
+	);
+	const dropsFor = new Map();
+	for (const d of drops)
+		dropsFor.set(d.item, [...new Set([...(dropsFor.get(d.item) ?? []), d.nameraw])]);
+	const droppers = [...new Set(drops.map((d) => d.nameraw))];
+	const npcTypes = await cargoByNames('NPCs', 'nameraw,type', 'nameraw', droppers);
+	const bosses = new Set(npcTypes.filter((n) => /boss/i.test(n.type)).map((n) => n.nameraw));
+	const ctx = { recipesFor, dropsFor, bosses };
+
 	// Crafting tier: 0 if not made from other accessories, else 1 + the deepest accessory
 	// ingredient; with several recipes, the shortest path wins.
 	const memo = new Map();
@@ -290,14 +473,29 @@ async function syncAccessories() {
 		return result;
 	};
 
+	// Import accessories we don't have yet: guessable, but not daily answers until you add them.
+	let nextId = Math.max(0, ...accessories.map((a) => a.id)) + 1;
+	const known = new Set(accessories.map((a) => a.name));
+	for (const item of [...playable].sort((a, b) => a.name.localeCompare(b.name))) {
+		if (known.has(item.name)) continue;
+		accessories.push({
+			id: nextId++,
+			name: item.name,
+			image: `wiki:${item.imagefile || `${item.name}.png`}`,
+			pool: false,
+			reviewed: false
+		});
+		changes.push(`accessories  ${item.name.padEnd(22)} imported`);
+	}
+
 	for (const acc of accessories) {
-		const item = items.find((i) => i.name === acc.name);
+		const item = allAcc.find((i) => i.name === acc.name);
 		if (!item) {
 			problems.push(`accessory ${acc.name}: not found in the wiki item table`);
 			continue;
 		}
-		if (!/accessory/.test(item.type)) {
-			problems.push(`accessory ${acc.name}: the wiki lists it as "${item.type}", not an accessory`);
+		if (!isPlayableAccessory(item)) {
+			problems.push(`accessory ${acc.name}: the wiki lists it as "${item.type}"`);
 		}
 		const rarity = RARITY[toInt(item.rare)];
 		if (!rarity) problems.push(`accessory ${acc.name}: unknown rarity ${item.rare}`);
@@ -306,47 +504,157 @@ async function syncAccessories() {
 		update('accessories', acc, 'defense', toInt(item.defense));
 		update('accessories', acc, 'expertOnly', toInt(item.rare) === -12 || toInt(item.rare) === -13);
 		update('accessories', acc, 'tier', tier(acc.name));
-		if (item.tooltip) update('accessories', acc, 'tooltip', tooltipText(item.tooltip));
+		// A few accessories (e.g. Shackle) have no tooltip; describe the stat instead.
+		const tip = item.tooltip ? tooltipText(item.tooltip) : '';
+		const def = toInt(item.defense);
+		update('accessories', acc, 'tooltip', tip || (def ? `${def} defense` : 'No special effect'));
 		if (acc.image?.startsWith('wiki:') && item.imagefile) {
 			update('accessories', acc, 'image', `wiki:${item.imagefile}`);
 		}
+
+		// Hand columns: only (re)guessed until someone reviews the entry.
+		if (acc.reviewed === false) {
+			const guess = autofill(item, ctx);
+			for (const k of ['functions', 'classes', 'sources', 'where'])
+				update('accessories', acc, k, guess[k]);
+			acc._notes = guess.notes;
+			if (acc.exclude?.startsWith(LOOKALIKE)) delete acc.exclude;
+		}
 	}
-	await checkSources(accessories);
-	if (WRITE) await save('accessories.json', accessories);
+	await checkSources(
+		accessories.filter((a) => a.reviewed !== false),
+		ctx
+	);
+	parkLookalikes(accessories);
+
+	for (const acc of accessories) {
+		if (acc.reviewed === false && !acc.exclude) reviewRows.push({ ...acc });
+		if (acc.exclude) parked.push({ name: acc.name, reason: acc.exclude });
+		delete acc._notes;
+	}
+	// Keep the field order stable so diffs stay small.
+	const ORDER = [
+		'id',
+		'name',
+		'image',
+		'rarity',
+		'hardmode',
+		'functions',
+		'classes',
+		'sources',
+		'tier',
+		'defense',
+		'expertOnly',
+		'where',
+		'tooltip',
+		'pool',
+		'reviewed',
+		'exclude'
+	];
+	const tidy = accessories.map((a) =>
+		Object.fromEntries(ORDER.filter((k) => a[k] !== undefined).map((k) => [k, a[k]]))
+	);
+	if (WRITE) {
+		await save('accessories.json', tidy);
+		await writeReview(playable.length, allAcc.length);
+	}
 }
 
 /**
- * "Source" is curated by hand, but the wiki's drop table can catch the obvious mistakes:
+ * Entries players couldn't tell apart (every column identical) are parked with `exclude`.
+ * Reviewed / answer-pool entries win; otherwise the simplest name is kept.
+ */
+function parkLookalikes(accessories) {
+	const groups = new Map();
+	for (const a of accessories) {
+		if (a.exclude) continue;
+		const fp = accessoryFingerprint(a);
+		groups.set(fp, [...(groups.get(fp) ?? []), a]);
+	}
+	for (const group of groups.values()) {
+		if (group.length < 2) continue;
+		const rank = (a) => (a.reviewed !== false ? 0 : 2) + (a.pool !== false ? 0 : 1);
+		group.sort(
+			(a, b) => rank(a) - rank(b) || a.name.length - b.name.length || a.name.localeCompare(b.name)
+		);
+		const [keep, ...rest] = group;
+		for (const a of rest) {
+			if (a.reviewed !== false) {
+				problems.push(
+					`accessory ${a.name}: identical to ${keep.name}; change a column or set "exclude"`
+				);
+				continue;
+			}
+			a.exclude = `${LOOKALIKE}${keep.name}`;
+		}
+	}
+}
+
+const cell = (v) => (Array.isArray(v) ? v.join(', ') : String(v)).replace(/\|/g, '\\|');
+
+async function writeReview(playableCount, wikiCount) {
+	const rows = [...reviewRows].sort(
+		(a, b) => (b._notes?.length ?? 0) - (a._notes?.length ?? 0) || a.name.localeCompare(b.name)
+	);
+	const unsure = rows.filter((r) => r._notes?.length).length;
+	const lines = [
+		'# Accessory review',
+		'',
+		'Generated by `npm run sync-wiki -- --write`. Do not edit this file; edit',
+		'`src/lib/data/accessories.json` instead.',
+		'',
+		'**How to review an entry:** fix Function, Class Boost, Source or "where" in',
+		'`accessories.json` if needed, then delete its `"reviewed": false`. Reviewed entries are',
+		'never re-guessed. To make one a possible daily answer, delete its `"pool": false` too.',
+		'',
+		`- Wiki accessories: ${wikiCount} (${playableCount} after removing vanity, music boxes, developer items and non-PC items)`,
+		`- Waiting for review: **${rows.length}** (${unsure} flagged as unsure, listed first)`,
+		`- Parked lookalikes: ${parked.length}`,
+		'',
+		'## Waiting for review',
+		'',
+		'| Accessory | Function | Class Boost | Source | Where found (hint) | Unsure about |',
+		'| --- | --- | --- | --- | --- | --- |',
+		...rows.map(
+			(r) =>
+				`| ${cell(r.name)} | ${cell(r.functions)} | ${cell(r.classes)} | ${cell(r.sources)} | ${cell(r.where)} | ${cell(r._notes?.join('; ') ?? '')} |`
+		),
+		'',
+		'## Parked lookalikes',
+		'',
+		'Identical to another accessory in every column, so they are hidden from the game. Change a',
+		'column in `accessories.json` to tell them apart (and delete `"reviewed": false`), then run',
+		'the sync again.',
+		'',
+		'| Accessory | Reason |',
+		'| --- | --- |',
+		...parked
+			.sort((a, b) => a.name.localeCompare(b.name))
+			.map((p) => `| ${cell(p.name)} | ${cell(p.reason)} |`),
+		''
+	];
+	await writeFile(path.resolve(DATA, '../../../review/accessories.md'), lines.join('\n'));
+}
+
+/**
+ * For reviewed entries, the wiki's drop table can still catch obvious Source mistakes:
  * claiming an enemy/boss drop that doesn't exist, or missing one that does.
  */
-async function checkSources(accessories) {
-	const drops = await cargoByNames(
-		'Drops',
-		'nameraw,item',
-		'item',
-		accessories.map((a) => a.name)
-	);
-	const kind = (from) =>
-		/Treasure Bag/.test(from)
-			? 'Boss/Treasure bag'
-			: /Crate/.test(from)
-				? 'Fishing/Crate'
-				: /Chest|Lock Box/.test(from)
-					? 'Chest'
-					: 'Enemy drop';
+async function checkSources(accessories, ctx) {
 	for (const acc of accessories) {
-		const from = [...new Set(drops.filter((d) => d.item === acc.name).map((d) => d.nameraw))];
-		const npcs = from.filter((f) => kind(f) === 'Enemy drop');
-		const claimsDrop = acc.sources.some((s) => s === 'Enemy drop' || s === 'Boss/Treasure bag');
-		if (claimsDrop && !from.some((f) => ['Enemy drop', 'Boss/Treasure bag'].includes(kind(f)))) {
+		const from = ctx.dropsFor.get(acc.name) ?? [];
+		const kinds = new Set(from.map((f) => dropKind(f, ctx.bosses)));
+		const claimsDrop = acc.sources.some((x) => x === 'Enemy drop' || x === 'Boss/Treasure bag');
+		if (claimsDrop && !kinds.has('Enemy drop') && !kinds.has('Boss/Treasure bag')) {
 			problems.push(`accessory ${acc.name}: source says it drops, but the wiki has no drop for it`);
 		}
+		const npcs = from.filter((f) => dropKind(f, ctx.bosses) === 'Enemy drop');
 		if (npcs.length && !claimsDrop) {
 			problems.push(
 				`accessory ${acc.name}: the wiki says it drops from ${npcs.slice(0, 3).join(', ')}`
 			);
 		}
-		if (from.some((f) => kind(f) === 'Fishing/Crate') && !acc.sources.includes('Fishing/Crate')) {
+		if (kinds.has('Fishing/Crate') && !acc.sources.includes('Fishing/Crate')) {
 			problems.push(`accessory ${acc.name}: also comes from fishing crates`);
 		}
 	}

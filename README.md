@@ -96,6 +96,15 @@ The first reports differences; `--write` applies them.
 | Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source | function, class boost, source, "where found" |
 | Modifiers   | everything (rebuilt from the Modifiers page)                                             | the skip list in the script                  |
 
+**Accessories are imported automatically.** Every playable accessory on the wiki is added
+(not vanity, music boxes, developer items or console-only items). New ones get best-guess
+Function, Class Boost, Source and "where" values from the wiki's tags, drops, recipes and
+tooltips, marked `"reviewed": false`, and are listed in
+[`review/accessories.md`](review/accessories.md). After checking one, delete its
+`"reviewed": false` and the sync won't touch those columns again. Imported accessories can be
+guessed but aren't daily answers until you delete their `"pool": false`. Entries that would be
+identical to another in every column are hidden with `"exclude"` and listed in the review file.
+
 Anything it can't decide is printed under "Needs attention". After adding entries, run
 `npm run fetch-images` to download their images into `static/` (the site never hotlinks the
 wiki) and `npm test` to catch typos and lookalike entries.
