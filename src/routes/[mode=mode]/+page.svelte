@@ -146,7 +146,7 @@
 					</p>
 					{#if yesterday}
 						<p>Yesterday's {game.noun} was:</p>
-						<EntryBadge entry={yesterday} theme={game.theme(yesterday)} />
+						<EntryBadge {game} entry={yesterday} theme={game.theme(yesterday)} />
 					{/if}
 					<p>Guess any {game.noun} to begin.</p>
 				</div>

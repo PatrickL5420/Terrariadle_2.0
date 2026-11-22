@@ -38,7 +38,7 @@
 		</p>
 	{/if}
 
-	<EntryBadge entry={answer} {theme} />
+	<EntryBadge {game} entry={answer} {theme} />
 
 	<p>Solved in {guessCount} {guessCount === 1 ? 'guess' : 'guesses'}</p>
 	{#if solved > 0}

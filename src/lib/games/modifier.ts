@@ -50,6 +50,8 @@ export const modifierGame: GameConfig<Modifier> = {
 	icon: '/logos/goblin_tinkerer.png',
 	entries: data as Modifier[],
 	firstColumn: 'Modifier',
+	// Modifiers share one wiki page; link to the section, without our "(Weapon)" suffixes.
+	wikiPage: (m) => `Modifiers#${m.name.replace(/ \(.*\)$/, '')}`,
 	theme: (m) => tierTheme[String(m.tier)] ?? 'White',
 	// Strong and Forceful share every stat; the name tile shows which guess is right.
 	allowLookalikes: true,

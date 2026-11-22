@@ -76,6 +76,8 @@ export interface GameConfig<E extends Entry = Entry> {
 	 * (see $lib/server/text.ts) so it can't be looked up in the page's data.
 	 */
 	clueLabel?: string;
+	/** Wiki page for an entry, e.g. "Modifiers#Legendary". Defaults to the entry's name. */
+	wikiPage?: (e: E) => string;
 	detailLabel?: string;
 }
 

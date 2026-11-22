@@ -44,5 +44,10 @@ export default defineConfig(
 				svelteConfig
 			}
 		}
+	},
+	{
+		// Links to the Terraria wiki are external, so SvelteKit's resolve() doesn't apply.
+		files: ['src/lib/components/WikiLink.svelte'],
+		rules: { 'svelte/no-navigation-without-resolve': 'off' }
 	}
 );

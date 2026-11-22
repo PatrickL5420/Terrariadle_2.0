@@ -2,6 +2,7 @@
 	import type { CompareResult, Entry, GameConfig, GuessRecord } from '$lib/engine/types';
 	import { getEntry } from '$lib/games';
 	import { imageUrl } from '$lib/images';
+	import WikiLink from './WikiLink.svelte';
 	import { summarizeValues, valueKnowledge } from '$lib/engine/values';
 	import { useMediaQuery } from '$lib/utils/mediaQuery.svelte';
 	import { flip } from 'svelte/animate';
@@ -96,9 +97,9 @@
 				in:fly={{ x: flyX(0), duration: flyDuration() }}
 			>
 				{#if entry.image}
-					<img src={imageUrl(entry.image)} alt={entry.name} title={entry.name} />
+					<WikiLink {game} {entry}><img src={imageUrl(entry.image)} alt={entry.name} /></WikiLink>
 				{:else}
-					<span class="name">{entry.name}</span>
+					<WikiLink {game} {entry} class="name">{entry.name}</WikiLink>
 				{/if}
 			</div>
 
@@ -108,7 +109,7 @@
 					style:background-color={guess.id === answerId ? background.match : background.miss}
 					in:fly={{ x: flyX(1), duration: flyDuration() }}
 				>
-					<span class="name">{entry.name}</span>
+					<WikiLink {game} {entry} class="name">{entry.name}</WikiLink>
 					<span class="detail">{guess.detail ?? ''}</span>
 				</div>
 			{/if}
@@ -353,7 +354,7 @@
 		padding: 6px 10px;
 	}
 
-	.detail-tile .name {
+	.detail-tile :global(.name) {
 		font-size: 15px;
 		margin-bottom: 2px;
 	}
@@ -374,7 +375,11 @@
 		object-fit: contain;
 	}
 
-	.name-tile .name {
+	.tile :global(.wiki-link) {
+		display: flex;
+	}
+
+	.name-tile :global(.name) {
 		font-size: 14px;
 	}
 
