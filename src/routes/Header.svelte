@@ -165,6 +165,20 @@
 
 		.links {
 			margin-top: 100px;
+			/* Six games: smaller icons on phones, wrapping if there's still no room. */
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 8px;
+			max-width: calc(100vw - 32px);
+		}
+
+		.links a {
+			padding: 5px;
+		}
+
+		.links img {
+			width: 34px;
+			height: 34px;
 		}
 	}
 </style>

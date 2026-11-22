@@ -98,8 +98,8 @@ export const accessoryGame: GameConfig<Accessory> = {
 		}
 	],
 	hints: [
-		{ label: 'Where Found', reveal: (a) => ({ text: a.where }) },
 		{ label: 'Tooltip', reveal: (a) => ({ text: a.tooltip }) },
-		{ label: 'Image Clue', reveal: (a) => ({ image: a.image ?? '', effect: 'blur' }) }
+		{ label: 'Image Clue', reveal: (a) => ({ image: a.image ?? '', effect: 'blur' }) },
+		{ label: 'Where Found', reveal: (a) => ({ text: a.where }) }
 	]
 };
