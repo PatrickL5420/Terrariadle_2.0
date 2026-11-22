@@ -5,6 +5,7 @@
 	import { cubicInOut } from 'svelte/easing';
 	import { HINT_UNLOCKS, type Entry, type GameConfig, type Hint } from '$lib/engine/types';
 	import { imageUrl } from '$lib/images';
+	import { devFlags } from '$lib/dev/flags.svelte';
 
 	let {
 		game,
@@ -26,7 +27,7 @@
 
 	let visible = $state([false, false, false]);
 
-	const locked = (i: number) => guessCount < HINT_UNLOCKS[i] && !finished;
+	const locked = (i: number) => !devFlags.unlockHints && guessCount < HINT_UNLOCKS[i] && !finished;
 
 	async function toggle(i: number) {
 		if (!hints[i]) await onHint(i + 1);

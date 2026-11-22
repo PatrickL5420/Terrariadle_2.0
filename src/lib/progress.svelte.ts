@@ -45,9 +45,17 @@ export function saveProgress(slug: string, p: Progress) {
 /** Which games are finished today, for the header and home page. */
 export const completion: Record<string, boolean> = $state({});
 
-export function refreshCompletion(slugs: string[]) {
-	const day = dayNumber();
+export function refreshCompletion(slugs: string[], day = dayNumber()) {
 	for (const slug of slugs) completion[slug] = loadProgress(slug, day).finished;
+}
+
+export function clearProgress(slug: string) {
+	try {
+		localStorage.removeItem(key(slug));
+	} catch {
+		/* ignore */
+	}
+	completion[slug] = false;
 }
 
 /** Anonymous id so a player is only counted once per puzzle. */

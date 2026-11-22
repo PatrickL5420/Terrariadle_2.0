@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import { json } from '@sveltejs/kit';
 import { compareEntries } from '$lib/engine/compare';
 import { answerFor, entryOr400, gameOr404, requireToday } from '$lib/server/answers';
@@ -16,7 +17,8 @@ export const GET: RequestHandler = ({ params, url, setHeaders }) => {
 	const guess = entryOr400(game, url.searchParams.get('id'));
 	const answer = answerFor(game, day);
 
-	setHeaders({ 'cache-control': 'public, max-age=0, s-maxage=86400' });
+	// Dev rerolls change the answer for the same URL, so never cache while developing.
+	setHeaders({ 'cache-control': dev ? 'no-store' : 'public, max-age=0, s-maxage=86400' });
 	return json({
 		correct: guess.id === answer.id,
 		checks: compareEntries(game.attributes, guess, answer)

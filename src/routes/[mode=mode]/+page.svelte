@@ -8,6 +8,7 @@
 	import { getEntry, getGame } from '$lib/games';
 	import { loadProgress, playerId, saveProgress, type Progress } from '$lib/progress.svelte';
 	import { scale, fly } from 'svelte/transition';
+	import { devFlags } from '$lib/dev/flags.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -19,9 +20,10 @@
 	let loadError = $state('');
 	let busy = false;
 
-	// (Re)load whenever the mode changes; also keep the solve count fresh.
+	// (Re)load whenever the mode changes (or the dev panel asks); keep the solve count fresh.
 	$effect(() => {
 		const slug = data.slug;
+		void devFlags.refresh;
 		today = null;
 		progress = null;
 		loadError = '';

@@ -49,6 +49,22 @@ npm test && npm run check && npm run lint
 `npm test` also validates the data: unknown values (typos), duplicate ids and any two entries with
 identical stats, which players couldn't tell apart, all fail the test run.
 
+### Dev tools
+
+`npm run dev` adds a **🛠 Dev** button (or press the backtick key). The panel lets you:
+
+- **Answer:** see today's answer, reroll it at random, or pick a specific one. Forced answers
+  only last until the day changes, and rerolling clears your progress for that mode.
+- **Time travel:** move the game a day forward or back to test the reset and yesterday's answer.
+- **Player:** auto-solve through the real API, unlock all hints, reset your progress for one or
+  every mode, and reset the solve counts.
+- **Schedule:** the next 14 scheduled answers for each mode.
+- **Tasks:** run the wiki sync (report or write), image download, tests and type-check, with
+  their output in the panel.
+
+All of it is off in production: `/api/dev` returns 404 and the panel is never loaded. Dev mode
+also uses its own `dev:` keys in Redis, so it can't touch real solve counts.
+
 ## Deploy to Vercel
 
 1. Import the repository in Vercel. It detects SvelteKit; no settings needed.

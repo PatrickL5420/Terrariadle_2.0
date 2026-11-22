@@ -1,6 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { execSync } from 'child_process';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 
 function appVersion(): string {
 	const sha = process.env.VERCEL_GIT_COMMIT_SHA;
@@ -16,8 +16,5 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	define: {
 		__APP_VERSION__: JSON.stringify(appVersion())
-	},
-	test: {
-		include: ['src/**/*.test.ts']
 	}
 });

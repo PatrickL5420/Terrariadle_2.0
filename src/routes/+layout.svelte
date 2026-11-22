@@ -6,10 +6,14 @@
 	import { onMount, type Snippet } from 'svelte';
 	import { games, gameSlugs } from '$lib/games';
 	import { refreshCompletion } from '$lib/progress.svelte';
+	import { dev } from '$app/environment';
 
 	let { children }: { children: Snippet } = $props();
 
 	onMount(() => refreshCompletion(gameSlugs));
+
+	// Dev tools are only loaded by `npm run dev`; production builds drop this import entirely.
+	const devPanel = dev ? import('$lib/dev/DevPanel.svelte') : null;
 
 	const home = {
 		title: '',
@@ -48,6 +52,12 @@
 
 	<Footer />
 </div>
+
+{#if devPanel}
+	{#await devPanel then { default: DevPanel }}
+		<DevPanel />
+	{/await}
+{/if}
 
 <style>
 	main {

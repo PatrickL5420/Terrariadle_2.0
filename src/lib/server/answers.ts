@@ -1,9 +1,10 @@
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
-import { dayNumber, pickDaily } from '$lib/engine/daily';
+import { pickDaily } from '$lib/engine/daily';
 import type { Entry, GameConfig } from '$lib/engine/types';
 import { answerPool, getEntry, getGame } from '$lib/games';
+import { currentDay, overrideFor } from './dev';
 
 function secret(): string {
 	if (env.DAILY_SECRET) return env.DAILY_SECRET;
@@ -18,15 +19,21 @@ export function gameOr404(slug: string): GameConfig<Entry> {
 	return game;
 }
 
-export function answerFor(game: GameConfig<Entry>, day: number): Entry {
+/** The scheduled answer, ignoring dev overrides. */
+export function scheduledAnswer(game: GameConfig<Entry>, day: number): Entry {
 	const id = pickDaily(answerPool(game), `${secret()}:${game.slug}`, day);
 	return getEntry(game, id)!;
+}
+
+export function answerFor(game: GameConfig<Entry>, day: number): Entry {
+	const forced = overrideFor(game.slug, day);
+	return (forced !== undefined && getEntry(game, forced)) || scheduledAnswer(game, day);
 }
 
 /** Parses the `day` a client is playing and rejects anything that isn't today. */
 export function requireToday(raw: unknown): number {
 	const day = Number(raw);
-	const today = dayNumber();
+	const today = currentDay();
 	if (!Number.isInteger(day)) error(400, 'Missing day');
 	if (day !== today) error(409, 'A new puzzle is available. Refresh the page!');
 	return day;

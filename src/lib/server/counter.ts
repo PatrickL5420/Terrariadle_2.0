@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 
 /**
@@ -44,8 +45,12 @@ function useMemory(): boolean {
 	return true;
 }
 
-const countKey = (slug: string, day: number) => `count:${slug}:${day}`;
-const playerKey = (slug: string, day: number, player: string) => `solved:${slug}:${day}:${player}`;
+// Local development uses its own keys, so dev tools can never touch production counts
+// even if .env points at the production Redis.
+const NS = dev ? 'dev:' : '';
+const countKey = (slug: string, day: number) => `${NS}count:${slug}:${day}`;
+const playerKey = (slug: string, day: number, player: string) =>
+	`${NS}solved:${slug}:${day}:${player}`;
 
 /**
  * Records a solve and returns the player's position (1 = first today).
@@ -81,4 +86,15 @@ export async function solveCount(slug: string, day: number): Promise<number> {
 	if (useMemory()) return memory.get(countKey(slug, day)) ?? 0;
 	const [count] = await redis([['GET', countKey(slug, day)]]);
 	return Number(count) || 0;
+}
+
+/** Dev tool: forget a day's solve count for a game. */
+export async function resetSolves(slug: string, day: number): Promise<void> {
+	const prefix = playerKey(slug, day, '');
+	if (useMemory()) {
+		memory.delete(countKey(slug, day));
+		for (const k of [...memory.keys()]) if (k.startsWith(prefix)) memory.delete(k);
+		return;
+	}
+	await redis([['DEL', countKey(slug, day)]]);
 }
