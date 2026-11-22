@@ -31,14 +31,14 @@ describe('summarizeValues', () => {
 		expect(new Set(s.values).size).toBe(s.values.length);
 	});
 
-	it('uses display labels for yes/no and raw values for sets', () => {
+	it('uses display labels for yes/no and lists categories', () => {
 		expect(summarizeValues(attr(accessoryGame, 'hardmode'), accessoryGame.entries).values).toEqual([
 			'No',
 			'Yes'
 		]);
-		const applies = summarizeValues(attr(modifierGame, 'appliesTo'), modifierGame.entries).values;
-		expect(applies).toContain('Melee');
-		expect(applies).not.toContain('All weapons');
+		const category = summarizeValues(attr(modifierGame, 'category'), modifierGame.entries).values;
+		expect(category).toContain('Universal');
+		expect(category).toContain('Common');
 	});
 
 	it('shows stat names without amounts', () => {

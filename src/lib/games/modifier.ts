@@ -3,9 +3,12 @@ import type { Entry, GameConfig } from '$lib/engine/types';
 import type { RarityName } from '$lib/rarity';
 
 export interface Modifier extends Entry {
-	appliesTo: string[];
-	/** The game's value tier, -2 (worst) to +2 (best). */
+	/** The wiki's group: Universal, Common, Melee, Ranged, Magic, Summon or Accessory. */
+	category: string;
+	/** The game's value tier, -2 (worst) to +2 (best). Only used for the win-card colour. */
 	tier: number;
+	/** Change to the item's value, in percent (the wiki's Value column). */
+	value: number;
 	damage: number;
 	crit: number;
 	speed: number;
@@ -14,27 +17,8 @@ export interface Modifier extends Entry {
 	effects: string[];
 }
 
-const WEAPON_CLASSES = ['Melee', 'Ranged', 'Magic', 'Summon'];
-
 const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 const pct = (n: number) => (n === 0 ? '0' : `${signed(n)}%`);
-
-/** For mana cost a reduction is good; every other stat is good when it goes up. */
-function statSigns(m: Modifier): number[] {
-	const signs = [m.damage, m.crit, m.speed, m.knockback].map(Math.sign);
-	for (const line of m.effects) {
-		const value = Number(line.match(/[+-]\d+/)?.[0] ?? 0);
-		signs.push(line.startsWith('Mana cost') ? -Math.sign(value) : Math.sign(value));
-	}
-	return signs.filter((s) => s !== 0);
-}
-
-export function sentiment(m: Modifier): 'Positive' | 'Negative' | 'Mixed' {
-	const signs = statSigns(m);
-	if (signs.every((s) => s > 0)) return 'Positive';
-	if (signs.every((s) => s < 0)) return 'Negative';
-	return 'Mixed';
-}
 
 /** Every stat line the modifier changes, e.g. ["Damage +15%", "Size +10%"]. */
 export function statLines(m: Modifier): string[] {
@@ -67,23 +51,23 @@ export const modifierGame: GameConfig<Modifier> = {
 	entries: data as Modifier[],
 	firstColumn: 'Modifier',
 	theme: (m) => tierTheme[String(m.tier)] ?? 'White',
+	// Strong and Forceful share every stat; the name tile shows which guess is right.
+	allowLookalikes: true,
 	attributes: [
 		{
-			key: 'appliesTo',
-			label: 'Applies To',
-			title: 'Which items can roll it',
-			kind: 'set',
-			value: (m) => m.appliesTo,
-			display: (m) =>
-				WEAPON_CLASSES.every((c) => m.appliesTo.includes(c)) ? 'All weapons' : m.appliesTo
+			key: 'category',
+			label: 'Category',
+			title: "The wiki's group: Universal and Common fit most weapons; the rest are class-specific",
+			kind: 'exact',
+			value: (m) => m.category
 		},
 		{
-			key: 'tier',
-			label: 'Tier',
-			title: 'Value tier, -2 (worst) to +2 (best)',
+			key: 'value',
+			label: 'Value',
+			title: "Change to the item's sell value",
 			kind: 'number',
-			value: (m) => m.tier,
-			display: (m) => signed(m.tier)
+			value: (m) => m.value,
+			display: (m) => `${signed(m.value)}%`
 		},
 		{
 			key: 'damage',
@@ -124,13 +108,6 @@ export const modifierGame: GameConfig<Modifier> = {
 			kind: 'stats',
 			value: (m) => m.effects,
 			display: (m) => (m.effects.length ? m.effects : 'None')
-		},
-		{
-			key: 'sentiment',
-			label: 'Sentiment',
-			title: 'Whether its changes are all good, all bad or mixed',
-			kind: 'exact',
-			value: (m) => sentiment(m)
 		}
 	],
 	hints: [

@@ -35,7 +35,7 @@ const vocab: Record<string, Record<string, string[]>> = {
 		]
 	},
 	modifier: {
-		appliesTo: ['Melee', 'Ranged', 'Magic', 'Summon', 'Accessory']
+		category: ['Universal', 'Common', 'Melee', 'Ranged', 'Magic', 'Summon', 'Accessory']
 	}
 };
 

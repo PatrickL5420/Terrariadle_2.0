@@ -812,18 +812,15 @@ async function checkSources(accessories, ctx) {
 // ---------------------------------------------------------------------------------------------
 // Modifiers: rebuilt from the tables on the "Modifiers" page
 
+/** Sections of the Modifiers page -> the Category column (the wiki's own grouping). */
 const SECTIONS = {
-	Universal: ['Melee', 'Ranged', 'Magic', 'Summon'],
-	Common: ['Melee', 'Ranged', 'Magic', 'Summon'], // includes whips
-	Melee: ['Melee'],
-	Ranged: ['Ranged'],
-	Magic: ['Magic'],
-	Summon: ['Summon'],
-	'Accessory modifiers': ['Accessory']
-};
-/** Identical in-game to another modifier, so players couldn't tell them apart. */
-const SKIP_MODIFIERS = {
-	Strong: 'same stats as Forceful'
+	Universal: 'Universal',
+	Common: 'Common',
+	Melee: 'Melee',
+	Ranged: 'Ranged',
+	Magic: 'Magic',
+	Summon: 'Summon',
+	'Accessory modifiers': 'Accessory'
 };
 /** Section label used to tell apart modifiers that share a name. */
 const SUFFIX = {
@@ -848,6 +845,8 @@ function firstTable(html) {
 }
 
 const pct = (s) => (s && s !== '-' ? toInt(s) : 0);
+/** The wiki's Value column ("+209.85%", "-27.75%") as a number. */
+const valuePct = (s) => (s && s !== '-' ? Number(s.replace(/[^\d.-]/g, '')) || 0 : 0);
 const signed = (n) => (n > 0 ? `+${n}` : `${n}`);
 
 async function syncModifiers() {
@@ -860,8 +859,8 @@ async function syncModifiers() {
 		const heading = text(parts[i])
 			.replace(/\[\s*edit\s*\]/, '')
 			.trim();
-		const appliesTo = SECTIONS[heading];
-		if (!appliesTo) continue;
+		const category = SECTIONS[heading];
+		if (!category) continue;
 		const rows = firstTable(parts[i + 1]);
 		const header = rows[0].map((c) => c.text);
 		const col = (name) => header.indexOf(name);
@@ -878,12 +877,13 @@ async function syncModifiers() {
 					cells = row.slice(1);
 				}
 				effectLeft--;
-				const [name, change, tierCell] = cells.map((c) => c.text);
+				const [name, change, tierCell, valueCell] = cells.map((c) => c.text);
 				const n = toInt(change);
 				const m = {
 					name,
-					appliesTo,
+					category,
 					tier: toInt(tierCell),
+					value: valuePct(valueCell),
 					damage: 0,
 					crit: 0,
 					speed: 0,
@@ -905,7 +905,7 @@ async function syncModifiers() {
 		for (const row of rows.slice(1)) {
 			const cell = (name) => (col(name) >= 0 ? row[col(name)]?.text : undefined);
 			const name = cell('Modifier');
-			if (!name || SKIP_MODIFIERS[name]) continue;
+			if (!name) continue;
 			const effects = [];
 			for (const [label, stat] of [
 				['Size', 'Size'],
@@ -921,8 +921,9 @@ async function syncModifiers() {
 				section: heading,
 				m: {
 					name,
-					appliesTo,
+					category,
 					tier: pct(cell('Tier')),
+					value: valuePct(cell('Value')),
 					damage: pct(cell('Damage')),
 					crit: pct(cell('Critical strike chance')),
 					speed: pct(cell('Speed')),
@@ -960,7 +961,17 @@ async function syncModifiers() {
 			return { id: nextId++, ...m };
 		}
 		const merged = { ...old };
-		for (const k of ['appliesTo', 'tier', 'damage', 'crit', 'speed', 'knockback', 'effects']) {
+		delete merged.appliesTo; // replaced by the wiki's Category
+		for (const k of [
+			'category',
+			'tier',
+			'value',
+			'damage',
+			'crit',
+			'speed',
+			'knockback',
+			'effects'
+		]) {
 			update('modifiers', merged, k, m[k]);
 		}
 		return merged;
@@ -970,7 +981,20 @@ async function syncModifiers() {
 			changes.push(`modifiers    ${old.name.padEnd(22)} removed (not on the wiki)`);
 	}
 	out.sort((a, b) => a.id - b.id);
-	if (WRITE) await save('modifiers.json', out);
+	const ORDER = [
+		'id',
+		'name',
+		'category',
+		'tier',
+		'value',
+		'damage',
+		'crit',
+		'speed',
+		'knockback',
+		'effects'
+	];
+	const tidy = out.map((m) => Object.fromEntries(ORDER.map((k) => [k, m[k]])));
+	if (WRITE) await save('modifiers.json', tidy);
 }
 
 // ---------------------------------------------------------------------------------------------
