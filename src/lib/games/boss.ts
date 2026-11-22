@@ -45,7 +45,7 @@ export const bossGame: GameConfig<Boss> = {
 		{
 			key: 'stage',
 			label: 'Stage',
-			title: 'Pre-Hardmode → Endgame',
+			title: 'When in progression the game expects you to fight it',
 			kind: 'ranked',
 			order: STAGES,
 			value: (b) => b.stage
@@ -53,7 +53,7 @@ export const bossGame: GameConfig<Boss> = {
 		{
 			key: 'hp',
 			label: 'Max HP',
-			title: 'Classic mode health',
+			title: 'Health in Classic mode, all parts combined',
 			kind: 'number',
 			value: (b) => b.hp,
 			display: (b) => b.hp.toLocaleString('en-US')
@@ -61,7 +61,7 @@ export const bossGame: GameConfig<Boss> = {
 		{
 			key: 'defense',
 			label: 'Defense',
-			title: 'Base defense',
+			title: 'Defense of the main body',
 			kind: 'number',
 			value: (b) => b.defense
 		},
@@ -75,18 +75,24 @@ export const bossGame: GameConfig<Boss> = {
 		{
 			key: 'summon',
 			label: 'Summon',
-			title: 'Item, Break object, Event, Other',
+			title: 'How the fight starts',
 			kind: 'exact',
 			value: (b) => b.summon
 		},
 		{
 			key: 'body',
 			label: 'Body Type',
-			title: 'Worm, Flying, Ground, Multi-part, Humanoid, Stationary',
+			title: 'Its shape and how it moves',
 			kind: 'exact',
 			value: (b) => b.body
 		},
-		{ key: 'time', label: 'Time', title: 'Day, Night or Any', kind: 'exact', value: (b) => b.time }
+		{
+			key: 'time',
+			label: 'Time',
+			title: 'When it can be fought',
+			kind: 'exact',
+			value: (b) => b.time
+		}
 	],
 	hints: [
 		{ label: 'Summoned By', reveal: (b) => ({ text: b.summonHint }) },

@@ -32,11 +32,12 @@ export const accessoryGame: GameConfig<Accessory> = {
 		{
 			key: 'rarity',
 			label: 'Rarity',
-			title: 'White → Red, then Expert',
+			title: 'Item rarity (the colour of its name)',
 			kind: 'ranked',
 			order: RARITIES,
 			value: (a) => a.rarity,
-			color: (a) => rarityColors[a.rarity]
+			color: (a) => rarityColors[a.rarity],
+			valueColor: (v) => rarityColors[v as RarityName]
 		},
 		{
 			key: 'hardmode',
@@ -49,42 +50,42 @@ export const accessoryGame: GameConfig<Accessory> = {
 		{
 			key: 'functions',
 			label: 'Function',
-			title: 'Movement, Wings, Defense, Combat, Immunity, Info, ...',
+			title: 'What it does',
 			kind: 'set',
 			value: (a) => a.functions
 		},
 		{
 			key: 'classes',
 			label: 'Class Boost',
-			title: 'Melee, Ranged, Magic, Summon, All, None',
+			title: 'Which damage class it boosts',
 			kind: 'set',
 			value: (a) => a.classes
 		},
 		{
 			key: 'sources',
 			label: 'Source',
-			title: 'Crafted, Enemy drop, Treasure bag, Chest, NPC shop, Fishing',
+			title: 'Where you get it',
 			kind: 'set',
 			value: (a) => a.sources
 		},
 		{
 			key: 'tier',
 			label: 'Crafting Tier',
-			title: '0 = base item, +1 per combining step',
+			title: "0 = base item, +1 for each Tinkerer's Workshop combination",
 			kind: 'number',
 			value: (a) => a.tier
 		},
 		{
 			key: 'defense',
 			label: 'Defense',
-			title: 'Defense granted',
+			title: 'Defense granted when equipped',
 			kind: 'number',
 			value: (a) => a.defense
 		},
 		{
 			key: 'expertOnly',
 			label: 'Expert Only',
-			title: 'Only available in Expert/Master mode?',
+			title: 'Only available in Expert or Master mode?',
 			kind: 'exact',
 			value: (a) => a.expertOnly,
 			display: (a) => yesNo(a.expertOnly)

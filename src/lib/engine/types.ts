@@ -38,6 +38,8 @@ export interface Attribute<E extends Entry = Entry> {
 	display?: (e: E) => string | string[];
 	/** Optional text colour for the tile. */
 	color?: (e: E) => string | undefined;
+	/** Optional text colour for a value in the column's hover list (e.g. rarity names). */
+	valueColor?: (value: string) => string | undefined;
 }
 
 export type Hint = { text: string } | { image: string; effect: 'silhouette' | 'blur' };

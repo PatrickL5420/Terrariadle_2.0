@@ -71,7 +71,7 @@ export const modifierGame: GameConfig<Modifier> = {
 		{
 			key: 'appliesTo',
 			label: 'Applies To',
-			title: 'Melee, Ranged, Magic, Summon or Accessory',
+			title: 'Which items can roll it',
 			kind: 'set',
 			value: (m) => m.appliesTo,
 			display: (m) =>
@@ -88,7 +88,7 @@ export const modifierGame: GameConfig<Modifier> = {
 		{
 			key: 'damage',
 			label: 'Damage',
-			title: 'Damage %',
+			title: 'Damage change',
 			kind: 'number',
 			value: (m) => m.damage,
 			display: (m) => pct(m.damage)
@@ -96,7 +96,7 @@ export const modifierGame: GameConfig<Modifier> = {
 		{
 			key: 'crit',
 			label: 'Crit',
-			title: 'Critical strike chance %',
+			title: 'Critical strike chance change',
 			kind: 'number',
 			value: (m) => m.crit,
 			display: (m) => pct(m.crit)
@@ -104,7 +104,7 @@ export const modifierGame: GameConfig<Modifier> = {
 		{
 			key: 'speed',
 			label: 'Speed',
-			title: 'Attack / use speed %',
+			title: 'Attack / use speed change',
 			kind: 'number',
 			value: (m) => m.speed,
 			display: (m) => pct(m.speed)
@@ -112,7 +112,7 @@ export const modifierGame: GameConfig<Modifier> = {
 		{
 			key: 'knockback',
 			label: 'Knockback',
-			title: 'Knockback %',
+			title: 'Knockback change',
 			kind: 'number',
 			value: (m) => m.knockback,
 			display: (m) => pct(m.knockback)
@@ -120,8 +120,7 @@ export const modifierGame: GameConfig<Modifier> = {
 		{
 			key: 'effects',
 			label: 'Other Effect',
-			title:
-				'Size, Velocity, Mana cost, Defense, Move speed, ... (yellow = same stat, different amount)',
+			title: 'Stats without their own column',
 			kind: 'stats',
 			value: (m) => m.effects,
 			display: (m) => (m.effects.length ? m.effects : 'None')
@@ -129,7 +128,7 @@ export const modifierGame: GameConfig<Modifier> = {
 		{
 			key: 'sentiment',
 			label: 'Sentiment',
-			title: 'Positive, Negative or Mixed',
+			title: 'Whether its changes are all good, all bad or mixed',
 			kind: 'exact',
 			value: (m) => sentiment(m)
 		}

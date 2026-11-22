@@ -2,6 +2,7 @@
 	import type { CompareResult, Entry, GameConfig, GuessRecord } from '$lib/engine/types';
 	import { getEntry } from '$lib/games';
 	import { imageUrl } from '$lib/images';
+	import { summarizeValues } from '$lib/engine/values';
 	import { useMediaQuery } from '$lib/utils/mediaQuery.svelte';
 	import { flip } from 'svelte/animate';
 	import { fly } from 'svelte/transition';
@@ -30,6 +31,30 @@
 	};
 	const flyDuration = () => (isMobile.current ? 400 : 2000);
 
+	// Hover (or tap) a column header to see every value that column can have.
+	const summaries = $derived(
+		Object.fromEntries(game.attributes.map((a) => [a.key, summarizeValues(a, game.entries)]))
+	);
+	const POPOVER_WIDTH = 260;
+	let info = $state<{ key: string; left: number; top?: number; bottom?: number } | null>(null);
+	const infoAttr = $derived(info && game.attributes.find((a) => a.key === info!.key));
+
+	function showInfo(key: string, el: HTMLElement) {
+		const r = el.getBoundingClientRect();
+		const left = Math.min(
+			Math.max(8, r.left + r.width / 2 - POPOVER_WIDTH / 2),
+			window.innerWidth - POPOVER_WIDTH - 8
+		);
+		// Open below the header, or above it when the header is low on the screen.
+		info =
+			r.bottom > window.innerHeight * 0.6
+				? { key, left, bottom: window.innerHeight - r.top + 6 }
+				: { key, left, top: r.bottom + 6 };
+	}
+	const hideInfo = () => (info = null);
+	// Hover is mouse-only: after a tap, phones send a synthetic "leave" that would close the
+	// popover straight away. Taps open it via focus/click and close it by tapping elsewhere.
+
 	const rows = $derived(
 		guesses
 			.map((g) => ({ guess: g, entry: getEntry(game, g.id) }))
@@ -37,11 +62,22 @@
 	);
 </script>
 
-<div class="container">
+<svelte:window onscroll={hideInfo} onresize={hideInfo} />
+
+<div class="container" onscroll={hideInfo}>
 	<div class="header" style="--cols: {columns}">
 		<span>{game.firstColumn}</span>
 		{#each game.attributes as attr (attr.key)}
-			<span title={attr.title}>{attr.label}</span>
+			<button
+				class="col-head"
+				class:open={info?.key === attr.key}
+				aria-expanded={info?.key === attr.key}
+				onpointerenter={(e) => e.pointerType === 'mouse' && showInfo(attr.key, e.currentTarget)}
+				onpointerleave={(e) => e.pointerType === 'mouse' && hideInfo()}
+				onfocus={(e) => showInfo(attr.key, e.currentTarget)}
+				onblur={hideInfo}
+				onclick={(e) => showInfo(attr.key, e.currentTarget)}>{attr.label}</button
+			>
 		{/each}
 	</div>
 
@@ -82,6 +118,33 @@
 	{/each}
 </div>
 
+{#if info && infoAttr}
+	{@const sum = summaries[info.key]}
+	<div
+		class="col-info"
+		role="tooltip"
+		style:left="{info.left}px"
+		style:top={info.top !== undefined ? `${info.top}px` : undefined}
+		style:bottom={info.bottom !== undefined ? `${info.bottom}px` : undefined}
+		style:width="{POPOVER_WIDTH}px"
+	>
+		<strong>{infoAttr.label}</strong>
+		<p class="desc">{infoAttr.title}</p>
+		{#if sum.range}
+			<p class="range">{sum.range[0]} <span class="arrow">to</span> {sum.range[1]}</p>
+		{/if}
+		{#if sum.values.length}
+			<div class="chips">
+				{#each sum.values as value, i (value)}
+					<span class="chip" style:color={infoAttr.valueColor?.(value)}>{value}</span>
+					{#if sum.ordered && i < sum.values.length - 1}<span class="arrow">→</span>{/if}
+				{/each}
+			</div>
+		{/if}
+		<p class="rule">{sum.rule}</p>
+	</div>
+{/if}
+
 <style>
 	.container {
 		max-width: 100%;
@@ -98,10 +161,72 @@
 		border-bottom: 2px solid #fff;
 	}
 
-	.header span {
+	.header span,
+	.col-head {
 		font-size: 13px;
 		width: 80px;
 		flex-shrink: 0;
+	}
+
+	.col-head {
+		padding: 0;
+		background: none;
+		border: none;
+		cursor: help;
+		text-decoration: underline dotted rgba(255, 255, 255, 0.6);
+		text-underline-offset: 3px;
+	}
+
+	.col-head:hover,
+	.col-head.open {
+		color: var(--color-yellow);
+	}
+
+	.col-info {
+		position: fixed;
+		z-index: 100;
+		box-sizing: border-box;
+		padding: 10px 12px;
+		background-color: rgb(40, 52, 115);
+		border: 2px solid black;
+		border-radius: 10px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+		pointer-events: none;
+	}
+
+	.col-info p {
+		margin: 4px 0;
+		font-size: 14px;
+	}
+
+	.col-info .desc {
+		color: lightgray;
+	}
+
+	.col-info .rule {
+		font-size: 12px;
+		color: #c9d3ff;
+	}
+
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: center;
+		gap: 4px;
+		margin: 6px 0;
+	}
+
+	.chip {
+		padding: 2px 6px;
+		font-size: 13px;
+		background: rgba(0, 0, 0, 0.35);
+		border-radius: 6px;
+	}
+
+	.arrow {
+		font-size: 12px;
+		color: lightgray;
 	}
 
 	.row {
@@ -180,7 +305,8 @@
 			gap: 11px;
 		}
 
-		.header span {
+		.header span,
+		.col-head {
 			font-size: 12px;
 			width: 70px;
 		}
