@@ -60,16 +60,29 @@ identical stats, which players couldn't tell apart, all fail the test run.
 Changing `DAILY_SECRET`, or adding or removing entries, reshuffles the answer order, which can
 change the current day's answer. Deploy those changes just after midnight Eastern.
 
-## Images
+## Game data and the wiki
 
-Boss sprites are in `static/bosses/`. Accessory images still point at the wiki (`"wiki:File.png"`
-in the data). Before deploying, download them so the site doesn't hotlink the wiki:
+Stats come from the [Terraria Wiki](https://terraria.wiki.gg/)'s data tables:
 
 ```bash
-npm run fetch-images
+npm run sync-wiki
 ```
 
-That saves them into `static/accessories/` and rewrites the data file to use the local copies.
+```bash
+npm run sync-wiki -- --write
+```
+
+The first reports differences; `--write` applies them.
+
+| Data        | From the wiki                                                                            | Curated by hand                              |
+| ----------- | ---------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                               | stage, biome, summon, body type, time, hints |
+| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source | function, class boost, source, "where found" |
+| Modifiers   | everything (rebuilt from the Modifiers page)                                             | the skip list in the script                  |
+
+Anything it can't decide is printed under "Needs attention". After adding entries, run
+`npm run fetch-images` to download their images into `static/` (the site never hotlinks the
+wiki) and `npm test` to catch typos and lookalike entries.
 
 ## Adding a game mode
 
@@ -77,8 +90,3 @@ That saves them into `static/accessories/` and rewrites the data file to use the
 2. Add `src/lib/games/<thing>.ts` exporting a `GameConfig`: its columns (`exact`, `number`,
    `ranked`, `set` or `stats`), three hints and a rarity theme.
 3. Register it in `src/lib/games/index.ts`. The routes, header and home page pick it up.
-
-## Data status
-
-The stats were entered by hand and still need checking against the wiki, especially accessory
-rarities, crafting tiers and event-boss values. Please fix anything wrong in the JSON.

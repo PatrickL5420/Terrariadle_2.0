@@ -45,7 +45,12 @@
 		<div class="hint-buttons">
 			{#each game.hints as def, i (def.label)}
 				{@const hint = hints[i]}
-				<button disabled={locked(i)} onclick={() => toggle(i)} title={def.label}>
+				<button
+					disabled={locked(i)}
+					class:active={visible[i]}
+					onclick={() => toggle(i)}
+					title={def.label}
+				>
 					{#if locked(i)}
 						<img
 							class="lock"
@@ -56,14 +61,22 @@
 					{/if}
 					{#if visible[i] && hint && 'image' in hint}
 						<img class="hint-image {hint.effect}" src={imageUrl(hint.image)} alt="Hint" />
-					{:else if visible[i] && hint && 'text' in hint}
-						<span class="hint-text">{hint.text}</span>
 					{:else}
 						<span>{def.label}</span>
 					{/if}
 				</button>
 			{/each}
 		</div>
+
+		{#each game.hints as def, i (def.label)}
+			{@const hint = hints[i]}
+			{#if visible[i] && hint && 'text' in hint}
+				<p class="hint-reveal" transition:slide={{ duration: 200 }}>
+					<span class="hint-label">{def.label}:</span>
+					{hint.text}
+				</p>
+			{/if}
+		{/each}
 
 		<div class="dropdown">
 			<Dropdown selectItem={onGuess} itemList={items} itemType={game.noun} />
@@ -133,9 +146,23 @@
 		opacity: 50%;
 	}
 
-	.hint-text {
-		font-size: 13px;
-		line-height: 1.1;
+	.hint-buttons button.active {
+		background-color: var(--color-lightblue);
+	}
+
+	.hint-reveal {
+		max-width: 320px;
+		margin: 10px auto 0;
+		padding: 6px 10px;
+		font-size: 15px;
+		line-height: 1.2;
+		background-color: var(--color-button);
+		border: thin solid black;
+		border-radius: 10px;
+	}
+
+	.hint-label {
+		color: var(--color-yellow);
 	}
 
 	.hint-image {

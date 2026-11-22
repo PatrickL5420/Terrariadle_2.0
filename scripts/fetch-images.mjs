@@ -26,9 +26,14 @@ for (const [file, folder] of Object.entries(FILES)) {
 		const local = `/${folder}/${name}`;
 		const dest = path.join(root, 'static', folder, name);
 		if (!existsSync(dest)) {
-			const res = await fetch(WIKI + encodeURIComponent(name), {
-				headers: { 'User-Agent': 'terrariadle-image-sync' }
-			});
+			let res;
+			for (let attempt = 1; attempt <= 3; attempt++) {
+				res = await fetch(WIKI + encodeURIComponent(name), {
+					headers: { 'User-Agent': 'terrariadle-image-sync' }
+				});
+				if (res.ok) break;
+				await new Promise((r) => setTimeout(r, 1000 * attempt));
+			}
 			if (!res.ok) {
 				console.error(`✗ ${name}: HTTP ${res.status}`);
 				failed++;

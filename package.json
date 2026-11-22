@@ -13,7 +13,8 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test": "vitest run",
-		"fetch-images": "node scripts/fetch-images.mjs"
+		"fetch-images": "node scripts/fetch-images.mjs",
+		"sync-wiki": "node scripts/sync-wiki.mjs"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.1.0",
