@@ -25,12 +25,12 @@ const vocab: Record<string, Record<string, string[]>> = {
 	},
 	accessory: {
 		functions: [
-			'Movement',
 			'Wings',
-			'Defense',
+			'Movement',
 			'Combat',
+			'Yoyo',
+			'Health & Mana',
 			'Immunity',
-			'Info',
 			'Fishing',
 			'Building',
 			'Utility'

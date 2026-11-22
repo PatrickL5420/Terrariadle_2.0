@@ -257,11 +257,75 @@ const isPlayableAccessory = (item) =>
 	item.unobtainable !== '1';
 
 /**
- * Developer items (each developer's wings/cape from the dev vanity drops) are obscure, have no
- * real source on the wiki, and are named after their owner.
+ * Developer items (each developer's wings/cape from the dev vanity drops) are obscure and have no
+ * real source on the wiki. The wiki's "Developer items" page is the list; this name rule catches
+ * the few it doesn't link (e.g. Chippy's Cloak).
  */
 const DEVELOPER_ITEM =
 	/^(Aaron|Arkhalis|Cenx|Chicken Bones|Chippy|Crowno|D-Town|FoodBarbarian|Ghostar|Grox The Great|Heroicis|Jim|Kazzymodus|Lazure|Leinfors|Loki|Red|Safeman|Skiphs|Will|Yoraiz0r)('s|') /;
+
+async function developerItems() {
+	const html = (await pageHtml('Developer items')).split(/class="[^"]*navbox/)[0];
+	return new Set([...html.matchAll(/<a [^>]*title="([^"]+)"/g)].map((m) => decode(m[1])));
+}
+
+/**
+ * Function comes from the sections of the wiki's "Accessories" page. Each section's table lives
+ * on its own page; only the first cell of each row (the item itself) counts, and the navbox at
+ * the bottom is ignored.
+ */
+const SECTION_FUNCTION = {
+	'Movement Accessories': 'Movement',
+	'Informational Accessories': 'Utility',
+	'Health and Mana Accessories': 'Health & Mana',
+	'Combat Accessories': 'Combat',
+	'Immunity accessories': 'Immunity',
+	'Construction Accessories': 'Building',
+	'Fishing Accessories': 'Fishing',
+	'Yoyo Accessories': 'Yoyo',
+	'Miscellaneous Accessories': 'Utility'
+};
+const FUNCTION_ORDER = [
+	'Wings',
+	'Movement',
+	'Combat',
+	'Yoyo',
+	'Health & Mana',
+	'Immunity',
+	'Fishing',
+	'Building',
+	'Utility'
+];
+
+async function accessorySections() {
+	const html = await pageHtml('Accessories');
+	const pages = [...html.matchAll(/data-ajax-source-page="([^"]+)"/g)].map((m) => decode(m[1]));
+	const sections = new Map();
+	for (const page of pages) {
+		const fn = SECTION_FUNCTION[page];
+		if (!fn) continue;
+		const body = (await pageHtml(page)).split(/class="[^"]*navbox/)[0];
+		const firstCells = [...body.matchAll(/<tr[^>]*>\s*<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g)];
+		for (const [, cellHtml] of firstCells) {
+			for (const [, title] of cellHtml.matchAll(/<a [^>]*title="([^"]+)"/g)) {
+				const name = decode(title);
+				sections.set(name, new Set([...(sections.get(name) ?? []), fn]));
+			}
+		}
+	}
+	return sections;
+}
+
+/** Function for one accessory from the wiki sections; wings get their own value. */
+function functionsFor(item, sections) {
+	const fn = new Set(sections.get(item.name) ?? []);
+	if (/\bwings\b/i.test(item.tag ?? '')) {
+		fn.delete('Movement');
+		fn.add('Wings');
+	}
+	if (!fn.size && / Golf Ball$|^Golf Ball$/.test(item.name)) fn.add('Utility');
+	return FUNCTION_ORDER.filter((f) => fn.has(f));
+}
 
 /** Where a "drop" row comes from, mapped onto the Source column. */
 function dropKind(from, bosses) {
@@ -274,60 +338,15 @@ function dropKind(from, bosses) {
 const listText = (items) =>
 	items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
 
-const FUNCTION_ORDER = [
-	'Wings',
-	'Movement',
-	'Defense',
-	'Immunity',
-	'Combat',
-	'Info',
-	'Fishing',
-	'Building',
-	'Utility'
-];
-
 /**
- * Best guesses for the hand-curated columns, from wiki tags and tooltip keywords.
+ * Best guesses for Class Boost, Source and the "where" hint, from wiki tags, drops, recipes
+ * and tooltip keywords.
  * Returns the values plus notes on anything shaky, for the review list.
  */
 function autofill(item, ctx) {
 	const notes = [];
 	const tip = decode((item.tooltip ?? '').replace(/<[^>]+>/g, ' ')).toLowerCase();
 	const tags = (item.tag ?? '').toLowerCase();
-
-	// Function
-	const fn = new Set();
-	if (/\bwings\b/.test(tags)) fn.add('Wings');
-	if (
-		/boots/.test(item.type) ||
-		/\brun|jump|flight|\bfly|dash|climb|swim|movement speed|fall damage|fall resistance|hover|walk on|mobility/.test(
-			tip
-		)
-	)
-		fn.add('Movement');
-	if (
-		/shield/.test(item.type) ||
-		toInt(item.defense) > 0 ||
-		/damage taken|invincibility|dodge|absorbs|defense/.test(tip)
-	)
-		fn.add('Defense');
-	if (/immunity|immune to|negates/.test(tip)) fn.add('Immunity');
-	if (
-		/damage|critical|attack speed|melee speed|knockback|armor penetration|minion|sentr|arrow|bullet|yoyo|inflict|mana/.test(
-			tip
-		)
-	)
-		fn.add('Combat');
-	if (/informational/.test(tags) || /^\s*(displays|shows|tells)|detects/.test(tip)) fn.add('Info');
-	if (/fishing|bait|fishing line/.test(tip)) fn.add('Fishing');
-	if (/construction/.test(tags) || /placement|tile|reach|wire|paint|actuat/.test(tip))
-		fn.add('Building');
-	if (fn.has('Wings')) fn.delete('Movement');
-	let functions = FUNCTION_ORDER.filter((f) => fn.has(f)).slice(0, 2);
-	if (!functions.length) {
-		functions = ['Utility'];
-		notes.push('function: no keyword matched, guessed Utility');
-	}
 
 	// Class boost
 	const cls = [];
@@ -395,7 +414,6 @@ function autofill(item, ctx) {
 		notes.push('source: nothing on the wiki, guessed Chest');
 	}
 	return {
-		functions,
 		classes,
 		sources: [...sources],
 		where: where.slice(0, 2).join('; ') || 'Found somewhere in the world',
@@ -433,8 +451,14 @@ async function syncAccessories() {
 	// Items that don't exist on PC (old console / 3DS / mobile exclusives).
 	const exclusive = await cargoByNames('Exclusive', 'pagename,desktop', 'pagename', [...accNames]);
 	const notOnPc = new Set(exclusive.filter((e) => e.desktop !== '1').map((e) => e.pagename));
+	const devItems = await developerItems();
+	const sections = await accessorySections();
 	const playable = allAcc.filter(
-		(i) => isPlayableAccessory(i) && !notOnPc.has(i.name) && !DEVELOPER_ITEM.test(i.name)
+		(i) =>
+			isPlayableAccessory(i) &&
+			!notOnPc.has(i.name) &&
+			!devItems.has(i.name) &&
+			!DEVELOPER_ITEM.test(i.name)
 	);
 
 	const allRecipes = await cargoByNames('Recipes', 'result,ingredients,station,version', 'result', [
@@ -523,11 +547,22 @@ async function syncAccessories() {
 			update('accessories', acc, 'image', `wiki:${item.imagefile}`);
 		}
 
-		// Hand columns: only (re)guessed until someone reviews the entry.
+		if ((devItems.has(acc.name) || DEVELOPER_ITEM.test(acc.name)) && !acc.exclude) {
+			update('accessories', acc, 'exclude', 'Developer item');
+		}
+
+		// Function comes from the wiki's accessory sections, for every entry.
+		const functions = functionsFor(item, sections);
+		if (functions.length) update('accessories', acc, 'functions', functions);
+		else if (!acc.exclude && !acc.functions?.length)
+			problems.push(
+				`accessory ${acc.name}: in no section of the Accessories page; Function left as ${acc.functions?.join(', ')}`
+			);
+
+		// Other hand columns: only (re)guessed until someone reviews the entry.
 		if (acc.reviewed === false) {
 			const guess = autofill(item, ctx);
-			for (const k of ['functions', 'classes', 'sources', 'where'])
-				update('accessories', acc, k, guess[k]);
+			for (const k of ['classes', 'sources', 'where']) update('accessories', acc, k, guess[k]);
 			acc._notes = guess.notes;
 		}
 		// Shimmer comes straight from the wiki's recipes, so it's kept in sync even on reviewed
@@ -654,8 +689,8 @@ async function writeReview(playableCount, wikiCount) {
  */
 async function checkSources(accessories, ctx) {
 	for (const acc of accessories) {
-		// The wiki's drop table has no rows for these bosses, so there's nothing to check against.
-		if (/Empress of Light/.test(acc.where)) continue;
+		// The wiki's drop table has no rows for these, so there's nothing to check against.
+		if (/Empress of Light|Hallowed Mimic/.test(acc.where)) continue;
 		const from = ctx.dropsFor.get(acc.name) ?? [];
 		const kinds = new Set(from.map((f) => dropKind(f, ctx.bosses)));
 		const claimsDrop = acc.sources.some((x) => x === 'Enemy drop' || x === 'Boss/Treasure bag');
