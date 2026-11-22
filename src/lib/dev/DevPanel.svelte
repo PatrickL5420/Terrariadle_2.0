@@ -43,6 +43,9 @@
 	let busy = $state('');
 	let output = $state('');
 	let tab = $state<'game' | 'schedule' | 'tasks'>('game');
+	// Answers stay hidden until asked for, so the dev panel doesn't spoil the puzzle.
+	let showAnswer = $state(false);
+	let showSchedule = $state(false);
 
 	const routeSlug = $derived(page.params.mode);
 	$effect(() => {
@@ -51,6 +54,15 @@
 
 	const game = $derived(getGame(selected)!);
 	const current = $derived(info?.games.find((g) => g.slug === selected));
+	// Hide again whenever the mode or the answer changes (e.g. after a reroll).
+	const answerId = $derived(current?.answer.id);
+	$effect(() => {
+		void selected;
+		void answerId;
+		showAnswer = false;
+		showSchedule = false;
+	});
+
 	const entries = $derived(
 		game.entries
 			.map((e) => ({ id: e.id, name: e.name, image: e.image }))
@@ -205,14 +217,23 @@
 		{#if tab === 'game'}
 			{#if current}
 				<div class="answer">
-					{#if current.answer.image}
-						<img src={imageUrl(current.answer.image)} alt="" />
+					<button
+						class="reveal"
+						aria-expanded={showAnswer}
+						onclick={() => (showAnswer = !showAnswer)}
+					>
+						{showAnswer ? '▼ Hide' : '▶ Show'} today's answer
+						{current.overridden ? '(forced)' : ''}
+					</button>
+					{#if showAnswer}
+						<div class="revealed">
+							{#if current.answer.image}
+								<img src={imageUrl(current.answer.image)} alt="" />
+							{/if}
+							<span class="name">{current.answer.name}</span>
+						</div>
 					{/if}
-					<div>
-						<div class="label">Today's answer {current.overridden ? '(forced)' : ''}</div>
-						<div class="name">{current.answer.name}</div>
-						<div class="label">{current.solved} solved · pool of {current.poolSize}</div>
-					</div>
+					<div class="label">{current.solved} solved · pool of {current.poolSize}</div>
 				</div>
 			{/if}
 
@@ -248,11 +269,20 @@
 			</div>
 		{:else if tab === 'schedule' && current}
 			<p class="label">Upcoming answers (ignores overrides)</p>
-			<ol class="schedule">
-				{#each current.schedule as s (s.day)}
-					<li><span class="label">Day {s.day}</span> {s.name}</li>
-				{/each}
-			</ol>
+			<button
+				class="reveal"
+				aria-expanded={showSchedule}
+				onclick={() => (showSchedule = !showSchedule)}
+			>
+				{showSchedule ? '▼ Hide' : '▶ Show'} schedule
+			</button>
+			{#if showSchedule}
+				<ol class="schedule">
+					{#each current.schedule as s (s.day)}
+						<li><span class="label">Day {s.day}</span> {s.name}</li>
+					{/each}
+				</ol>
+			{/if}
 		{:else if tab === 'tasks'}
 			<div class="buttons">
 				<button disabled={!!busy} onclick={() => runTask('sync-wiki')}>Wiki sync (report)</button>
@@ -378,16 +408,28 @@
 		margin-top: 6px;
 	}
 
-	.answer {
+	.reveal {
+		width: 100%;
+		background: #2f2f3d;
+	}
+
+	.revealed {
 		display: flex;
 		gap: 10px;
 		align-items: center;
+		margin: 8px 0 4px;
+	}
+
+	.answer {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
 		margin-top: 10px;
 		padding: 8px;
 		background: #2a2a36;
 		border-radius: 8px;
 	}
-	.answer img {
+	.revealed img {
 		width: 36px;
 		height: 36px;
 		object-fit: contain;
