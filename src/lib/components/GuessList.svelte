@@ -2,7 +2,7 @@
 	import type { CompareResult, Entry, GameConfig, GuessRecord } from '$lib/engine/types';
 	import { getEntry } from '$lib/games';
 	import { imageUrl } from '$lib/images';
-	import { summarizeValues } from '$lib/engine/values';
+	import { summarizeValues, valueKnowledge } from '$lib/engine/values';
 	import { useMediaQuery } from '$lib/utils/mediaQuery.svelte';
 	import { flip } from 'svelte/animate';
 	import { fly } from 'svelte/transition';
@@ -130,6 +130,11 @@
 
 {#if info && infoAttr}
 	{@const sum = summaries[info.key]}
+	{@const known = valueKnowledge(
+		infoAttr,
+		sum,
+		rows.map((r) => ({ entry: r.entry, checks: r.guess.checks }))
+	)}
 	<div
 		class="col-info"
 		role="tooltip"
@@ -141,17 +146,35 @@
 		<strong>{infoAttr.label}</strong>
 		<p class="desc">{infoAttr.title}</p>
 		{#if sum.range}
-			<p class="range">{sum.range[0]} <span class="arrow">to</span> {sum.range[1]}</p>
+			<p class="range" class:narrowed={!!known.bounds}>
+				{sum.range[0]} <span class="arrow">to</span>
+				{sum.range[1]}
+			</p>
+			{#if known.bounds}
+				<p class="range still">{known.bounds}</p>
+			{/if}
 		{/if}
 		{#if sum.values.length}
 			<div class="chips">
 				{#each sum.values as value, i (value)}
-					<span class="chip" style:color={infoAttr.valueColor?.(value)}>{value}</span>
+					<span
+						class="chip"
+						class:ruled-out={known.ruledOut.has(value)}
+						class:confirmed={known.confirmed.has(value)}
+						style:color={known.ruledOut.has(value) ? undefined : infoAttr.valueColor?.(value)}
+						>{value}</span
+					>
 					{#if sum.ordered && i < sum.values.length - 1}<span class="arrow">→</span>{/if}
 				{/each}
 			</div>
 		{/if}
 		<p class="rule">{sum.rule}</p>
+		{#if known.ruledOut.size || known.confirmed.size}
+			<p class="legend">
+				<span class="ruled-out">Crossed out</span> = ruled out by a tile{#if known.confirmed.size}
+					· <span class="confirmed-text">green</span> = confirmed{/if}
+			</p>
+		{/if}
 	</div>
 {/if}
 
@@ -232,6 +255,38 @@
 		font-size: 13px;
 		background: rgba(0, 0, 0, 0.35);
 		border-radius: 6px;
+	}
+
+	.chip.ruled-out,
+	.legend .ruled-out {
+		text-decoration: line-through;
+		text-decoration-thickness: 2px;
+		text-decoration-color: var(--color-red);
+		color: #b8b8b8;
+		opacity: 0.8;
+	}
+
+	.chip.confirmed {
+		background: rgba(61, 212, 41, 0.45);
+		box-shadow: 0 0 0 1px var(--color-green);
+	}
+
+	.confirmed-text {
+		color: var(--color-green);
+	}
+
+	.range.narrowed {
+		text-decoration: line-through;
+		opacity: 0.6;
+	}
+
+	.range.still {
+		color: var(--color-green);
+	}
+
+	.col-info .legend {
+		font-size: 12px;
+		color: lightgray;
 	}
 
 	.arrow {
