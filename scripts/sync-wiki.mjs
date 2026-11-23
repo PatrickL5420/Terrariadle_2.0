@@ -12,6 +12,7 @@
  *   modifiers    the whole list: which weapons each applies to, tier and every stat
  *   fish         the Angler's quest fish: quote, height and biome
  *   critter      the Critters page tables: environment, AI, rarity, sell price, bait power
+ *   enemy        the Enemies page (no bosses): hardmode, HP, attack, AI, rare, event, banner
  *
  * Everything else (boss stage, biomes, body type, accessory function/class/source, hint text)
  * is curated by hand and never touched.
@@ -1586,6 +1587,189 @@ async function syncCritters() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Enemies
+
+/** Sections of the Enemies page that are in the game; bosses, servants and unspawnables aren't. */
+const ENEMY_SECTIONS = new Set([
+	'Pre-Hardmode enemies',
+	'Hardmode enemies',
+	'Event enemies',
+	'Special seed-exclusive enemies'
+]);
+
+/** Listed on the Enemies page, but the wiki has no stats of its own for it. */
+const ENEMY_SKIP = new Set(['Owl (mimic)']);
+
+/**
+ * 1.4.5 slime variants (Dirt Slime, Torch Slime, …): each takes the stats of whichever slime it
+ * replaces, so there's nothing to compare. The Slimes page lists them in hidden infoboxes.
+ */
+async function slimeVariants() {
+	const { parse } = await api({ action: 'parse', page: 'Slimes', prop: 'wikitext' });
+	return new Set(
+		[...parse.wikitext.matchAll(/\{\{npc infobox\|name=([^|}]+)/g)].map((m) => m[1].trim())
+	);
+}
+
+/** Events that only happen in Hardmode, so all their enemies are Hardmode enemies. */
+const HARDMODE_EVENTS = new Set([
+	'Solar Eclipse',
+	'Martian Madness',
+	'Pumpkin Moon',
+	'Frost Moon',
+	'Frost Legion',
+	'Pirate Invasion',
+	'Lunar Events'
+]);
+
+/** [{ page, section, event }] from the Enemies page's {{item|…}} lists. */
+async function enemyList() {
+	const { parse } = await api({ action: 'parse', page: 'Enemies', prop: 'wikitext' });
+	const skip = new Set([...ENEMY_SKIP, ...(await slimeVariants())]);
+	const list = [];
+	let section = '';
+	let event = '';
+	for (const line of parse.wikitext.split('\n')) {
+		const heading = line.match(/^(==+)\s*(.*?)\s*\1\s*$/);
+		if (heading) {
+			const name = heading[2].replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, '$1');
+			if (heading[1].length === 2) [section, event] = [name, ''];
+			else event = name;
+			continue;
+		}
+		if (!ENEMY_SECTIONS.has(section)) continue;
+		for (const m of line.matchAll(/\{\{item\|([^|}]+)/g)) {
+			if (!skip.has(m[1].trim())) list.push({ page: m[1].trim(), section, event });
+		}
+	}
+	return list;
+}
+
+/** Pages in a category, among the given pages (redirects followed). */
+async function pagesInCategory(pages, category) {
+	const found = new Set();
+	for (let i = 0; i < pages.length; i += 50) {
+		const body = await api({
+			action: 'query',
+			titles: pages.slice(i, i + 50).join('|'),
+			prop: 'categories',
+			clcategories: `Category:${category}`,
+			cllimit: 'max',
+			redirects: '1'
+		});
+		// Several pages can redirect to one (Bone Biter, Sand Shark -> Sand Sharks).
+		const back = new Map();
+		for (const r of [...(body.query.normalized ?? []), ...(body.query.redirects ?? [])]) {
+			back.set(r.to, [...(back.get(r.to) ?? []), r.from]);
+		}
+		const originals = (title) => [title, ...(back.get(title) ?? []).flatMap(originals)];
+		for (const p of body.query.pages) {
+			if (p.categories?.length) for (const title of originals(p.title)) found.add(title);
+		}
+	}
+	return found;
+}
+
+async function rareEnemies() {
+	const html = await pageHtml('Lifeform Analyzer/List of detected creatures');
+	const enemies = html.slice(0, html.indexOf('Critters'));
+	return new Set(
+		[...enemies.matchAll(/<a href="[^"]*" title="([^"]+)"/g)].map((m) => decode(m[1]))
+	);
+}
+
+async function syncEnemies() {
+	const existing = await load('enemies.json').catch(() => []);
+	const list = await enemyList();
+	const pages = list.map((e) => e.page);
+	const hardmodeOnly = await pagesInCategory(pages, 'Hardmode-only NPCs');
+	const rare = await rareEnemies();
+	const rows = await cargoByNames(
+		'NPCs',
+		'_pageName=page,nameraw,image,ai,life,damage,banner,npcid',
+		'_pageName',
+		pages
+	);
+
+	// Enemies sharing a page (Ghoul -> Ghouls, Mimic -> Mimics) are found by their own name.
+	const missing = pages.filter((p) => !rows.some((r) => r.page === p));
+	const byName = await cargoByNames(
+		'NPCs',
+		'_pageName=page,nameraw,image,ai,life,damage,banner,npcid',
+		'nameraw',
+		missing
+	);
+
+	const entries = [];
+	for (const { page, section, event } of list) {
+		const variants = rows.filter((r) => r.page === page);
+		if (!variants.length) variants.push(...byName.filter((r) => r.nameraw === page));
+		// The variant named like the page is the main one (Zombie, not Bald Zombie). Worm
+		// segments share the name; the head (lowest id) holds the HP and damage.
+		// Variants have negative ids, so real ids come first.
+		const rank = (r) => [
+			toInt(r.npcid) < 0,
+			!/ Head\.\w+\b/.test(r.image),
+			Math.abs(toInt(r.npcid))
+		];
+		const main = variants
+			.filter((r) => r.nameraw === page)
+			.sort((a, b) => {
+				const [x, y] = [rank(a), rank(b)];
+				return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+			});
+		const npc = main[0] ?? variants.find((r) => page.startsWith(r.nameraw)) ?? variants[0];
+		if (!npc) {
+			problems.push(`enemies: no NPC data for ${page}`);
+			continue;
+		}
+		const name = page.replace(/ \((?:enemy|NPC|mimic)\)$/, '');
+		const id = toInt(npc.npcid);
+		if (entries.some((e) => e.id === id)) {
+			problems.push(`enemies: ${page} shares NPC id ${id} with another enemy`);
+			continue;
+		}
+		const old = existing.find((e) => e.id === id);
+		const banner = npc.banner?.match(/\[\[File:([^|\]]+)/)?.[1];
+		const hardmode =
+			section === 'Hardmode enemies' ||
+			HARDMODE_EVENTS.has(event) ||
+			(section !== 'Pre-Hardmode enemies' && hardmodeOnly.has(page));
+		entries.push({
+			id,
+			name,
+			...(name !== page && { page }),
+			image: old?.image?.startsWith('/')
+				? old.image
+				: `wiki:${npc.image?.match(/\[\[File:([^|\]]+)/)?.[1] ?? `${name}.png`}`,
+			hardmode,
+			hp: toInt(classic(npc.life)),
+			attack: toInt(classic(npc.damage)),
+			ai: text(npc.ai || '') || 'None',
+			rare: rare.has(page) || rare.has(name),
+			event: event || 'None',
+			...(banner && {
+				banner: old?.banner?.startsWith('/') ? old.banner : `wiki:${decode(banner)}`
+			})
+		});
+	}
+
+	for (const e of entries) {
+		const old = existing.find((o) => o.id === e.id);
+		if (!old) changes.push(`enemies      ${e.name.padEnd(22)} added`);
+		else
+			for (const field of ['hardmode', 'hp', 'attack', 'ai', 'rare', 'event'])
+				update('enemies', old, field, e[field]);
+	}
+	for (const old of existing) {
+		if (!entries.some((e) => e.id === old.id))
+			changes.push(`enemies      ${old.name.padEnd(22)} removed`);
+	}
+	entries.sort((a, b) => a.name.localeCompare(b.name));
+	if (WRITE) await save('enemies.json', entries);
+}
+
+// ---------------------------------------------------------------------------------------------
 
 if (runs('boss')) await syncBosses();
 if (runs('armor')) await syncArmor();
@@ -1594,6 +1778,7 @@ if (runs('accessory')) await syncAccessories();
 if (runs('modifier')) await syncModifiers();
 if (runs('fish')) await syncFish();
 if (runs('critter')) await syncCritters();
+if (runs('enemy')) await syncEnemies();
 
 console.log(changes.length ? changes.join('\n') : 'No differences.');
 if (problems.length)
