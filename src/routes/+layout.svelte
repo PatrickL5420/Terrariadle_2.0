@@ -6,14 +6,13 @@
 	import { onMount, type Snippet } from 'svelte';
 	import { games, gameSlugs } from '$lib/games';
 	import { refreshCompletion } from '$lib/progress.svelte';
-	import { dev } from '$app/environment';
 
 	let { children }: { children: Snippet } = $props();
 
 	onMount(() => refreshCompletion(gameSlugs));
 
-	// Dev tools are only loaded by `npm run dev`; production builds drop this import entirely.
-	const devPanel = dev ? import('$lib/dev/DevPanel.svelte') : null;
+	// Dev tools are only loaded in dev and on previews; production builds drop this import entirely.
+	const devPanel = __DEV_TOOLS__ ? import('$lib/dev/DevPanel.svelte') : null;
 
 	const titles: Record<string, string> = {
 		'/about': 'How to Play',

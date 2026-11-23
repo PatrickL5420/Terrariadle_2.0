@@ -1,4 +1,5 @@
 import { dev } from '$app/environment';
+import { DEV_TOOLS } from '$lib/devtools';
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 import { pickDaily } from '$lib/engine/daily';
@@ -7,6 +8,8 @@ import { answerPool, getEntry, getGame } from '$lib/games';
 import { currentDay, overrideFor } from './dev';
 
 function secret(): string {
+	// Previews never use the real secret, so their dev tools can't reveal production answers.
+	if (DEV_TOOLS && !dev) return 'preview-secret';
 	if (env.DAILY_SECRET) return env.DAILY_SECRET;
 	if (dev) return 'dev-secret';
 	// Without a secret anyone could compute every future answer from the public source code.

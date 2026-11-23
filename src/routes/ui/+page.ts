@@ -1,9 +1,9 @@
-import { dev } from '$app/environment';
 import { error } from '@sveltejs/kit';
+import { DEV_TOOLS } from '$lib/devtools';
 
-// Component gallery for `npm run dev` only.
-export const prerender = false;
+// Component gallery, only with dev tools on (src/lib/devtools.ts).
+export const prerender = DEV_TOOLS;
 
 export function load() {
-	if (!dev) error(404);
+	if (!DEV_TOOLS) error(404);
 }

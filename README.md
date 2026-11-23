@@ -53,7 +53,8 @@ identical stats, which players couldn't tell apart, all fail the test run.
 
 ### Dev tools
 
-`npm run dev` adds a **🛠 Dev** button (or press the backtick key). The panel lets you:
+`npm run dev` and Vercel preview deployments add a **🛠 Dev** button (or press the backtick key).
+The panel lets you:
 
 - **Answer:** see today's answer, reroll it at random, or pick a specific one. Forced answers
   only last until the day changes, and rerolling clears your progress for that mode.
@@ -61,11 +62,16 @@ identical stats, which players couldn't tell apart, all fail the test run.
 - **Player:** auto-solve through the real API, unlock all hints, reset your progress for one or
   every mode, and reset the solve counts.
 - **Schedule:** the next 14 scheduled answers for each mode.
-- **Tasks:** run the wiki sync (report or write), image download, tests and type-check, with
-  their output in the panel.
+- **Tasks** (local only): run the wiki sync (report or write), image download, tests and
+  type-check, with their output in the panel.
 
-All of it is off in production: `/api/dev` returns 404 and the panel is never loaded. Dev mode
-also uses its own `dev:` keys in Redis, so it can't touch real solve counts.
+All of it is off in production: `/api/dev` and `/ui` return 404 and the panel isn't in the
+build. Local dev and previews use their own `dev:` / `preview:` keys in Redis, so they can't touch
+real solve counts. Previews also ignore `DAILY_SECRET`, so their dev tools can't reveal production
+answers.
+
+On a preview, rerolls and time travel are saved in Redis so every serverless function sees them.
+Without Redis available to the Preview environment they only last within one function instance.
 
 ## Deploy to Vercel
 
@@ -117,8 +123,8 @@ wiki) and `npm test` to catch typos and lookalike entries.
 
 `src/lib/ui/` holds reusable components styled after Terraria's menus (bestiary, character and
 world creation). Their styles live in `src/app.css` and the icons in `static/ui/` come from the
-wiki's [UI images](https://terraria.wiki.gg/wiki/Category:UI_images). `npm run dev` serves every
-component and state at `/ui`.
+wiki's [UI images](https://terraria.wiki.gg/wiki/Category:UI_images). `/ui` shows every component and
+state in `npm run dev` and on previews.
 
 ## Adding a game mode
 

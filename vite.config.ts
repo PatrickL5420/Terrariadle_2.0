@@ -12,9 +12,12 @@ function appVersion(): string {
 	}
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
 	plugins: [sveltekit()],
 	define: {
-		__APP_VERSION__: JSON.stringify(appVersion())
+		__APP_VERSION__: JSON.stringify(appVersion()),
+		// Dev tools: on under `npm run dev` and on Vercel preview deployments. A literal, so
+		// production builds drop the tools entirely (see src/lib/devtools.ts).
+		__DEV_TOOLS__: JSON.stringify(command === 'serve' || process.env.VERCEL_ENV === 'preview')
 	}
-});
+}));

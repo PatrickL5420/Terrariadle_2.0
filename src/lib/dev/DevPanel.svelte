@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { dev } from '$app/environment';
 	import { page } from '$app/state';
 	import { checkGuess, solve } from '$lib/api';
 	import Dropdown from '$lib/components/Dropdown.svelte';
@@ -202,7 +203,9 @@
 		<nav>
 			<button class:on={tab === 'game'} onclick={() => (tab = 'game')}>Game</button>
 			<button class:on={tab === 'schedule'} onclick={() => (tab = 'schedule')}>Schedule</button>
-			<button class:on={tab === 'tasks'} onclick={() => (tab = 'tasks')}>Tasks</button>
+			<button class:on={tab === 'tasks'} onclick={() => (tab = 'tasks')}
+				>{dev ? 'Tasks' : 'Log'}</button
+			>
 		</nav>
 
 		<label class="row">
@@ -284,16 +287,19 @@
 				</ol>
 			{/if}
 		{:else if tab === 'tasks'}
-			<div class="buttons">
-				<button disabled={!!busy} onclick={() => runTask('sync-wiki')}>Wiki sync (report)</button>
-				<button disabled={!!busy} onclick={() => runTask('sync-wiki-write')}
-					>Wiki sync (write)</button
-				>
-				<button disabled={!!busy} onclick={() => runTask('fetch-images')}>Fetch images</button>
-				<button disabled={!!busy} onclick={() => runTask('test')}>Run tests</button>
-				<button disabled={!!busy} onclick={() => runTask('check')}>Type-check</button>
-			</div>
-			<pre>{output || 'Task output appears here.'}</pre>
+			<!-- Project scripts can only run locally, not on a Vercel preview. -->
+			{#if dev}
+				<div class="buttons">
+					<button disabled={!!busy} onclick={() => runTask('sync-wiki')}>Wiki sync (report)</button>
+					<button disabled={!!busy} onclick={() => runTask('sync-wiki-write')}
+						>Wiki sync (write)</button
+					>
+					<button disabled={!!busy} onclick={() => runTask('fetch-images')}>Fetch images</button>
+					<button disabled={!!busy} onclick={() => runTask('test')}>Run tests</button>
+					<button disabled={!!busy} onclick={() => runTask('check')}>Type-check</button>
+				</div>
+			{/if}
+			<pre>{output}</pre>
 		{/if}
 
 		{#if busy}<p class="label">Working: {busy}…</p>{/if}

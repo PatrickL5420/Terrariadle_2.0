@@ -1,15 +1,16 @@
+import { dev } from '$app/environment';
 import { error, json } from '@sveltejs/kit';
 import { spawn } from 'node:child_process';
 import { dayNumber } from '$lib/engine/daily';
 import { answerPool, games, getEntry } from '$lib/games';
 import { answerFor, gameOr404, scheduledAnswer } from '$lib/server/answers';
 import { resetSolves, solveCount } from '$lib/server/counter';
-import { assertDev, currentDay, devState, overrideFor } from '$lib/server/dev';
+import { assertDev, currentDay, devState, overrideFor, saveDevState } from '$lib/server/dev';
 import type { RequestHandler } from './$types';
 
 /**
  * Developer tools API. Every handler starts with assertDev(), so in a production build this
- * route only ever answers 404.
+ * route only ever answers 404. Running project scripts only works locally.
  */
 export const prerender = false;
 
@@ -106,16 +107,20 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 			if (!getEntry(game, id)) error(400, `Unknown ${game.noun}`);
 			devState.overrides[game.slug] = { day, id };
+			await saveDevState();
 			return json({ ok: true, answer: getEntry(game, id)!.name });
 		}
 		case 'clear-override':
 			delete devState.overrides[body.slug];
+			await saveDevState();
 			return json({ ok: true });
 		case 'shift-day':
 			devState.dayOffset += Math.trunc(body.delta);
+			await saveDevState();
 			return json({ ok: true, day: currentDay() });
 		case 'reset-day':
 			devState.dayOffset = 0;
+			await saveDevState();
 			return json({ ok: true, day: currentDay() });
 		case 'reset-solves':
 			for (const g of games) {
@@ -123,6 +128,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 			return json({ ok: true });
 		case 'run': {
+			if (!dev) error(400, 'Tasks only run under npm run dev');
 			const cmd = TASKS[body.task];
 			if (!cmd) error(400, 'Unknown task');
 			return json(await runTask(cmd));
