@@ -3,6 +3,7 @@
 	import { getEntry } from '$lib/games';
 	import { imageUrl } from '$lib/images';
 	import WikiLink from './WikiLink.svelte';
+	import CoinText from '$lib/ui/CoinText.svelte';
 	import { summarizeValues, valueKnowledge } from '$lib/engine/values';
 	import { flip } from 'svelte/animate';
 
@@ -112,7 +113,8 @@
 						{#each lines as line, j (j)}
 							<span
 								class:small={lines.length > 2 || line.length > 12}
-								style:color={attr.color?.(entry)}>{line}</span
+								style:color={attr.color?.(entry)}
+								>{#if attr.format === 'coins'}<CoinText text={line} />{:else}{line}{/if}</span
 							>
 						{/each}
 						{#if ARROW[result]}<span class="arrow" aria-label={RESULT_TITLE[result]}
@@ -143,8 +145,15 @@
 	>
 		<span class="info-name">{infoAttr.label}</span>
 		{#if sum.range}
-			<p class:struck={!!known.bounds}>{sum.range[0]} to {sum.range[1]}</p>
-			{#if known.bounds}<p class="good">{known.bounds}</p>{/if}
+			{#if infoAttr.format === 'coins'}
+				<p class:struck={!!known.bounds}>
+					<CoinText text="{sum.range[0]} to {sum.range[1]}" />
+				</p>
+				{#if known.bounds}<p class="good"><CoinText text={known.bounds} /></p>{/if}
+			{:else}
+				<p class:struck={!!known.bounds}>{sum.range[0]} to {sum.range[1]}</p>
+				{#if known.bounds}<p class="good">{known.bounds}</p>{/if}
+			{/if}
 		{/if}
 		{#if sum.values.length}
 			<p class="values">

@@ -61,7 +61,8 @@ export const critterGame: GameConfig<Critter> = {
 			label: 'Sell Price',
 			kind: 'number',
 			value: (c) => c.sell,
-			display: (c) => coins(c.sell)
+			display: (c) => coins(c.sell),
+			format: 'coins'
 		},
 		{
 			key: 'bait',
