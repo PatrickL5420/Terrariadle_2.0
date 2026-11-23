@@ -25,9 +25,8 @@ const categoryTheme: Record<string, RarityName> = {
 
 export const bossGame: GameConfig<Boss> = {
 	slug: 'boss',
-	title: 'Boss Guesser',
+	title: 'Bossdle',
 	noun: 'boss',
-	description: "Guess today's Terraria boss from its stats!",
 	icon: '/bosses/Eye of Cthulhu.png',
 	entries: data as Boss[],
 	firstColumn: 'Boss',
@@ -38,14 +37,12 @@ export const bossGame: GameConfig<Boss> = {
 		{
 			key: 'category',
 			label: 'Category',
-			title: "The wiki's boss category",
 			kind: 'exact',
 			value: (b) => b.category
 		},
 		{
 			key: 'hp',
 			label: 'Max HP',
-			title: 'Health in Classic mode, all parts combined',
 			kind: 'number',
 			value: (b) => b.hp,
 			display: (b) => b.hp.toLocaleString('en-US')
@@ -53,7 +50,6 @@ export const bossGame: GameConfig<Boss> = {
 		{
 			key: 'defense',
 			label: 'Defense',
-			title: 'Defense of the main body',
 			kind: 'number',
 			value: (b) => b.defense,
 			display: (b) => (b.defense === null ? 'Mixed' : String(b.defense))
@@ -61,28 +57,24 @@ export const bossGame: GameConfig<Boss> = {
 		{
 			key: 'biomes',
 			label: 'Biome',
-			title: 'Where it is fought, or the event it belongs to',
 			kind: 'set',
 			value: (b) => b.biomes
 		},
 		{
 			key: 'summon',
 			label: 'Summon',
-			title: 'How the fight starts: item, breaking something, an event, killing a mob, or other',
 			kind: 'exact',
 			value: (b) => b.summon
 		},
 		{
 			key: 'body',
 			label: 'Body Type',
-			title: 'Its shape and how it moves',
 			kind: 'exact',
 			value: (b) => b.body
 		},
 		{
 			key: 'time',
 			label: 'Time',
-			title: 'When it can be fought',
 			kind: 'exact',
 			value: (b) => b.time
 		}

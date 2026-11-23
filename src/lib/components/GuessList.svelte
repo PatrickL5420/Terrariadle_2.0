@@ -142,7 +142,6 @@
 		style:width="{POPOVER_WIDTH}px"
 	>
 		<span class="info-name">{infoAttr.label}</span>
-		<p class="dim">{infoAttr.title}</p>
 		{#if sum.range}
 			<p class:struck={!!known.bounds}>{sum.range[0]} to {sum.range[1]}</p>
 			{#if known.bounds}<p class="good">{known.bounds}</p>{/if}
@@ -160,10 +159,6 @@
 					>{#if i < sum.values.length - 1}<span class="dim">{sum.ordered ? ' → ' : ', '}</span>{/if}
 				{/each}
 			</p>
-		{/if}
-		<p class="rule">{sum.rule}</p>
-		{#if known.ruledOut.size || known.confirmed.size}
-			<p class="rule"><span class="struck">Crossed out</span> = ruled out by a tile</p>
 		{/if}
 	</div>
 {/if}
@@ -336,11 +331,6 @@
 
 	.good {
 		color: #9dff7a;
-	}
-
-	.col-info .rule {
-		font-size: 12px;
-		color: #c9d3ff;
 	}
 
 	@media (max-width: 800px) {

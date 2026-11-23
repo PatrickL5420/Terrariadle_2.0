@@ -1,7 +1,7 @@
 # Terrariadle
 
-Daily Terraria guessing games: **Boss Guesser**, **Accessory Guesser**, **Weapon Modifier Guesser**, **Accessory Modifier Guesser**,
-**Armordle** and **Tooltipdle** (guess the item from its tooltip).
+Daily Terraria guessing games: **Bossdle**, **Accessorydle**, **Modifierdle**, **Accessory Modifierdle**,
+**Armordle** and **Tooltipdle**.
 Pick a guess and every property is compared to the answer: 🟩 match, 🟨 partial, 🟥 miss,
 ▲▼ the answer is higher/lower. Hints unlock after 4, 7 and 12 guesses.
 

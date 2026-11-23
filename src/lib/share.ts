@@ -25,5 +25,5 @@ export function shareText(
 	});
 	const count = `${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}`;
 	const grid = game.attributes.length ? lines.join('\n') : lines.join('');
-	return `Terrariadle ${game.title} #${day}: ${count}\n${grid}\n${location.origin}/${game.slug}`;
+	return `${game.title} #${day}: ${count}\n${grid}\n${location.origin}/${game.slug}`;
 }

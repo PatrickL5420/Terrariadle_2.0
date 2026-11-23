@@ -46,8 +46,6 @@
 </script>
 
 <section class="panel result" in:scale={{ start: 0.85, duration: 250 }}>
-	<p class="banner">Puzzle complete!</p>
-
 	<div class="answer">
 		<span class="slot framed big">
 			<WikiLink {game} entry={answer}>
@@ -78,12 +76,6 @@
 	.result {
 		max-width: 460px;
 		margin: 8px auto 0;
-	}
-
-	.banner {
-		margin: 0 0 10px;
-		font-size: 22px;
-		color: var(--hover);
 	}
 
 	.answer {

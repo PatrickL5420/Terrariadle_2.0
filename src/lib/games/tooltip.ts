@@ -15,7 +15,6 @@ export const tooltipGame: GameConfig<TooltipItem> = {
 	slug: 'tooltip',
 	title: 'Tooltipdle',
 	noun: 'item',
-	description: "Guess today's Terraria item from its tooltip!",
 	icon: (data as TooltipItem[]).find((i) => i.name === 'Magic Mirror')?.image ?? '',
 	entries: data as TooltipItem[],
 	firstColumn: 'Item',

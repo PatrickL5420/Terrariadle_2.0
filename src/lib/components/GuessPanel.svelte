@@ -26,7 +26,6 @@
 	let open = $state([false, false, false]);
 
 	const unlocked = (i: number) => devFlags.unlockHints || guessCount >= HINT_UNLOCKS[i];
-	const nextUnlock = $derived(HINT_UNLOCKS.find((n) => guessCount < n));
 
 	// Hint slots use the equipment slot colours, like accessory / vanity / dye.
 	const SLOT_STYLE = ['green', 'teal', 'dye'];
@@ -39,8 +38,6 @@
 </script>
 
 <section class="panel guess-panel">
-	<h1 class="title">Guess today's {game.noun}</h1>
-
 	{#if clue && game.clueLabel}
 		<!-- Styled like an NPC's chat box. -->
 		<div class="clue tooltip-box">
@@ -59,7 +56,7 @@
 					class:open={open[i]}
 					disabled={!unlocked(i)}
 					onclick={() => toggle(i)}
-					title={unlocked(i) ? def.label : `Unlocks after ${HINT_UNLOCKS[i]} guesses`}
+					title={def.label}
 				>
 					{#if open[i] && hint && 'image' in hint}
 						<img class="hint-image {hint.effect}" src={imageUrl(hint.image)} alt="Hint" />
@@ -73,15 +70,6 @@
 			</div>
 		{/each}
 	</div>
-
-	<p class="progress dim">
-		{#if devFlags.unlockHints || nextUnlock === undefined}
-			All hints unlocked
-		{:else}
-			Next hint in {nextUnlock - guessCount}
-			{nextUnlock - guessCount === 1 ? 'guess' : 'guesses'}
-		{/if}
-	</p>
 
 	{#each game.hints as def, i (def.label)}
 		{@const hint = hints[i]}
@@ -184,11 +172,6 @@
 
 	.hint-image.silhouette {
 		filter: brightness(0) drop-shadow(0 0 1px #fff);
-	}
-
-	.progress {
-		margin: 10px 0 0;
-		font-size: 14px;
 	}
 
 	.hint-text {

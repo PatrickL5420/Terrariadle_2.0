@@ -7,7 +7,6 @@
 
 <section class="panel inventory">
 	<h1 class="title">Inventory</h1>
-	<p class="dim">A new puzzle in every slot, every day. Press 1–6 to jump to a game.</p>
 
 	<ul>
 		{#each games as game, i (game.slug)}
@@ -19,10 +18,6 @@
 					</span>
 					<span class="tooltip-box">
 						<span class="name">{game.title}</span>
-						<span class="desc">{game.description}</span>
-						<span class="status" class:solved={completion[game.slug]}>
-							{completion[game.slug] ? 'Solved today' : 'Not solved yet'}
-						</span>
 					</span>
 				</a>
 			</li>
@@ -41,7 +36,7 @@
 		padding: 0;
 		margin: 16px 0 4px;
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 		gap: 14px;
 	}
 
@@ -74,19 +69,5 @@
 
 	.item:hover .name {
 		color: var(--hover);
-	}
-
-	.desc {
-		font-size: 14px;
-		color: var(--text-dim);
-	}
-
-	.status {
-		font-size: 13px;
-		color: #ff9d9d;
-	}
-
-	.status.solved {
-		color: #9dff7a;
 	}
 </style>

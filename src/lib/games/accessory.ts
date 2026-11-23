@@ -24,9 +24,8 @@ const yesNo = (v: boolean) => (v ? 'Yes' : 'No');
 
 export const accessoryGame: GameConfig<Accessory> = {
 	slug: 'accessory',
-	title: 'Accessory Guesser',
+	title: 'Accessorydle',
 	noun: 'accessory',
-	description: "Guess today's Terraria accessory from its stats!",
 	// Follows the data file, so it becomes a local image after `npm run fetch-images`.
 	icon: (data as Accessory[]).find((a) => a.name === 'Hermes Boots')?.image ?? '',
 	entries: (data as Accessory[]).filter((a) => !a.exclude),
@@ -38,7 +37,6 @@ export const accessoryGame: GameConfig<Accessory> = {
 		{
 			key: 'rarity',
 			label: 'Rarity',
-			title: 'Item rarity (the colour of its name)',
 			kind: 'ranked',
 			order: RARITIES,
 			value: (a) => a.rarity,
@@ -48,7 +46,6 @@ export const accessoryGame: GameConfig<Accessory> = {
 		{
 			key: 'hardmode',
 			label: 'Hardmode',
-			title: 'Only obtainable in Hardmode?',
 			kind: 'exact',
 			value: (a) => a.hardmode,
 			display: (a) => yesNo(a.hardmode)
@@ -56,42 +53,36 @@ export const accessoryGame: GameConfig<Accessory> = {
 		{
 			key: 'functions',
 			label: 'Function',
-			title: 'What it does',
 			kind: 'set',
 			value: (a) => a.functions
 		},
 		{
 			key: 'classes',
 			label: 'Class Boost',
-			title: 'Which damage class it boosts',
 			kind: 'set',
 			value: (a) => a.classes
 		},
 		{
 			key: 'sources',
 			label: 'Source',
-			title: 'Where you get it',
 			kind: 'set',
 			value: (a) => a.sources
 		},
 		{
 			key: 'tier',
 			label: 'Crafting Tier',
-			title: "0 = base item, +1 for each Tinkerer's Workshop combination",
 			kind: 'number',
 			value: (a) => a.tier
 		},
 		{
 			key: 'defense',
 			label: 'Defense',
-			title: 'Defense granted when equipped',
 			kind: 'number',
 			value: (a) => a.defense
 		},
 		{
 			key: 'expertOnly',
 			label: 'Expert Only',
-			title: 'Only available in Expert or Master mode?',
 			kind: 'exact',
 			value: (a) => a.expertOnly,
 			display: (a) => yesNo(a.expertOnly)

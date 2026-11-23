@@ -25,7 +25,6 @@ export const armorGame: GameConfig<ArmorSet> = {
 	slug: 'armor',
 	title: 'Armordle',
 	noun: 'armor set',
-	description: "Guess today's Terraria armor set from its stats!",
 	// Follows the data file, so it becomes a local image after `npm run fetch-images`.
 	icon: (data as ArmorSet[]).find((a) => a.name === 'Mining armor')?.image ?? '',
 	entries: data as ArmorSet[],
@@ -39,14 +38,12 @@ export const armorGame: GameConfig<ArmorSet> = {
 		{
 			key: 'defense',
 			label: 'Defense',
-			title: 'Total defense of the whole set',
 			kind: 'number',
 			value: (a) => a.defense
 		},
 		{
 			key: 'rarity',
 			label: 'Rarity',
-			title: 'Item rarity (the colour of its name)',
 			kind: 'ranked',
 			order: RARITIES,
 			value: (a) => a.rarity,
@@ -56,21 +53,18 @@ export const armorGame: GameConfig<ArmorSet> = {
 		{
 			key: 'category',
 			label: 'Category',
-			title: "Section of the wiki's Armor page (Other = Wizard set and single pieces)",
 			kind: 'exact',
 			value: (a) => a.category
 		},
 		{
 			key: 'class',
 			label: 'Class',
-			title: 'Which damage class the set is for',
 			kind: 'exact',
 			value: (a) => a.class
 		},
 		{
 			key: 'obtained',
 			label: 'Obtained',
-			title: 'How you get it',
 			kind: 'set',
 			value: (a) => a.obtained
 		}

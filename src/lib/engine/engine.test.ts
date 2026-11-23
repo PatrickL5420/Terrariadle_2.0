@@ -13,17 +13,16 @@ const e = (n: number, r: string, s: string[], x: string[] = []): T => ({
 	x
 });
 
-const num: Attribute<T> = { key: 'n', label: '', title: '', kind: 'number', value: (v) => v.n };
+const num: Attribute<T> = { key: 'n', label: '', kind: 'number', value: (v) => v.n };
 const ranked: Attribute<T> = {
 	key: 'r',
 	label: '',
-	title: '',
 	kind: 'ranked',
 	order: ['low', 'mid', 'high'],
 	value: (v) => v.r
 };
-const set: Attribute<T> = { key: 's', label: '', title: '', kind: 'set', value: (v) => v.s };
-const stats: Attribute<T> = { key: 'x', label: '', title: '', kind: 'stats', value: (v) => v.x };
+const set: Attribute<T> = { key: 's', label: '', kind: 'set', value: (v) => v.s };
+const stats: Attribute<T> = { key: 'x', label: '', kind: 'stats', value: (v) => v.x };
 
 describe('compareAttribute', () => {
 	it('arrows point toward the answer', () => {

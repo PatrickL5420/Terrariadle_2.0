@@ -24,7 +24,7 @@
 	<a class="logo" href={resolve('/')}>Terrariadle</a>
 
 	<nav aria-label="Games">
-		<p class="held">{current?.title ?? 'Pick a game'}</p>
+		<p class="held">{current?.title ?? ''}</p>
 		<div class="hotbar">
 			{#each games as game, i (game.slug)}
 				<a
@@ -37,7 +37,7 @@
 				>
 					<span class="num">{i + 1}</span>
 					<img src={imageUrl(game.icon)} alt={game.title} />
-					{#if completion[game.slug]}<span class="done" title="Solved today">✓</span>{/if}
+					{#if completion[game.slug]}<span class="done">✓</span>{/if}
 				</a>
 			{/each}
 		</div>
