@@ -1,7 +1,7 @@
 # Terrariadle
 
 Daily Terraria guessing games: **Bossdle**, **Accessorydle**, **Modifierdle**, **Accessory Modifierdle**,
-**Armordle**, **Tooltipdle** and **Fishdle**.
+**Armordle**, **Tooltipdle**, **Fishdle** and **Critterdle**.
 Pick a guess and every property is compared to the answer: 🟩 match, 🟨 partial, 🟥 miss,
 ▲▼ the answer is higher/lower. Hints unlock after 4, 7 and 12 guesses.
 
@@ -28,7 +28,7 @@ not affiliated with Re-Logic.
 src/lib/engine/   compare.ts (green/yellow/red/arrows), daily.ts (answer picking), types.ts
 src/lib/games/    one config per mode: columns, hints, theme (+ data tests)
 src/lib/ui/       Terraria menu components: Panel, Button, IconButton, TextField, Icon
-src/lib/data/     bosses.json, accessories.json, modifiers.json
+src/lib/data/     one JSON file per game (bosses.json, critters.json, …)
 src/lib/server/   answers.ts (secret answer), counter.ts (Redis)
 src/routes/[mode=mode]/   the game page, shared by every mode
 src/routes/api/[mode=mode]/   today, guess, hint, solve
@@ -97,16 +97,17 @@ npm run sync-wiki -- --write
 ```
 
 The first reports differences; `--write` applies them. `--only=fish,boss` syncs just those games
-(boss, armor, tooltip, accessory, modifier, fish).
+(boss, armor, tooltip, accessory, modifier, fish, critter).
 
-| Data        | From the wiki                                                                                                                                                                                                                                      | Curated by hand                              |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                                                                                                                                                                                         | stage, biome, summon, body type, time, hints |
-| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source                                                                                                                                                           | function, class boost, source, "where found" |
-| Modifiers   | everything (rebuilt from the Modifiers page)                                                                                                                                                                                                       | the skip list in the script                  |
-| Armor       | everything: every armor set (one entry per class variant, e.g. Chlorophyte armor (Summon)), plus Wizard hats and single pieces: total defense, rarity, category, class, how it's obtained, set bonus                                               | nothing                                      |
-| Tooltips    | every item with a tooltip (minus armor, paintings, treasure bags, banners); only unique tooltips are answers. Tooltip text is server-only (`src/lib/server/tooltip-text.json`)                                                                     | nothing                                      |
-| Fish        | every Angler quest fish: height and biome (hints). The quote is revealed a word at a time (`/api/fish/clue`) and words revealed count in the score. It's server-only (`src/lib/server/fish-quotes.json`), with the fish's own name replaced by ??? | nothing                                      |
+| Data        | From the wiki                                                                                                                                                                                                                                                                          | Curated by hand                              |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Bosses      | Max HP (Classic, all parts), defense; checks the drop hint                                                                                                                                                                                                                             | stage, biome, summon, body type, time, hints |
+| Accessories | rarity, hardmode, defense, expert-only, crafting tier, tooltip, image; checks the source                                                                                                                                                                                               | function, class boost, source, "where found" |
+| Modifiers   | everything (rebuilt from the Modifiers page)                                                                                                                                                                                                                                           | the skip list in the script                  |
+| Armor       | everything: every armor set (one entry per class variant, e.g. Chlorophyte armor (Summon)), plus Wizard hats and single pieces: total defense, rarity, category, class, how it's obtained, set bonus                                                                                   | nothing                                      |
+| Tooltips    | every item with a tooltip (minus armor, paintings, treasure bags, banners); only unique tooltips are answers. Tooltip text is server-only (`src/lib/server/tooltip-text.json`)                                                                                                         | nothing                                      |
+| Fish        | every Angler quest fish: height and biome (hints). The quote is revealed a word at a time (`/api/fish/clue`) and words revealed count in the score. It's server-only (`src/lib/server/fish-quotes.json`), with the fish's own name replaced by ???                                     | nothing                                      |
+| Critters    | the Critters page's main, butterfly, dragonfly and gold critter tables: environment, AI type, rarity, sell price, bait power (n/a is None). The coloured dragonflies are one entry; gem squirrels and gem bunnies are groups where any member is a correct guess (`group` in the data) | the merge/group lists in the script          |
 
 **Accessories are imported automatically.** Every playable accessory on the wiki is added
 (not vanity, music boxes, developer items or console-only items). New ones get best-guess

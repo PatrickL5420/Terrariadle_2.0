@@ -23,6 +23,8 @@ export interface Entry {
 	image?: string;
 	/** Defaults to true. Entries with `pool: false` can be guessed but are never the answer. */
 	pool?: boolean;
+	/** Entries in the same group count as one answer (e.g. any gem squirrel). */
+	group?: string;
 }
 
 export interface Attribute<E extends Entry = Entry> {
@@ -34,6 +36,8 @@ export interface Attribute<E extends Entry = Entry> {
 	order?: readonly string[];
 	/** What to show in the tile. Defaults to the value. */
 	display?: (e: E) => string | string[];
+	/** `coins`: the shown text holds amounts like "7s 50c", drawn as coin icons. */
+	format?: 'coins';
 	/** Optional text colour for the tile. */
 	color?: (e: E) => string | undefined;
 	/** Optional text colour for a value in the column's hover list (e.g. rarity names). */

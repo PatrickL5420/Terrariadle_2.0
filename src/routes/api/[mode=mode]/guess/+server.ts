@@ -1,6 +1,6 @@
 import { DEV_TOOLS } from '$lib/devtools';
 import { json } from '@sveltejs/kit';
-import { compareEntries } from '$lib/engine/compare';
+import { compareEntries, isCorrect } from '$lib/engine/compare';
 import { answerFor, entryOr400, gameOr404, requireToday } from '$lib/server/answers';
 import { serverText } from '$lib/server/text';
 import type { RequestHandler } from './$types';
@@ -21,7 +21,7 @@ export const GET: RequestHandler = ({ params, url, setHeaders }) => {
 	// Dev rerolls change the answer for the same URL, so never cache while dev tools are on.
 	setHeaders({ 'cache-control': DEV_TOOLS ? 'no-store' : 'public, max-age=0, s-maxage=86400' });
 	return json({
-		correct: guess.id === answer.id,
+		correct: isCorrect(guess, answer),
 		checks: compareEntries(game.attributes, guess, answer),
 		detail: game.detailLabel ? serverText(game.slug, guess.id) : undefined
 	});
