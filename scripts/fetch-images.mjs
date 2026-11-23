@@ -12,7 +12,8 @@ const FILES = {
 	'bosses.json': 'bosses',
 	'accessories.json': 'accessories',
 	'armor.json': 'armor',
-	'tooltips.json': 'items'
+	'tooltips.json': 'items',
+	'fish.json': 'items'
 };
 const WIKI = 'https://terraria.wiki.gg/wiki/Special:FilePath/';
 const root = path.resolve(import.meta.dirname, '..');

@@ -2,13 +2,15 @@
 /**
  * Syncs game data with the official Terraria wiki (terraria.wiki.gg).
  *
- *   npm run sync-wiki            report differences only
- *   npm run sync-wiki -- --write update src/lib/data/*.json
+ *   npm run sync-wiki                      report differences only
+ *   npm run sync-wiki -- --write           update src/lib/data/*.json
+ *   npm run sync-wiki -- --only=fish,boss  sync only those games
  *
  * What comes from the wiki:
  *   bosses       Max HP (Classic, total of all parts) and defense of the main part
  *   accessories  rarity, hardmode, defense, expert-only, crafting tier, tooltip, image file
  *   modifiers    the whole list: which weapons each applies to, tier and every stat
+ *   fish         the Angler's quest fish: quote, height and biome
  *
  * Everything else (boss stage, biomes, body type, accessory function/class/source, hint text)
  * is curated by hand and never touched.
@@ -20,6 +22,11 @@ const API = 'https://terraria.wiki.gg/api.php';
 const UA = { 'User-Agent': 'terrariadle-data-sync (fan project)' };
 const DATA = path.resolve(import.meta.dirname, '../src/lib/data');
 const WRITE = process.argv.includes('--write');
+const ONLY = process.argv
+	.find((a) => a.startsWith('--only='))
+	?.slice('--only='.length)
+	.split(',');
+const runs = (name) => !ONLY || ONLY.includes(name);
 
 // ---------------------------------------------------------------------------------------------
 // Wiki access
@@ -1361,20 +1368,93 @@ async function syncTooltips() {
 	if (WRITE) {
 		await save('tooltips.json', entries);
 		// Tooltip text is server-only, so the answer can't be looked up in the page's data.
-		await writeFile(
-			path.resolve(DATA, '../server/tooltip-text.json'),
-			`${JSON.stringify(text, null, '\t')}\n`
-		);
+		await saveServerText('tooltip-text.json', text);
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
+// Fish (Angler quests)
+
+/** Writes server-only text (keyed by entry id) next to src/lib/server/text.ts. */
+async function saveServerText(file, text) {
+	await writeFile(path.resolve(DATA, '../server', file), `${JSON.stringify(text, null, '\t')}\n`);
+}
+
+async function syncFish() {
+	const existing = await load('fish.json').catch(() => []);
+	const html = await pageHtml('Angler/Quests');
+	const table = html.slice(html.indexOf('class="terraria sortable lined'));
+	const rows = table.slice(0, table.indexOf('</table>')).match(/<tr>[\s\S]*?<\/tr>/g) ?? [];
+
+	const entries = [];
+	const quotes = {};
+	for (const row of rows) {
+		const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1]);
+		if (cells.length < 5) continue;
+		const id = toInt(cells[2].match(/Item ID<\/a>: (\d+)/)?.[1]);
+		const name = decode(cells[2].match(/<span title="([^"]+)">/)?.[1] ?? '');
+		if (!id || !name) {
+			problems.push(`fish: couldn't read a row of Angler/Quests`);
+			continue;
+		}
+		// Drop the "(Caught in …)" line: that's what the Biome hint is for.
+		const quote = decode(
+			cells[0]
+				.replace(/<br\s*\/?>/g, '\n')
+				.replace(/<[^>]+>/g, '')
+				.replace(/\(Caught [^)]*\)\s*$/, '')
+		)
+			.split('\n')
+			.map((l) => l.replace(/\s+/g, ' ').trim())
+			.filter(Boolean)
+			.join('\n');
+		// Footnote markers like "[a]" aren't part of the value.
+		const cellText = (c) =>
+			decode(
+				c
+					.replace(/<sup[\s\S]*?<\/sup>/g, '')
+					.replace(/<div[^>]*hat-note[\s\S]*?<\/div>/g, '')
+					.replace(/<[^>]+>/g, '')
+			)
+				.replace(/\s+/g, ' ')
+				.trim();
+		const old = existing.find((e) => e.id === id);
+		const image = cells[1].match(/src="\/images\/([^"?]+)/)?.[1];
+		entries.push({
+			id,
+			name,
+			image: old?.image?.startsWith('/')
+				? old.image
+				: `wiki:${decodeURIComponent(image ?? `${name}.png`).replace(/_/g, ' ')}`,
+			height: cellText(cells[3]),
+			biome: cellText(cells[4])
+		});
+		// Some quotes name the fish outright; the riddle words around it stay.
+		const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		quotes[id] = quote.replace(new RegExp(escaped, 'gi'), '???');
+		if (!old) changes.push(`fish         ${name.padEnd(22)} added`);
+		else for (const field of ['height', 'biome']) update('fish', old, field, entries.at(-1)[field]);
+	}
+	for (const old of existing) {
+		if (!entries.some((e) => e.id === old.id))
+			changes.push(`fish         ${old.name.padEnd(22)} removed`);
+	}
+	entries.sort((a, b) => a.name.localeCompare(b.name));
+	if (WRITE) {
+		await save('fish.json', entries);
+		// Quotes are server-only, so today's quote can't be looked up in the page's data.
+		await saveServerText('fish-quotes.json', quotes);
 	}
 }
 
 // ---------------------------------------------------------------------------------------------
 
-await syncBosses();
-await syncArmor();
-await syncTooltips();
-await syncAccessories();
-await syncModifiers();
+if (runs('boss')) await syncBosses();
+if (runs('armor')) await syncArmor();
+if (runs('tooltip')) await syncTooltips();
+if (runs('accessory')) await syncAccessories();
+if (runs('modifier')) await syncModifiers();
+if (runs('fish')) await syncFish();
 
 console.log(changes.length ? changes.join('\n') : 'No differences.');
 if (problems.length)
