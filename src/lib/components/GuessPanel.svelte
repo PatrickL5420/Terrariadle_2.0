@@ -13,6 +13,9 @@
 		guessCount,
 		hints,
 		clue,
+		clueImage,
+		clueDone = true,
+		onNextWord,
 		onGuess,
 		onHint
 	}: {
@@ -21,6 +24,10 @@
 		guessCount: number;
 		hints: (Hint | null)[];
 		clue?: string;
+		clueImage?: string;
+		/** False while there are more words of the clue to reveal (`game.clueByWord`). */
+		clueDone?: boolean;
+		onNextWord?: () => void;
 		onGuess: (id: number) => void;
 		onHint: (n: number) => Promise<void>;
 	} = $props();
@@ -41,7 +48,17 @@
 		<!-- Styled like an NPC's chat box. -->
 		<div class="clue tooltip-box">
 			<span class="clue-label">{game.clueLabel}</span>
-			<p>{clue}</p>
+			{#if clueImage}
+				<p class="clue-item">
+					<span class="slot"><img src={imageUrl(clueImage)} alt="" /></span>
+					{clue}
+				</p>
+			{:else}
+				<p>{clue}{clueDone ? '' : ' …'}</p>
+			{/if}
+			{#if !clueDone}
+				<Button size="sm" icon="next" onclick={onNextWord}>Next word</Button>
+			{/if}
 		</div>
 	{/if}
 
@@ -95,9 +112,19 @@
 		max-width: 420px;
 	}
 
+	.clue-item {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
 	.clue-label {
 		font-size: 13px;
 		color: var(--hover);
+	}
+
+	.clue :global(.ui-btn) {
+		margin-top: 8px;
 	}
 
 	.clue p {
@@ -134,6 +161,12 @@
 		display: block;
 		margin: 4px auto 0;
 		max-height: 64px;
+	}
+
+	/* Plain pictures (banners) are small sprites: show them at 2x. */
+	.hint-image.none {
+		height: 56px;
+		max-height: none;
 	}
 
 	.hint-image.blur {

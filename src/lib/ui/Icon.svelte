@@ -24,7 +24,11 @@
 		reset: 'IconReset',
 		favorite: 'Favorite Item',
 		day: 'Bestiary Daytime',
-		night: 'Bestiary Nighttime'
+		night: 'Bestiary Nighttime',
+		copper: 'Copper Coin',
+		silver: 'Silver Coin',
+		gold: 'Gold Coin',
+		platinum: 'Platinum Coin'
 	} as const;
 
 	export type UiIconName = keyof typeof UI_ICONS;

@@ -16,7 +16,9 @@
 		day,
 		guesses,
 		position,
-		solved
+		solved,
+		clue,
+		words
 	}: {
 		game: GameConfig<Entry>;
 		answer: Entry;
@@ -24,6 +26,10 @@
 		guesses: GuessRecord[];
 		position: number;
 		solved: number;
+		/** Puzzle games: the puzzle (e.g. the accessory), shown with the answer. */
+		clue?: { name: string; image: string };
+		/** Words of the clue revealed (`game.clueByWord`), part of the score. */
+		words?: number;
 	} = $props();
 
 	let copied = $state(false);
@@ -36,7 +42,7 @@
 	}
 
 	async function share() {
-		const text = shareText(game, day, guesses, answer.id);
+		const text = shareText(game, day, guesses, answer.id, words);
 		try {
 			await navigator.clipboard.writeText(text);
 			copied = true;
@@ -52,17 +58,22 @@
 		<div class="answer">
 			<span class="slot framed big">
 				<WikiLink {game} entry={answer}>
-					{#if answer.image}<img src={imageUrl(answer.image)} alt="" />{:else}<span>?</span>{/if}
+					{#if clue ?? answer.image}<img src={imageUrl(clue?.image ?? answer.image!)} alt="" />{/if}
 				</WikiLink>
 			</span>
 			<div class="text">
 				<WikiLink {game} entry={answer}>
-					<span class="name" style:color={rarityColors[game.theme(answer)]}>{answer.name}</span>
+					<span class="name" style:color={rarityColors[game.theme(answer)]}
+						>{clue ? `${clue.name}: ${answer.name}` : answer.name}</span
+					>
 				</WikiLink>
 				<span class="dim">
 					Solved in {guesses.length}
 					{guesses.length === 1 ? 'guess' : 'guesses'}
 				</span>
+				{#if words}
+					<span class="dim">{words} {words === 1 ? 'word' : 'words'} revealed</span>
+				{/if}
 				{#if position > 0}
 					<span class="dim">{ordinal(position)} to solve it today</span>
 				{:else if solved > 0}

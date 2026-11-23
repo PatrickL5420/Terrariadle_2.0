@@ -2,13 +2,18 @@
 /**
  * Syncs game data with the official Terraria wiki (terraria.wiki.gg).
  *
- *   npm run sync-wiki            report differences only
- *   npm run sync-wiki -- --write update src/lib/data/*.json
+ *   npm run sync-wiki                      report differences only
+ *   npm run sync-wiki -- --write           update src/lib/data/*.json
+ *   npm run sync-wiki -- --only=fish,boss  sync only those games
  *
  * What comes from the wiki:
  *   bosses       Max HP (Classic, total of all parts) and defense of the main part
  *   accessories  rarity, hardmode, defense, expert-only, crafting tier, tooltip, image file
  *   modifiers    the whole list: which weapons each applies to, tier and every stat
+ *   fish         the Angler's quest fish: quote, height and biome
+ *   critter      the Critters page tables: environment, AI, rarity, sell price, bait power
+ *   enemy        the Enemies page (no bosses): hardmode, HP, attack, AI, rare, event, banner
+ *   version      desktop versions (with release dates) and when each accessory was added/changed
  *
  * Everything else (boss stage, biomes, body type, accessory function/class/source, hint text)
  * is curated by hand and never touched.
@@ -20,6 +25,11 @@ const API = 'https://terraria.wiki.gg/api.php';
 const UA = { 'User-Agent': 'terrariadle-data-sync (fan project)' };
 const DATA = path.resolve(import.meta.dirname, '../src/lib/data');
 const WRITE = process.argv.includes('--write');
+const ONLY = process.argv
+	.find((a) => a.startsWith('--only='))
+	?.slice('--only='.length)
+	.split(',');
+const runs = (name) => !ONLY || ONLY.includes(name);
 
 // ---------------------------------------------------------------------------------------------
 // Wiki access
@@ -324,6 +334,7 @@ const RARITY = {
 	'-12': 'Expert',
 	'-13': 'Master'
 };
+const RARITY_NAMES = new Set(Object.values(RARITY));
 
 /**
  * Tooltip as one line for the hint button: drops flavour text ('quoted' lines), rejoins
@@ -1361,20 +1372,570 @@ async function syncTooltips() {
 	if (WRITE) {
 		await save('tooltips.json', entries);
 		// Tooltip text is server-only, so the answer can't be looked up in the page's data.
-		await writeFile(
-			path.resolve(DATA, '../server/tooltip-text.json'),
-			`${JSON.stringify(text, null, '\t')}\n`
+		await saveServerText('tooltip-text.json', text);
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
+// Fish (Angler quests)
+
+/** Writes server-only text (keyed by entry id) next to src/lib/server/text.ts. */
+async function saveServerText(file, text) {
+	await writeFile(path.resolve(DATA, '../server', file), `${JSON.stringify(text, null, '\t')}\n`);
+}
+
+async function syncFish() {
+	const existing = await load('fish.json').catch(() => []);
+	const html = await pageHtml('Angler/Quests');
+	const table = html.slice(html.indexOf('class="terraria sortable lined'));
+	const rows = table.slice(0, table.indexOf('</table>')).match(/<tr>[\s\S]*?<\/tr>/g) ?? [];
+
+	const entries = [];
+	const quotes = {};
+	for (const row of rows) {
+		const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1]);
+		if (cells.length < 5) continue;
+		const id = toInt(cells[2].match(/Item ID<\/a>: (\d+)/)?.[1]);
+		const name = decode(cells[2].match(/<span title="([^"]+)">/)?.[1] ?? '');
+		if (!id || !name) {
+			problems.push(`fish: couldn't read a row of Angler/Quests`);
+			continue;
+		}
+		// Drop the "(Caught in …)" line: that's what the Biome hint is for.
+		const quote = decode(
+			cells[0]
+				.replace(/<br\s*\/?>/g, '\n')
+				.replace(/<[^>]+>/g, '')
+				.replace(/\(Caught [^)]*\)\s*$/, '')
+		)
+			.split('\n')
+			.map((l) => l.replace(/\s+/g, ' ').trim())
+			.filter(Boolean)
+			.join('\n');
+		// Footnote markers like "[a]" aren't part of the value.
+		const cellText = (c) =>
+			decode(
+				c
+					.replace(/<sup[\s\S]*?<\/sup>/g, '')
+					.replace(/<div[^>]*hat-note[\s\S]*?<\/div>/g, '')
+					.replace(/<[^>]+>/g, '')
+			)
+				.replace(/\s+/g, ' ')
+				.trim();
+		const old = existing.find((e) => e.id === id);
+		const image = cells[1].match(/src="\/images\/([^"?]+)/)?.[1];
+		entries.push({
+			id,
+			name,
+			image: old?.image?.startsWith('/')
+				? old.image
+				: `wiki:${decodeURIComponent(image ?? `${name}.png`).replace(/_/g, ' ')}`,
+			height: cellText(cells[3]),
+			biome: cellText(cells[4])
+		});
+		// Some quotes name the fish outright; the riddle words around it stay.
+		const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		quotes[id] = quote.replace(new RegExp(escaped, 'gi'), '???');
+		if (!old) changes.push(`fish         ${name.padEnd(22)} added`);
+		else for (const field of ['height', 'biome']) update('fish', old, field, entries.at(-1)[field]);
+	}
+	for (const old of existing) {
+		if (!entries.some((e) => e.id === old.id))
+			changes.push(`fish         ${old.name.padEnd(22)} removed`);
+	}
+	entries.sort((a, b) => a.name.localeCompare(b.name));
+	if (WRITE) {
+		await save('fish.json', entries);
+		// Quotes are server-only, so today's quote can't be looked up in the page's data.
+		await saveServerText('fish-quotes.json', quotes);
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
+// Critters
+
+/** Critters that count as one answer: guessing any of them is right when one is the answer. */
+const CRITTER_GROUPS = [
+	{
+		group: 'Gem Squirrel',
+		match: /^(Amethyst|Topaz|Sapphire|Emerald|Ruby|Diamond|Amber) Squirrel$/
+	},
+	{ group: 'Gem Bunny', match: /^(Amethyst|Topaz|Sapphire|Emerald|Ruby|Diamond|Amber) Bunny$/ }
+];
+/** Critters merged into a single entry (their environments are combined). */
+const CRITTER_MERGE = [
+	{
+		name: 'Dragonfly',
+		match: /^(Black|Blue|Green|Orange|Red|Yellow) Dragonfly$/,
+		image: 'Blue Dragonfly'
+	}
+];
+
+/** "Passive AI (ground) / Duck AI (flying)" -> ["Passive AI", "Duck AI"]; n/a -> ["None"]. */
+const critterList = (cell) => {
+	const values = cell
+		.replace(/\bn\/a\b/g, '')
+		.split('/')
+		.map((v) => v.replace(/\([^)]*\)/g, '').trim())
+		.filter((v) => v && v !== 'n/a');
+	return values.length ? [...new Set(values)] : ['None'];
+};
+
+async function syncCritters() {
+	const existing = await load('critters.json').catch(() => []);
+	const html = await pageHtml('Critters');
+	// The main table, Butterflies, Dragonflies and Gold critters: the first four critter tables.
+	const tables = html.split('table-critters-types').slice(1, 5);
+	const cellText = (c) =>
+		decode(
+			c
+				.replace(/<br\s*\/?>/g, ' / ')
+				.replace(/<span class="(?:id|eico)[\s\S]*?<\/span><\/span>/g, '')
+				.replace(/<span class="id">[\s\S]*?<\/span>/g, '')
+				.replace(/<sup[\s\S]*?<\/sup>/g, '')
+				.replace(/<[^>]+>/g, '')
+		)
+			.replace(/\s+/g, ' ')
+			.trim();
+
+	const rows = [];
+	for (const table of tables) {
+		for (const row of table.slice(0, table.indexOf('</table>')).match(/<tr>[\s\S]*?<\/tr>/g) ??
+			[]) {
+			const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1]);
+			if (cells.length < 7) continue;
+			const name = decode(cells[1].match(/title="([^"]+)"/)?.[1] ?? cellText(cells[1]));
+			if (rows.some((r) => r.name === name)) continue; // listed in two tables
+			const bait = cellText(cells[6]);
+			rows.push({
+				name,
+				itemId: toInt(cells[1].match(/Item ID<\/a>: (\d+)/)?.[1]),
+				image: decodeURIComponent(cells[0].match(/src="\/images\/([^"?]+)/)?.[1] ?? '').replace(
+					/_/g,
+					' '
+				),
+				environment: critterList(cellText(cells[2])),
+				ai: critterList(cellText(cells[3])),
+				rarity: cells[4].match(/title="([\w ]+) \(Rarity level/)?.[1] ?? 'None',
+				sell: toInt(cells[5].match(/data-sort-value="(\d+)"/)?.[1]),
+				bait: /\d/.test(bait) ? toInt(bait) : 0
+			});
+		}
+	}
+
+	// Critters without an item (can't be caught) get an id from their NPC id instead.
+	const noItem = rows.filter((r) => !r.itemId).map((r) => r.name);
+	const npcIds = new Map(
+		(await cargoByNames('NPCs', 'nameraw,npcid', 'nameraw', noItem)).map((r) => [
+			r.nameraw,
+			toInt(r.npcid)
+		])
+	);
+
+	const entries = [];
+	for (const r of rows) {
+		const merge = CRITTER_MERGE.find((m) => m.match.test(r.name));
+		if (merge) {
+			const merged = entries.find((e) => e.name === merge.name);
+			if (merged) {
+				merged.environment = [...new Set([...merged.environment, ...r.environment])];
+				continue;
+			}
+			r.name = merge.name;
+			r.image = `${merge.image}.png`;
+		}
+		const id = r.itemId || (npcIds.get(r.name) ? 100_000 + npcIds.get(r.name) : 0);
+		if (!id) {
+			problems.push(`critters: no item or NPC id for ${r.name}`);
+			continue;
+		}
+		const old = existing.find((e) => e.name === r.name);
+		const group = CRITTER_GROUPS.find((g) => g.match.test(r.name))?.group;
+		entries.push({
+			id,
+			name: r.name,
+			image: old?.image?.startsWith('/') ? old.image : `wiki:${r.image || `${r.name}.png`}`,
+			environment: r.environment,
+			ai: r.ai,
+			rarity: RARITY_NAMES.has(r.rarity) ? r.rarity : 'None',
+			sell: r.sell,
+			bait: r.bait,
+			...(group && { group })
+		});
+	}
+
+	// One critter per group is the daily answer, so a group isn't picked 7 times as often.
+	const seen = new Set();
+	for (const e of entries) {
+		if (!e.group) continue;
+		if (seen.has(e.group)) e.pool = false;
+		seen.add(e.group);
+	}
+
+	for (const e of entries) {
+		const old = existing.find((o) => o.id === e.id);
+		if (!old) changes.push(`critters     ${e.name.padEnd(22)} added`);
+		else
+			for (const field of ['environment', 'ai', 'rarity', 'sell', 'bait'])
+				update('critters', old, field, e[field]);
+	}
+	for (const old of existing) {
+		if (!entries.some((e) => e.id === old.id))
+			changes.push(`critters     ${old.name.padEnd(22)} removed`);
+	}
+	entries.sort((a, b) => a.name.localeCompare(b.name));
+	if (WRITE) await save('critters.json', entries);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Enemies
+
+/** Sections of the Enemies page that are in the game; bosses, servants and unspawnables aren't. */
+const ENEMY_SECTIONS = new Set([
+	'Pre-Hardmode enemies',
+	'Hardmode enemies',
+	'Event enemies',
+	'Special seed-exclusive enemies'
+]);
+
+/** Listed on the Enemies page, but the wiki has no stats of its own for it. */
+const ENEMY_SKIP = new Set(['Owl (mimic)']);
+
+/**
+ * 1.4.5 slime variants (Dirt Slime, Torch Slime, …): each takes the stats of whichever slime it
+ * replaces, so there's nothing to compare. The Slimes page lists them in hidden infoboxes.
+ */
+async function slimeVariants() {
+	const { parse } = await api({ action: 'parse', page: 'Slimes', prop: 'wikitext' });
+	return new Set(
+		[...parse.wikitext.matchAll(/\{\{npc infobox\|name=([^|}]+)/g)].map((m) => m[1].trim())
+	);
+}
+
+/** Events that only happen in Hardmode, so all their enemies are Hardmode enemies. */
+const HARDMODE_EVENTS = new Set([
+	'Solar Eclipse',
+	'Martian Madness',
+	'Pumpkin Moon',
+	'Frost Moon',
+	'Frost Legion',
+	'Pirate Invasion',
+	'Lunar Events'
+]);
+
+/** [{ page, section, event }] from the Enemies page's {{item|…}} lists. */
+async function enemyList() {
+	const { parse } = await api({ action: 'parse', page: 'Enemies', prop: 'wikitext' });
+	const skip = new Set([...ENEMY_SKIP, ...(await slimeVariants())]);
+	const list = [];
+	let section = '';
+	let event = '';
+	for (const line of parse.wikitext.split('\n')) {
+		const heading = line.match(/^(==+)\s*(.*?)\s*\1\s*$/);
+		if (heading) {
+			const name = heading[2].replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, '$1');
+			if (heading[1].length === 2) [section, event] = [name, ''];
+			else event = name;
+			continue;
+		}
+		if (!ENEMY_SECTIONS.has(section)) continue;
+		for (const m of line.matchAll(/\{\{item\|([^|}]+)/g)) {
+			if (!skip.has(m[1].trim())) list.push({ page: m[1].trim(), section, event });
+		}
+	}
+	return list;
+}
+
+/** Pages in a category, among the given pages (redirects followed). */
+async function pagesInCategory(pages, category) {
+	const found = new Set();
+	for (let i = 0; i < pages.length; i += 50) {
+		const body = await api({
+			action: 'query',
+			titles: pages.slice(i, i + 50).join('|'),
+			prop: 'categories',
+			clcategories: `Category:${category}`,
+			cllimit: 'max',
+			redirects: '1'
+		});
+		// Several pages can redirect to one (Bone Biter, Sand Shark -> Sand Sharks).
+		const back = new Map();
+		for (const r of [...(body.query.normalized ?? []), ...(body.query.redirects ?? [])]) {
+			back.set(r.to, [...(back.get(r.to) ?? []), r.from]);
+		}
+		const originals = (title) => [title, ...(back.get(title) ?? []).flatMap(originals)];
+		for (const p of body.query.pages) {
+			if (p.categories?.length) for (const title of originals(p.title)) found.add(title);
+		}
+	}
+	return found;
+}
+
+async function rareEnemies() {
+	const html = await pageHtml('Lifeform Analyzer/List of detected creatures');
+	const enemies = html.slice(0, html.indexOf('Critters'));
+	return new Set(
+		[...enemies.matchAll(/<a href="[^"]*" title="([^"]+)"/g)].map((m) => decode(m[1]))
+	);
+}
+
+async function syncEnemies() {
+	const existing = await load('enemies.json').catch(() => []);
+	const list = await enemyList();
+	const pages = list.map((e) => e.page);
+	const hardmodeOnly = await pagesInCategory(pages, 'Hardmode-only NPCs');
+	const rare = await rareEnemies();
+	const rows = await cargoByNames(
+		'NPCs',
+		'_pageName=page,nameraw,image,ai,life,damage,banner,npcid',
+		'_pageName',
+		pages
+	);
+
+	// Enemies sharing a page (Ghoul -> Ghouls, Mimic -> Mimics) are found by their own name.
+	const missing = pages.filter((p) => !rows.some((r) => r.page === p));
+	const byName = await cargoByNames(
+		'NPCs',
+		'_pageName=page,nameraw,image,ai,life,damage,banner,npcid',
+		'nameraw',
+		missing
+	);
+
+	const entries = [];
+	for (const { page, section, event } of list) {
+		const variants = rows.filter((r) => r.page === page);
+		if (!variants.length) variants.push(...byName.filter((r) => r.nameraw === page));
+		// The variant named like the page is the main one (Zombie, not Bald Zombie). Worm
+		// segments share the name; the head (lowest id) holds the HP and damage.
+		// Variants have negative ids, so real ids come first.
+		const rank = (r) => [
+			toInt(r.npcid) < 0,
+			!/ Head\.\w+\b/.test(r.image),
+			Math.abs(toInt(r.npcid))
+		];
+		const main = variants
+			.filter((r) => r.nameraw === page)
+			.sort((a, b) => {
+				const [x, y] = [rank(a), rank(b)];
+				return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+			});
+		const npc = main[0] ?? variants.find((r) => page.startsWith(r.nameraw)) ?? variants[0];
+		if (!npc) {
+			problems.push(`enemies: no NPC data for ${page}`);
+			continue;
+		}
+		const name = page.replace(/ \((?:enemy|NPC|mimic)\)$/, '');
+		const id = toInt(npc.npcid);
+		if (entries.some((e) => e.id === id)) {
+			problems.push(`enemies: ${page} shares NPC id ${id} with another enemy`);
+			continue;
+		}
+		const old = existing.find((e) => e.id === id);
+		const banner = npc.banner?.match(/\[\[File:([^|\]]+)/)?.[1];
+		const hardmode =
+			section === 'Hardmode enemies' ||
+			HARDMODE_EVENTS.has(event) ||
+			(section !== 'Pre-Hardmode enemies' && hardmodeOnly.has(page));
+		entries.push({
+			id,
+			name,
+			...(name !== page && { page }),
+			image: old?.image?.startsWith('/')
+				? old.image
+				: `wiki:${npc.image?.match(/\[\[File:([^|\]]+)/)?.[1] ?? `${name}.png`}`,
+			hardmode,
+			hp: toInt(classic(npc.life)),
+			attack: toInt(classic(npc.damage)),
+			ai: text(npc.ai || '') || 'None',
+			rare: rare.has(page) || rare.has(name),
+			event: event || 'None',
+			...(banner && {
+				banner: old?.banner?.startsWith('/') ? old.banner : `wiki:${decode(banner)}`
+			})
+		});
+	}
+
+	for (const e of entries) {
+		const old = existing.find((o) => o.id === e.id);
+		if (!old) changes.push(`enemies      ${e.name.padEnd(22)} added`);
+		else
+			for (const field of ['hardmode', 'hp', 'attack', 'ai', 'rare', 'event'])
+				update('enemies', old, field, e[field]);
+	}
+	for (const old of existing) {
+		if (!entries.some((e) => e.id === old.id))
+			changes.push(`enemies      ${old.name.padEnd(22)} removed`);
+	}
+	entries.sort((a, b) => a.name.localeCompare(b.name));
+	if (WRITE) await save('enemies.json', entries);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Versions (Versiondle)
+
+/** "Desktop 1.4.5.0" -> "1.4.5", "Desktop-Release" -> "1.0"; undefined for other platforms. */
+function desktopVersion(patch) {
+	if (patch === 'Desktop-Release') return '1.0';
+	const m = patch.match(/^Desktop (\d+(?:\.\d+)+)$/);
+	return m?.[1].replace(/^(\d+\.\d+\.\d+)\.0$/, '$1');
+}
+
+/** "1.4.4.9" -> 104040900: each part is two digits, so ids sort like versions. */
+const versionId = (v) =>
+	v
+		.split('.')
+		.concat(['0', '0', '0', '0'])
+		.slice(0, 5)
+		.reduce((id, part) => id * 100 + Number(part), 0);
+
+async function versionDates() {
+	const { parse } = await api({
+		action: 'parse',
+		page: 'Desktop version history',
+		prop: 'wikitext'
+	});
+	const dates = new Map();
+	for (const m of parse.wikitext.matchAll(
+		/\{\{anchor\|([\d.]+)\}\}[\s\S]*?\{\{date\|(\d+)\|(\d+)\|(\d+)\}\}/g
+	)) {
+		const v = desktopVersion(`Desktop ${m[1]}`);
+		if (!dates.has(v)) dates.set(v, `${m[2]}-${m[3].padStart(2, '0')}-${m[4].padStart(2, '0')}`);
+	}
+	return dates;
+}
+
+/** "Introduced." / "Introduced, but unobtainable." — but not "Introduced Spooky Wings". */
+const INTRODUCED = /^Introduced(?! [A-Z])/;
+
+/** Items the wiki introduces under an older name: name -> the version it was really added in. */
+const VERSION_RENAMED = { 'Spectre Wings': '1.2' }; // added as Ghost Wings
+
+/**
+ * Whether wiki text names an item: "Spooky Wings", or "Fairy" in "Fairy, Bee, and Leaf Wings"
+ * (the last word may be plural: "Copper, Silver, and Gold Watches"). A longer name doesn't count:
+ * "Tattered Fairy Wings" isn't Fairy Wings.
+ */
+function namesItem(changes, name) {
+	const t = changes.replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, '$1');
+	const words = name.split(' ').map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+	const notLonger = "(?<!\\b(?!Introduced\\b)[A-Z][\\w']* )";
+	if (new RegExp(`${notLonger}\\b${words.join(' ')}`).test(t)) return true;
+	const pattern = `${notLonger}\\b${words[0]}\\b[^.]*\\b${words.at(-1)}`;
+	return words.length > 1 && new RegExp(pattern, 'i').test(t);
+}
+
+/** name -> the page it redirects to, for names that are redirects. */
+async function redirectTargets(names) {
+	const targets = new Map();
+	for (let i = 0; i < names.length; i += 50) {
+		const body = await api({
+			action: 'query',
+			titles: names.slice(i, i + 50).join('|'),
+			redirects: '1'
+		});
+		for (const r of body.query.redirects ?? []) targets.set(r.from, r.to);
+	}
+	return targets;
+}
+
+/** page -> every page that redirects to it (a group page's members, e.g. all the wings). */
+async function redirectsTo(pages) {
+	const members = new Map();
+	for (const page of pages) {
+		const body = await api({ action: 'query', titles: page, prop: 'redirects', rdlimit: 'max' });
+		members.set(
+			page,
+			(body.query.pages[0].redirects ?? []).map((r) => r.title)
 		);
+	}
+	return members;
+}
+
+async function syncVersions() {
+	const accessories = await load('accessories.json');
+	const existing = await load('versions.json').catch(() => []);
+	const history = await cargoByNames(
+		'History',
+		'_pageName=page,patch,changes',
+		'_pageName',
+		accessories.map((a) => a.name)
+	);
+
+	// Accessories without their own page (Red String -> Strings, Spooky Wings -> Wings) share
+	// their group page's history.
+	const own = new Set(history.map((h) => h.page));
+	const groupOf = await redirectTargets(accessories.map((a) => a.name).filter((n) => !own.has(n)));
+	const groupHistory = await cargoByNames('History', '_pageName=page,patch,changes', '_pageName', [
+		...new Set(groupOf.values())
+	]);
+
+	const groupMembers = await redirectsTo([...new Set(groupOf.values())]);
+	const byVersion = (h) => versionId(desktopVersion(h.patch));
+	const puzzles = {};
+	for (const a of accessories) {
+		let rows = history.filter((h) => h.page === a.name && desktopVersion(h.patch));
+		let added = rows.find((h) => INTRODUCED.test(h.changes.trim()));
+		if (!added && groupOf.has(a.name)) {
+			rows = groupHistory
+				.filter((h) => h.page === groupOf.get(a.name) && desktopVersion(h.patch))
+				.sort((x, y) => byVersion(x) - byVersion(y));
+			added = rows.find((h) => INTRODUCED.test(h.changes.trim()));
+			if (!added) {
+				// "Introduced Spooky Wings and Tattered Fairy Wings": find the row naming this one.
+				// Lists like "Fairy, Bee, and Leaf Wings" only name the first word.
+				const mentions = (h) => namesItem(h.changes, a.name);
+				added = rows.find((h) => /Introduced/.test(h.changes) && mentions(h));
+				// Changes naming no one item ("Now craftable at Work Benches") apply to them all.
+				const members = groupMembers.get(groupOf.get(a.name)) ?? [];
+				rows = rows.filter((h) => mentions(h) || !members.some((m) => namesItem(h.changes, m)));
+			}
+		}
+		if (!added) {
+			problems.push(`versions: no desktop "Introduced" entry for ${a.name}`);
+			continue;
+		}
+		const addedId = VERSION_RENAMED[a.name] ? versionId(VERSION_RENAMED[a.name]) : byVersion(added);
+		const changed = [...new Set(rows.map(byVersion).filter((id) => id > addedId))].sort(
+			(x, y) => x - y
+		);
+		puzzles[a.id] = { added: addedId, changed };
+	}
+
+	// Every version that's an answer to either question can be guessed.
+	const used = new Set(Object.values(puzzles).flatMap((p) => [p.added, ...p.changed]));
+	const names = new Map(
+		[...history, ...groupHistory]
+			.map((h) => desktopVersion(h.patch))
+			.filter(Boolean)
+			.map((v) => [versionId(v), v])
+	);
+	const dates = await versionDates();
+	const entries = [...used]
+		.sort((x, y) => x - y)
+		.map((id) => ({ id, name: names.get(id), date: dates.get(names.get(id)) ?? '' }));
+	for (const e of entries) {
+		if (!e.date) problems.push(`versions: no release date for ${e.name}`);
+		if (!existing.some((o) => o.id === e.id))
+			changes.push(`versions     ${e.name.padEnd(22)} added`);
+	}
+	if (WRITE) {
+		await save('versions.json', entries);
+		// Which version each accessory was added / changed in is server-only.
+		await saveServerText('version-puzzles.json', puzzles);
 	}
 }
 
 // ---------------------------------------------------------------------------------------------
 
-await syncBosses();
-await syncArmor();
-await syncTooltips();
-await syncAccessories();
-await syncModifiers();
+if (runs('boss')) await syncBosses();
+if (runs('armor')) await syncArmor();
+if (runs('tooltip')) await syncTooltips();
+if (runs('accessory')) await syncAccessories();
+if (runs('modifier')) await syncModifiers();
+if (runs('fish')) await syncFish();
+if (runs('critter')) await syncCritters();
+if (runs('enemy')) await syncEnemies();
+if (runs('version')) await syncVersions();
 
 console.log(changes.length ? changes.join('\n') : 'No differences.');
 if (problems.length)

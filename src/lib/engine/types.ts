@@ -23,6 +23,8 @@ export interface Entry {
 	image?: string;
 	/** Defaults to true. Entries with `pool: false` can be guessed but are never the answer. */
 	pool?: boolean;
+	/** Entries in the same group count as one answer (e.g. any gem squirrel). */
+	group?: string;
 }
 
 export interface Attribute<E extends Entry = Entry> {
@@ -34,13 +36,15 @@ export interface Attribute<E extends Entry = Entry> {
 	order?: readonly string[];
 	/** What to show in the tile. Defaults to the value. */
 	display?: (e: E) => string | string[];
+	/** `coins`: the shown text holds amounts like "7s 50c", drawn as coin icons. */
+	format?: 'coins';
 	/** Optional text colour for the tile. */
 	color?: (e: E) => string | undefined;
 	/** Optional text colour for a value in the column's hover list (e.g. rarity names). */
 	valueColor?: (value: string) => string | undefined;
 }
 
-export type Hint = { text: string } | { image: string; effect: 'silhouette' | 'blur' };
+export type Hint = { text: string } | { image: string; effect: 'silhouette' | 'blur' | 'none' };
 
 export interface HintDef<E extends Entry = Entry> {
 	/** Button label before the hint is revealed. */
@@ -73,6 +77,16 @@ export interface GameConfig<E extends Entry = Entry> {
 	 * (see $lib/server/text.ts) so it can't be looked up in the page's data.
 	 */
 	clueLabel?: string;
+	/**
+	 * A second question once solved, answered by guessing again (Versiondle: "When was it
+	 * changed?"). Only asked when the server has an answer for today's puzzle.
+	 */
+	bonusLabel?: string;
+	/**
+	 * Clue-style games: show the clue one word at a time. Players reveal more words themselves,
+	 * and the number revealed is part of their score.
+	 */
+	clueByWord?: boolean;
 	/** Wiki page for an entry, e.g. "Modifiers#Legendary". Defaults to the entry's name. */
 	wikiPage?: (e: E) => string;
 	detailLabel?: string;
