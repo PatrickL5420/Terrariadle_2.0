@@ -4,9 +4,7 @@
 	import { imageUrl } from '$lib/images';
 	import WikiLink from './WikiLink.svelte';
 	import { summarizeValues, valueKnowledge } from '$lib/engine/values';
-	import { useMediaQuery } from '$lib/utils/mediaQuery.svelte';
 	import { flip } from 'svelte/animate';
-	import { fly } from 'svelte/transition';
 
 	let {
 		game,
@@ -14,27 +12,19 @@
 		answerId
 	}: { game: GameConfig<Entry>; guesses: GuessRecord[]; answerId?: number } = $props();
 
-	const background: Record<CompareResult, string> = {
-		match: 'var(--color-green)',
-		partial: 'var(--color-yellow)',
-		miss: 'var(--color-red)',
-		higher: 'var(--color-red)',
-		lower: 'var(--color-red)'
-	};
-
 	function shown(attr: GameConfig<Entry>['attributes'][number], e: Entry): string[] {
 		const v = attr.display ? attr.display(e) : attr.value(e);
 		return (Array.isArray(v) ? v : [v]).map(String);
 	}
 
-	const isMobile = useMediaQuery('(max-width: 800px)');
-	// Tiles fly in from the right, staggered so the row "deals" left to right.
-	const columns = $derived(game.attributes.length + 1);
-	const flyX = (col: number) => {
-		const x = (columns - 1 - col) * 80;
-		return isMobile.current ? x / 4 : x;
+	const ARROW: Partial<Record<CompareResult, string>> = { higher: '▲', lower: '▼' };
+	const RESULT_TITLE: Record<CompareResult, string> = {
+		match: 'Match',
+		partial: 'Partly matches',
+		miss: 'No match',
+		higher: 'The answer is higher',
+		lower: 'The answer is lower'
 	};
-	const flyDuration = () => (isMobile.current ? 400 : 2000);
 
 	// Hover (or tap) a column header to see every value that column can have.
 	const summaries = $derived(
@@ -69,75 +59,70 @@
 
 <svelte:window onscroll={hideInfo} onresize={hideInfo} />
 
-<div class="container" onscroll={hideInfo}>
-	<div class="header" style="--cols: {columns}">
-		<span>{game.firstColumn}</span>
-		{#if game.detailLabel}<span class="detail-head">{game.detailLabel}</span>{/if}
-		{#each game.attributes as attr (attr.key)}
-			<button
-				class="col-head"
-				class:open={info?.key === attr.key}
-				aria-expanded={info?.key === attr.key}
-				onpointerenter={(e) => e.pointerType === 'mouse' && showInfo(attr.key, e.currentTarget)}
-				onpointerleave={(e) => e.pointerType === 'mouse' && hideInfo()}
-				onfocus={(e) => showInfo(attr.key, e.currentTarget)}
-				onblur={hideInfo}
-				onclick={(e) => showInfo(attr.key, e.currentTarget)}>{attr.label}</button
-			>
-		{/each}
-	</div>
-
-	{#each rows as { guess, entry } (guess.id)}
-		<div class="row" animate:flip>
-			<!-- The item itself: green only for the right answer, so lookalike rows aren't ambiguous. -->
-			<div
-				class="tile name-tile"
-				style:background-color={guess.id === answerId ? background.match : background.miss}
-				title={guess.id === answerId ? 'Correct!' : 'Not this one'}
-				in:fly={{ x: flyX(0), duration: flyDuration() }}
-			>
-				{#if entry.image}
-					<WikiLink {game} {entry}><img src={imageUrl(entry.image)} alt={entry.name} /></WikiLink>
-				{:else}
-					<WikiLink {game} {entry} class="name">{entry.name}</WikiLink>
-				{/if}
-			</div>
-
-			{#if game.detailLabel}
-				<div
-					class="tile detail-tile"
-					style:background-color={guess.id === answerId ? background.match : background.miss}
-					in:fly={{ x: flyX(1), duration: flyDuration() }}
+<div class="grid-wrap" onscroll={hideInfo}>
+	<div class="grid" role="table" aria-label="Your guesses">
+		<div class="row head" role="row">
+			<span class="cell-head" role="columnheader">{game.firstColumn}</span>
+			{#if game.detailLabel}<span class="cell-head detail" role="columnheader"
+					>{game.detailLabel}</span
+				>{/if}
+			{#each game.attributes as attr (attr.key)}
+				<button
+					class="cell-head col-head"
+					role="columnheader"
+					class:open={info?.key === attr.key}
+					aria-expanded={info?.key === attr.key}
+					onpointerenter={(e) => e.pointerType === 'mouse' && showInfo(attr.key, e.currentTarget)}
+					onpointerleave={(e) => e.pointerType === 'mouse' && hideInfo()}
+					onfocus={(e) => showInfo(attr.key, e.currentTarget)}
+					onblur={hideInfo}
+					onclick={(e) => showInfo(attr.key, e.currentTarget)}>{attr.label}</button
 				>
-					<WikiLink {game} {entry} class="name">{entry.name}</WikiLink>
-					<span class="detail">{guess.detail ?? ''}</span>
-				</div>
-			{/if}
-			{#each game.attributes as attr, i (attr.key)}
-				{@const result = guess.checks[attr.key]}
-				{@const lines = shown(attr, entry)}
-				<div
-					class="tile"
-					class:arrow-up={result === 'higher'}
-					class:arrow-down={result === 'lower'}
-					style:background-color={background[result]}
-					title={result === 'higher'
-						? 'The answer is higher'
-						: result === 'lower'
-							? 'The answer is lower'
-							: undefined}
-					in:fly={{ x: flyX(i + 1), duration: flyDuration() }}
-				>
-					{#each lines as line, j (j)}
-						<span
-							class:small={lines.length > 2 || line.length > 12}
-							style:color={attr.color?.(entry)}>{line}</span
-						>
-					{/each}
-				</div>
 			{/each}
 		</div>
-	{/each}
+
+		{#each rows as { guess, entry } (guess.id)}
+			{@const right = guess.id === answerId}
+			<div class="row" role="row" animate:flip={{ duration: 250 }}>
+				<!-- The item itself: green only for the right answer, so lookalike rows aren't ambiguous. -->
+				<div class="slot tile {right ? 'match' : 'miss'}" role="cell" style="--i: 0">
+					{#if entry.image}
+						<WikiLink {game} {entry}><img src={imageUrl(entry.image)} alt={entry.name} /></WikiLink>
+					{:else}
+						<WikiLink {game} {entry} class="name">{entry.name}</WikiLink>
+					{/if}
+				</div>
+
+				{#if game.detailLabel}
+					<div class="slot tile detail {right ? 'match' : 'miss'}" role="cell" style="--i: 1">
+						<WikiLink {game} {entry} class="name">{entry.name}</WikiLink>
+						<span class="detail-text">{guess.detail ?? ''}</span>
+					</div>
+				{/if}
+
+				{#each game.attributes as attr, i (attr.key)}
+					{@const result = guess.checks[attr.key]}
+					{@const lines = shown(attr, entry)}
+					<div
+						class="slot tile {result}"
+						role="cell"
+						title={RESULT_TITLE[result]}
+						style="--i: {i + 1}"
+					>
+						{#each lines as line, j (j)}
+							<span
+								class:small={lines.length > 2 || line.length > 12}
+								style:color={attr.color?.(entry)}>{line}</span
+							>
+						{/each}
+						{#if ARROW[result]}<span class="arrow" aria-label={RESULT_TITLE[result]}
+								>{ARROW[result]}</span
+							>{/if}
+					</div>
+				{/each}
+			</div>
+		{/each}
+	</div>
 </div>
 
 {#if info && infoAttr}
@@ -147,95 +132,179 @@
 		sum,
 		rows.map((r) => ({ entry: r.entry, checks: r.guess.checks }))
 	)}
+	<!-- Like an item's hover tooltip in the game. -->
 	<div
-		class="col-info"
+		class="col-info tooltip-box"
 		role="tooltip"
 		style:left="{info.left}px"
 		style:top={info.top !== undefined ? `${info.top}px` : undefined}
 		style:bottom={info.bottom !== undefined ? `${info.bottom}px` : undefined}
 		style:width="{POPOVER_WIDTH}px"
 	>
-		<strong>{infoAttr.label}</strong>
-		<p class="desc">{infoAttr.title}</p>
+		<span class="info-name">{infoAttr.label}</span>
 		{#if sum.range}
-			<p class="range" class:narrowed={!!known.bounds}>
-				{sum.range[0]} <span class="arrow">to</span>
-				{sum.range[1]}
-			</p>
-			{#if known.bounds}
-				<p class="range still">{known.bounds}</p>
-			{/if}
+			<p class:struck={!!known.bounds}>{sum.range[0]} to {sum.range[1]}</p>
+			{#if known.bounds}<p class="good">{known.bounds}</p>{/if}
 		{/if}
 		{#if sum.values.length}
-			<div class="chips">
+			<p class="values">
 				{#each sum.values as value, i (value)}
 					<span
-						class="chip"
-						class:ruled-out={known.ruledOut.has(value)}
-						class:confirmed={known.confirmed.has(value)}
-						style:color={known.ruledOut.has(value) ? undefined : infoAttr.valueColor?.(value)}
-						>{value}</span
-					>
-					{#if sum.ordered && i < sum.values.length - 1}<span class="arrow">→</span>{/if}
+						class="value"
+						class:struck={known.ruledOut.has(value)}
+						class:good={known.confirmed.has(value)}
+						style:color={known.ruledOut.has(value) || known.confirmed.has(value)
+							? undefined
+							: infoAttr.valueColor?.(value)}>{value}</span
+					>{#if i < sum.values.length - 1}<span class="dim">{sum.ordered ? ' → ' : ', '}</span>{/if}
 				{/each}
-			</div>
-		{/if}
-		<p class="rule">{sum.rule}</p>
-		{#if known.ruledOut.size || known.confirmed.size}
-			<p class="legend">
-				<span class="ruled-out">Crossed out</span> = ruled out by a tile{#if known.confirmed.size}
-					· <span class="confirmed-text">green</span> = confirmed{/if}
 			</p>
 		{/if}
 	</div>
 {/if}
 
 <style>
-	.container {
+	.grid-wrap {
 		max-width: 100%;
 		overflow-x: auto;
+		margin-top: 18px;
+		padding: 4px 4px 10px;
 	}
 
-	.header {
+	.grid {
+		display: inline-flex;
+		flex-direction: column;
+		gap: 8px;
+		margin: 0 auto;
+	}
+
+	.row {
 		display: flex;
-		margin: auto;
-		margin-top: 10px;
-		width: fit-content;
-		padding: 5px 10px;
-		gap: 12px;
-		border-bottom: 2px solid #fff;
+		gap: 8px;
+		justify-content: center;
 	}
 
-	.header span,
-	.col-head {
-		font-size: 13px;
-		width: 80px;
+	.row.head {
+		align-items: flex-end;
+	}
+
+	.cell-head {
+		width: 76px;
 		flex-shrink: 0;
+		padding-bottom: 4px;
+		font-size: 14px;
+	}
+
+	.cell-head.detail {
+		width: 300px;
 	}
 
 	.col-head {
-		padding: 0;
 		background: none;
 		border: none;
+		padding: 0 0 4px;
+		line-height: inherit;
 		cursor: help;
-		text-decoration: underline dotted rgba(255, 255, 255, 0.6);
+		text-decoration: underline dotted rgba(255, 255, 255, 0.5);
 		text-underline-offset: 3px;
 	}
 
 	.col-head:hover,
 	.col-head.open {
-		color: var(--color-yellow);
+		color: var(--hover);
 	}
 
+	/* ---- Tiles: inventory slots tinted by result ---- */
+	.tile {
+		flex-shrink: 0;
+		flex-direction: column;
+		width: 76px;
+		height: 76px;
+		padding: 3px;
+		font-size: 15px;
+		line-height: 1.1;
+		overflow: hidden;
+		animation: pop 0.35s ease-out backwards;
+		animation-delay: calc(var(--i) * 90ms);
+	}
+
+	.tile.match {
+		background: var(--match);
+	}
+
+	.tile.partial {
+		background: var(--partial);
+	}
+
+	.tile.miss,
+	.tile.higher,
+	.tile.lower {
+		background: var(--miss);
+	}
+
+	.tile img {
+		max-width: 62%;
+		max-height: 62%;
+	}
+
+	.tile .small {
+		font-size: 12px;
+	}
+
+	/* Arrow in the corner, where the game shows stack counts. */
+	.arrow {
+		position: absolute;
+		right: 5px;
+		bottom: 2px;
+		font-size: 16px;
+		color: var(--hover);
+	}
+
+	.tile.detail {
+		width: 300px;
+		max-width: 60vw;
+		height: auto;
+		min-height: 76px;
+		padding: 6px 10px;
+	}
+
+	.tile :global(.wiki-link) {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+	}
+
+	.tile.detail :global(.wiki-link) {
+		height: auto;
+	}
+
+	.tile :global(.name) {
+		font-size: 14px;
+	}
+
+	.detail-text {
+		font-size: 13px;
+		line-height: 1.2;
+		white-space: pre-line;
+	}
+
+	@keyframes pop {
+		from {
+			opacity: 0;
+			transform: scale(0.6);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	/* ---- Column tooltip ---- */
 	.col-info {
 		position: fixed;
 		z-index: 100;
-		box-sizing: border-box;
-		padding: 10px 12px;
-		background-color: rgb(40, 52, 115);
-		border: 2px solid black;
-		border-radius: 10px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 		pointer-events: none;
 	}
 
@@ -244,183 +313,38 @@
 		font-size: 14px;
 	}
 
-	.col-info .desc {
-		color: lightgray;
+	.info-name {
+		font-size: 17px;
+		color: var(--hover);
 	}
 
-	.col-info .rule {
-		font-size: 12px;
-		color: #c9d3ff;
+	.values {
+		line-height: 1.5;
 	}
 
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		align-items: center;
-		gap: 4px;
-		margin: 6px 0;
-	}
-
-	.chip {
-		padding: 2px 6px;
-		font-size: 13px;
-		background: rgba(0, 0, 0, 0.35);
-		border-radius: 6px;
-	}
-
-	.chip.ruled-out,
-	.legend .ruled-out {
+	.struck {
 		text-decoration: line-through;
+		text-decoration-color: #ff6b6b;
 		text-decoration-thickness: 2px;
-		text-decoration-color: var(--color-red);
-		color: #b8b8b8;
-		opacity: 0.8;
+		color: #8c8c9c;
 	}
 
-	.chip.confirmed {
-		background: rgba(61, 212, 41, 0.45);
-		box-shadow: 0 0 0 1px var(--color-green);
-	}
-
-	.confirmed-text {
-		color: var(--color-green);
-	}
-
-	.range.narrowed {
-		text-decoration: line-through;
-		opacity: 0.6;
-	}
-
-	.range.still {
-		color: var(--color-green);
-	}
-
-	.col-info .legend {
-		font-size: 12px;
-		color: lightgray;
-	}
-
-	.arrow {
-		font-size: 12px;
-		color: lightgray;
-	}
-
-	.row {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		margin: 5px auto;
-		width: fit-content;
-		padding: 0 10px;
-		gap: 8px;
-	}
-
-	.tile {
-		background-color: rgba(0, 0, 0, 0.4);
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		flex-shrink: 0;
-		width: 80px;
-		height: 80px;
-		padding: 2px;
-		box-sizing: border-box;
-		border-radius: 15px;
-		border: 2px solid black;
-		overflow: hidden;
-		font-size: 15px;
-		line-height: 1.1;
-
-		/* allow layering the arrow underneath the text */
-		position: relative;
-		z-index: 0;
-	}
-
-	.tile span.small {
-		font-size: 12px;
-	}
-
-	.header .detail-head {
-		width: 300px;
-	}
-
-	.tile.detail-tile {
-		width: 300px;
-		max-width: 60vw;
-		height: auto;
-		min-height: 80px;
-		padding: 6px 10px;
-	}
-
-	.detail-tile :global(.name) {
-		font-size: 15px;
-		margin-bottom: 2px;
-	}
-
-	.detail-tile .detail {
-		font-size: 13px;
-		line-height: 1.2;
-		white-space: pre-line;
-	}
-
-	.name-tile {
-		background-color: var(--color-button);
-	}
-
-	.name-tile img {
-		width: 50px;
-		height: 50px;
-		object-fit: contain;
-	}
-
-	.tile :global(.wiki-link) {
-		display: flex;
-	}
-
-	.name-tile :global(.name) {
-		font-size: 14px;
-	}
-
-	/* ===== Arrow background layer ===== */
-	.tile::after {
-		content: '';
-		position: absolute;
-		width: 0;
-		height: 0;
-		z-index: -1;
-	}
-
-	.tile.arrow-up::after {
-		border-left: 30px solid transparent;
-		border-right: 30px solid transparent;
-		border-bottom: 55px solid rgba(0, 0, 0, 0.25);
-	}
-
-	.tile.arrow-down::after {
-		border-left: 30px solid transparent;
-		border-right: 30px solid transparent;
-		border-top: 55px solid rgba(0, 0, 0, 0.25);
+	.good {
+		color: #9dff7a;
 	}
 
 	@media (max-width: 800px) {
-		.header {
-			gap: 11px;
-		}
-
-		.header span,
-		.col-head {
-			font-size: 12px;
-			width: 70px;
+		.cell-head,
+		.tile {
+			width: 66px;
 		}
 
 		.tile {
-			width: 70px;
-			height: 70px;
+			height: 66px;
+			font-size: 14px;
 		}
 
-		.tile span.small {
+		.tile .small {
 			font-size: 11px;
 		}
 	}

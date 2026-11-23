@@ -62,14 +62,12 @@ const column = {
 	category: {
 		key: 'category',
 		label: 'Category',
-		title: "The wiki's group: Universal and Common fit most weapons; the rest are class-specific",
 		kind: 'exact',
 		value: (m) => m.category
 	},
 	value: {
 		key: 'value',
 		label: 'Value',
-		title: "Change to the item's sell value",
 		kind: 'number',
 		value: (m) => m.value,
 		display: (m) => `${signed(m.value)}%`
@@ -77,7 +75,6 @@ const column = {
 	damage: {
 		key: 'damage',
 		label: 'Damage',
-		title: 'Damage change',
 		kind: 'number',
 		value: (m) => m.damage,
 		display: (m) => pct(m.damage)
@@ -85,7 +82,6 @@ const column = {
 	crit: {
 		key: 'crit',
 		label: 'Crit',
-		title: 'Critical strike chance change',
 		kind: 'number',
 		value: (m) => m.crit,
 		display: (m) => pct(m.crit)
@@ -93,7 +89,6 @@ const column = {
 	speed: {
 		key: 'speed',
 		label: 'Speed',
-		title: 'Attack / use speed change',
 		kind: 'number',
 		value: (m) => m.speed,
 		display: (m) => pct(m.speed)
@@ -101,7 +96,6 @@ const column = {
 	knockback: {
 		key: 'knockback',
 		label: 'Knockback',
-		title: 'Knockback change',
 		kind: 'number',
 		value: (m) => m.knockback,
 		display: (m) => pct(m.knockback)
@@ -109,7 +103,6 @@ const column = {
 	effects: {
 		key: 'effects',
 		label: 'Other Effect',
-		title: 'Stats without their own column',
 		kind: 'stats',
 		value: (m) => m.effects,
 		display: (m) => (m.effects.length ? m.effects : 'None')
@@ -146,10 +139,9 @@ const shared = {
 export const modifierGame: GameConfig<Modifier> = {
 	...shared,
 	slug: 'modifier',
-	title: 'Weapon Modifier Guesser',
+	title: 'Modifierdle',
 	noun: 'weapon modifier',
-	description: "Guess today's Terraria weapon modifier (reforge prefix) from its stats!",
-	icon: '/logos/goblin_tinkerer.png',
+	icon: '/items/Iron Anvil.png',
 	entries: weaponMods,
 	// Strong and Forceful share every stat; the name tile shows which guess is right.
 	allowLookalikes: true,
@@ -168,9 +160,8 @@ export const modifierGame: GameConfig<Modifier> = {
 export const accessoryModifierGame: GameConfig<Modifier> = {
 	...shared,
 	slug: 'accessory-modifier',
-	title: 'Accessory Modifier Guesser',
+	title: 'Accessory Modifierdle',
 	noun: 'accessory modifier',
-	description: "Guess today's Terraria accessory modifier (reforge prefix) from its stats!",
 	icon: "/items/Tinkerer's Workshop.png",
 	entries: accessoryMods,
 	attributes: [column.value, column.damage, column.crit, column.effects]

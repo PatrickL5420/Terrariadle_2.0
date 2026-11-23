@@ -1,12 +1,12 @@
 # Terrariadle
 
-Daily Terraria guessing games: **Boss Guesser**, **Accessory Guesser**, **Weapon Modifier Guesser**, **Accessory Modifier Guesser**,
-**Armordle** and **Tooltipdle** (guess the item from its tooltip).
+Daily Terraria guessing games: **Bossdle**, **Accessorydle**, **Modifierdle**, **Accessory Modifierdle**,
+**Armordle** and **Tooltipdle**.
 Pick a guess and every property is compared to the answer: 🟩 match, 🟨 partial, 🟥 miss,
 ▲▼ the answer is higher/lower. Hints unlock after 4, 7 and 12 guesses.
 
-Visuals are from [Terrariadle](https://github.com/BradyDriebergen/Terrariadle_2.0) by Brady
-Driebergen (MIT). Game data and images come from the
+Based on [Terrariadle](https://github.com/BradyDriebergen/Terrariadle_2.0) by Brady Driebergen
+(MIT). The UI is styled after Terraria's own inventory, hotbar and tooltips. Game data and images come from the
 [Terraria Wiki](https://terraria.wiki.gg/) (CC BY-NC-SA 3.0). This is an unofficial fan project,
 not affiliated with Re-Logic.
 
@@ -27,6 +27,7 @@ not affiliated with Re-Logic.
 ```
 src/lib/engine/   compare.ts (green/yellow/red/arrows), daily.ts (answer picking), types.ts
 src/lib/games/    one config per mode: columns, hints, theme (+ data tests)
+src/lib/ui/       Terraria menu components: Panel, Button, IconButton, TextField, Icon
 src/lib/data/     bosses.json, accessories.json, modifiers.json
 src/lib/server/   answers.ts (secret answer), counter.ts (Redis)
 src/routes/[mode=mode]/   the game page, shared by every mode
@@ -52,7 +53,8 @@ identical stats, which players couldn't tell apart, all fail the test run.
 
 ### Dev tools
 
-`npm run dev` adds a **🛠 Dev** button (or press the backtick key). The panel lets you:
+`npm run dev` and Vercel preview deployments add a **🛠 Dev** button (or press the backtick key).
+The panel lets you:
 
 - **Answer:** see today's answer, reroll it at random, or pick a specific one. Forced answers
   only last until the day changes, and rerolling clears your progress for that mode.
@@ -60,11 +62,16 @@ identical stats, which players couldn't tell apart, all fail the test run.
 - **Player:** auto-solve through the real API, unlock all hints, reset your progress for one or
   every mode, and reset the solve counts.
 - **Schedule:** the next 14 scheduled answers for each mode.
-- **Tasks:** run the wiki sync (report or write), image download, tests and type-check, with
-  their output in the panel.
+- **Tasks** (local only): run the wiki sync (report or write), image download, tests and
+  type-check, with their output in the panel.
 
-All of it is off in production: `/api/dev` returns 404 and the panel is never loaded. Dev mode
-also uses its own `dev:` keys in Redis, so it can't touch real solve counts.
+All of it is off in production: `/api/dev` and `/ui` return 404 and the panel isn't in the
+build. Local dev and previews use their own `dev:` / `preview:` keys in Redis, so they can't touch
+real solve counts. Previews also ignore `DAILY_SECRET`, so their dev tools can't reveal production
+answers.
+
+On a preview, rerolls and time travel are saved in Redis so every serverless function sees them.
+Without Redis available to the Preview environment they only last within one function instance.
 
 ## Deploy to Vercel
 
@@ -111,6 +118,13 @@ identical to another in every column are hidden with `"exclude"` and listed in t
 Anything it can't decide is printed under "Needs attention". After adding entries, run
 `npm run fetch-images` to download their images into `static/` (the site never hotlinks the
 wiki) and `npm test` to catch typos and lookalike entries.
+
+## UI components
+
+`src/lib/ui/` holds reusable components styled after Terraria's menus (bestiary, character and
+world creation). Their styles live in `src/app.css` and the icons in `static/ui/` come from the
+wiki's [UI images](https://terraria.wiki.gg/wiki/Category:UI_images). `/ui` shows every component and
+state in `npm run dev` and on previews.
 
 ## Adding a game mode
 

@@ -29,21 +29,3 @@ export const rarityColors: Record<RarityName, string> = {
 	Red: '#ff0000',
 	Expert: '#ff6bf3'
 };
-
-const tiles: Record<RarityName, [wall: string, block: string]> = {
-	White: ['WoodWall', 'Wood'],
-	Blue: ['StoneWall', 'StoneBlock'],
-	Green: ['DungeonWall', 'DungeonBrick'],
-	Orange: ['HellstoneWall', 'HellstoneBrick'],
-	'Light Red': ['PearlstoneWall', 'PearlstoneBlock'],
-	Pink: ['CrystalBlockWall', 'CrystalBlock'],
-	'Light Purple': ['ChlorophyteBrickWall', 'ChlorophyteBrick'],
-	Lime: ['LihzahrdBrickWall', 'LihzahrdBrick'],
-	Yellow: ['MartianConduitWall', 'MartianConduitPlating'],
-	Cyan: ['SmoothMarbleWall', 'SmoothMarbleBlock'],
-	Red: ['LuminiteBrickWall', 'LuminiteBrick'],
-	Expert: ['LuminiteBrickWall', 'LuminiteBrick']
-};
-
-export const rarityBackground = (r: RarityName) => `url('/ui/backgrounds/${tiles[r][0]}.png')`;
-export const rarityBorder = (r: RarityName) => `url('/ui/borders/${tiles[r][1]}.png')`;

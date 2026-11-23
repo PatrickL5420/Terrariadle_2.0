@@ -1,184 +1,126 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Spring } from 'svelte/motion';
-	import { crossfade, scale } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { games } from '$lib/games';
 	import { imageUrl } from '$lib/images';
 	import { completion } from '$lib/progress.svelte';
-	import logo from '$lib/assets/TerrariadleLogo.webp';
 
-	let isHome = $derived(page.url.pathname === '/' || page.url.pathname === '/about');
-	// svelte-ignore state_referenced_locally
-	let headerHeight = new Spring(isHome ? 140 : 100);
+	// Like the game's hotbar: the selected slot's name shows above the bar, and the number keys
+	// switch between games.
+	const current = $derived(games.find((g) => page.url.pathname === `/${g.slug}`));
 
-	const [send, receive] = crossfade({
-		duration: 400,
-		easing: cubicOut
-	});
-
-	$effect(() => {
-		headerHeight.target = isHome ? 140 : 100;
-	});
+	function onKey(e: KeyboardEvent) {
+		const target = e.target as HTMLElement;
+		if (target.closest('input, textarea, select') || e.metaKey || e.ctrlKey || e.altKey) return;
+		const game = games[Number(e.key) - 1];
+		if (game) goto(resolve('/[mode=mode]', { mode: game.slug }));
+	}
 </script>
 
-<header style={`height: ${headerHeight.current}px;`}>
-	{#if isHome}
-		<a
-			href={resolve('/')}
-			class="logo-slot centered"
-			in:receive={{ key: 'block' }}
-			out:send={{ key: 'block' }}
-			title="Terrariadle Home Page"
-		>
-			<img class="game-logo" src={logo} alt="Terrariadle" />
-			<h2 class="new-msg color-cycle">NEW GAMES!</h2>
-		</a>
-	{:else}
-		<a
-			href={resolve('/')}
-			class="logo-slot corner"
-			in:receive={{ key: 'block' }}
-			out:send={{ key: 'block' }}
-			title="Terrariadle Home Page"
-		>
-			<img class="game-logo" src={logo} alt="Terrariadle" />
-		</a>
-		<div class="links" in:scale out:scale>
-			{#each games as game (game.slug)}
+<svelte:window onkeydown={onKey} />
+
+<header>
+	<a class="logo" href={resolve('/')}>Terrariadle</a>
+
+	<nav aria-label="Games">
+		<p class="held">{current?.title ?? ''}</p>
+		<div class="hotbar">
+			{#each games as game, i (game.slug)}
 				<a
-					class:Selected={page.url.pathname === `/${game.slug}`}
+					class="slot hotbar-slot"
+					class:selected={current?.slug === game.slug}
+					class:framed={completion[game.slug] && current?.slug !== game.slug}
 					href={resolve('/[mode=mode]', { mode: game.slug })}
-					title={game.title}
+					title="{game.title} ({i + 1})"
+					aria-current={current?.slug === game.slug ? 'page' : undefined}
 				>
-					<img
-						class:incomplete={!completion[game.slug]}
-						src={imageUrl(game.icon)}
-						alt={game.title}
-					/>
+					<span class="num">{i + 1}</span>
+					<img src={imageUrl(game.icon)} alt={game.title} />
+					{#if completion[game.slug]}<span class="done">✓</span>{/if}
 				</a>
 			{/each}
 		</div>
-	{/if}
+	</nav>
 </header>
 
 <style>
 	header {
-		position: relative;
-		display: grid;
-		grid-template-columns: 1fr auto 1fr;
-		align-items: center;
+		padding: 14px 16px 4px;
 	}
 
-	/* Remove once site has been up a few months */
-	.new-msg {
-		position: absolute;
-		left: 50%;
-		top: 100px;
-		transform: rotate(-4deg);
-		font-size: 22px;
+	.logo {
+		display: inline-block;
+		font-size: 40px;
+		text-decoration: none;
+		color: #8fe05a;
+		text-shadow:
+			2px 2px 0 #1d3d1d,
+			-2px 2px 0 #1d3d1d,
+			2px -2px 0 #1d3d1d,
+			-2px -2px 0 #1d3d1d,
+			0 4px 0 #0b1a0b;
+		transition: transform 0.15s;
 	}
 
-	.logo-slot {
-		position: absolute;
-		grid-row: 1;
-		grid-column: 1;
-		display: block;
+	.logo:hover {
+		color: #b6f58a;
+		transform: scale(1.04);
 	}
 
-	.centered {
-		justify-self: center;
-		max-width: 400px;
+	nav {
+		margin-top: 8px;
 	}
 
-	.corner {
-		justify-self: start;
-		width: 200px;
+	.held {
+		margin: 0 0 6px;
+		font-size: 18px;
+		min-height: 22px;
 	}
 
-	.game-logo {
-		margin: auto;
-		max-width: 80%;
-		display: block;
-		transition: transform 0.2s ease;
-	}
-
-	.game-logo:hover {
-		transform: scale(1.025);
-	}
-
-	.links {
-		grid-column: 2;
-		grid-row: 1;
-		justify-self: center;
-		display: flex;
-		gap: 12px;
-	}
-
-	.links a {
-		display: flex;
+	.hotbar {
+		display: inline-flex;
+		flex-wrap: wrap;
 		justify-content: center;
-		align-items: center;
-		background-color: var(--color-backgroundblue);
-		border-radius: 8px;
-		border: 2px solid black;
+		gap: 8px;
 		padding: 6px;
-		transition: background 0.08s;
 	}
 
-	.links a:hover {
-		background: var(--color-lightblue);
+	.hotbar .slot {
+		width: 48px;
+		height: 48px;
+		text-decoration: none;
+		transition: transform 0.1s;
 	}
 
-	.links a.Selected,
-	.links a.Selected:hover {
-		background: rgba(139, 31, 31, 0.862);
+	.hotbar .slot:hover {
+		transform: translateY(-2px);
 	}
 
-	.links img {
-		width: 40px;
-		height: 40px;
-		object-fit: contain;
+	.hotbar .slot.selected {
+		transform: scale(1.12);
 	}
 
-	.incomplete {
-		filter: grayscale(100%);
+	.done {
+		position: absolute;
+		right: 4px;
+		bottom: 0;
+		font-size: 14px;
+		color: #9dff7a;
 	}
 
-	@media (max-width: 700px) {
-		header {
-			margin-bottom: 70px;
+	@media (max-width: 420px) {
+		.logo {
+			font-size: 32px;
 		}
 
-		.new-msg {
-			font-size: 20px;
+		.hotbar {
+			gap: 6px;
 		}
 
-		.centered {
-			margin-top: 20px;
-		}
-
-		.corner {
-			justify-self: center;
-		}
-
-		.links {
-			margin-top: 100px;
-			/* Six games: smaller icons on phones, wrapping if there's still no room. */
-			flex-wrap: wrap;
-			justify-content: center;
-			gap: 8px;
-			max-width: calc(100vw - 32px);
-		}
-
-		.links a {
-			padding: 5px;
-		}
-
-		.links img {
-			width: 34px;
-			height: 34px;
+		.hotbar .slot {
+			width: 42px;
+			height: 42px;
 		}
 	}
 </style>

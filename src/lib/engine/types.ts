@@ -28,8 +28,6 @@ export interface Entry {
 export interface Attribute<E extends Entry = Entry> {
 	key: string;
 	label: string;
-	/** Tooltip on the column header. */
-	title: string;
 	kind: CompareKind;
 	value: (e: E) => AttrValue;
 	/** Scale for `ranked` attributes, lowest first. */
@@ -55,7 +53,6 @@ export interface GameConfig<E extends Entry = Entry> {
 	title: string;
 	/** Singular noun, e.g. "boss". */
 	noun: string;
-	description: string;
 	/** Header / landing page icon. */
 	icon: string;
 	entries: E[];

@@ -1,73 +1,35 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { fly } from 'svelte/transition';
 	import { games } from '$lib/games';
+	import { imageUrl } from '$lib/images';
 	import { completion } from '$lib/progress.svelte';
+	import Panel from '$lib/ui/Panel.svelte';
+	import Button from '$lib/ui/Button.svelte';
 </script>
 
-<div class="landing-page" in:fly={{ y: 50, duration: 500 }}>
-	<p>
-		Welcome to Terrariadle! <br />
-		Test your Terraria knowledge through daily guessing games.
-	</p>
-	<br />
-
-	<ul>
+<Panel tone="outer" heading="Inventory" class="inventory">
+	<div class="games">
 		{#each games as game (game.slug)}
-			<li>
-				{#if completion[game.slug]}
-					<img src="/emojis/red_x.png" alt="Game complete!" />
-				{/if}
-				<a href={resolve('/[mode=mode]', { mode: game.slug })}>{game.title}</a>
-			</li>
+			<Button
+				variant="option"
+				size="lg"
+				image={imageUrl(game.icon)}
+				selected={completion[game.slug]}
+				href={resolve('/[mode=mode]', { mode: game.slug })}>{game.title}</Button
+			>
 		{/each}
-	</ul>
-</div>
+	</div>
+</Panel>
 
 <style>
-	p {
-		font-size: 15px;
-		color: lightgray;
+	:global(.inventory) {
+		max-width: 640px;
+		margin: 12px auto;
 	}
 
-	ul {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-	}
-
-	li {
-		margin-right: 1rem;
-		margin-bottom: 1rem;
-	}
-
-	a {
-		text-decoration: none;
-		color: grey;
-		font-size: 23px;
-		display: inline-block;
-		transition:
-			transform 0.3s ease,
-			color 0.3s ease;
-	}
-
-	a:hover {
-		transform: scale(1.1) rotate(-3deg); /* grows and tilts left */
-		color: yellow;
-	}
-
-	img {
-		position: absolute;
-		pointer-events: none;
-	}
-
-	@media (max-width: 700px) {
-		.landing-page {
-			margin-top: -60px;
-		}
-
-		p {
-			font-size: 17px;
-		}
+	.games {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+		gap: 12px;
 	}
 </style>

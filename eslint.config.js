@@ -46,8 +46,12 @@ export default defineConfig(
 		}
 	},
 	{
-		// Links to the Terraria wiki are external, so SvelteKit's resolve() doesn't apply.
-		files: ['src/lib/components/WikiLink.svelte'],
+		// WikiLink links to the wiki; the UI buttons take an href their caller already resolved.
+		files: [
+			'src/lib/components/WikiLink.svelte',
+			'src/lib/ui/Button.svelte',
+			'src/lib/ui/IconButton.svelte'
+		],
 		rules: { 'svelte/no-navigation-without-resolve': 'off' }
 	}
 );
