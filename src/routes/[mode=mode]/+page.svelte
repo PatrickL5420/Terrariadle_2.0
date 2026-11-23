@@ -1,13 +1,13 @@
 <script lang="ts">
-	import Confetti from '$lib/components/Confetti.svelte';
-	import EntryBadge from '$lib/components/EntryBadge.svelte';
 	import GuessList from '$lib/components/GuessList.svelte';
 	import GuessPanel from '$lib/components/GuessPanel.svelte';
-	import WinningCard from '$lib/components/WinningCard.svelte';
+	import ResultPanel from '$lib/components/ResultPanel.svelte';
+	import WikiLink from '$lib/components/WikiLink.svelte';
+	import { imageUrl } from '$lib/images';
 	import { ApiError, checkGuess, getHint, getToday, solve, type Today } from '$lib/api';
 	import { getEntry, getGame } from '$lib/games';
 	import { loadProgress, playerId, saveProgress, type Progress } from '$lib/progress.svelte';
-	import { scale, fly } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { devFlags } from '$lib/dev/flags.svelte';
 	import type { PageProps } from './$types';
 
@@ -111,65 +111,86 @@
 </script>
 
 {#if loadError}
-	<p>Couldn't load today's puzzle: {loadError}</p>
+	<p class="panel status">Couldn't load today's puzzle: {loadError}</p>
 {:else if !progress || !today}
-	<p>Loading...</p>
+	<p class="status dim">Loading...</p>
 {:else}
 	{#key game.slug}
-		<div in:fly={{ y: 20, duration: 400 }}>
-			<GuessPanel
-				{game}
-				{items}
-				guessCount={progress.guesses.length}
-				finished={progress.finished}
-				hints={progress.hints}
-				clue={today.clue}
-				onGuess={submitGuess}
-				onHint={revealHint}
-			/>
-
+		<div in:fly={{ y: 12, duration: 250 }}>
 			{#if progress.finished && answer}
-				<WinningCard
+				<ResultPanel
 					{game}
 					{answer}
+					day={today.day}
+					guesses={progress.guesses}
 					position={progress.position}
-					guessCount={progress.guesses.length}
 					solved={today.solved}
+				/>
+			{:else}
+				<GuessPanel
+					{game}
+					{items}
+					guessCount={progress.guesses.length}
+					hints={progress.hints}
+					clue={today.clue}
+					onGuess={submitGuess}
+					onHint={revealHint}
 				/>
 			{/if}
 
-			{#if progress.guesses.length === 0}
-				<div class="info">
-					<p>
+			{#if progress.guesses.length}
+				<GuessList {game} guesses={progress.guesses} answerId={answer?.id} />
+			{:else}
+				<div class="intro">
+					<p class="dim">
 						{today.solved}
-						{today.solved === 1 ? 'person has' : 'people have'} guessed today's {game.noun}
+						{today.solved === 1 ? 'player has' : 'players have'} solved today's {game.noun}
 					</p>
 					{#if yesterday}
-						<p>Yesterday's {game.noun} was:</p>
-						<EntryBadge {game} entry={yesterday} theme={game.theme(yesterday)} />
+						<div class="yesterday tooltip-box">
+							<span class="slot">
+								<WikiLink {game} entry={yesterday}>
+									{#if yesterday.image}<img src={imageUrl(yesterday.image)} alt="" />{/if}
+								</WikiLink>
+							</span>
+							<span>
+								<span class="dim">Yesterday's {game.noun}</span><br />
+								<WikiLink {game} entry={yesterday}>{yesterday.name}</WikiLink>
+							</span>
+						</div>
 					{/if}
-					<p>Guess any {game.noun} to begin.</p>
 				</div>
-			{:else}
-				<p class="mobile-msg" in:scale>← swipe to view →</p>
-				<GuessList {game} guesses={progress.guesses} answerId={answer?.id} />
 			{/if}
-
-			<Confetti finished={progress.finished} />
 		</div>
 	{/key}
 {/if}
 
 <style>
-	.mobile-msg {
-		display: none;
-		color: grey;
-		margin: 10px auto -5px;
+	.status {
+		margin: 24px auto;
+		max-width: 420px;
 	}
 
-	@media (max-width: 800px) {
-		.mobile-msg {
-			display: block;
-		}
+	.intro {
+		margin-top: 18px;
+	}
+
+	.yesterday {
+		display: inline-flex;
+		align-items: center;
+		gap: 12px;
+		margin-top: 4px;
+	}
+
+	.yesterday .slot {
+		flex-shrink: 0;
+	}
+
+	.yesterday .slot :global(.wiki-link) {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
 	}
 </style>

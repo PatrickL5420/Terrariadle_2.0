@@ -5,8 +5,8 @@ Daily Terraria guessing games: **Boss Guesser**, **Accessory Guesser**, **Weapon
 Pick a guess and every property is compared to the answer: 🟩 match, 🟨 partial, 🟥 miss,
 ▲▼ the answer is higher/lower. Hints unlock after 4, 7 and 12 guesses.
 
-Visuals are from [Terrariadle](https://github.com/BradyDriebergen/Terrariadle_2.0) by Brady
-Driebergen (MIT). Game data and images come from the
+Based on [Terrariadle](https://github.com/BradyDriebergen/Terrariadle_2.0) by Brady Driebergen
+(MIT). The UI is styled after Terraria's own inventory, hotbar and tooltips. Game data and images come from the
 [Terraria Wiki](https://terraria.wiki.gg/) (CC BY-NC-SA 3.0). This is an unofficial fan project,
 not affiliated with Re-Logic.
 

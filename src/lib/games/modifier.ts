@@ -149,7 +149,7 @@ export const modifierGame: GameConfig<Modifier> = {
 	title: 'Weapon Modifier Guesser',
 	noun: 'weapon modifier',
 	description: "Guess today's Terraria weapon modifier (reforge prefix) from its stats!",
-	icon: '/logos/goblin_tinkerer.png',
+	icon: '/items/Iron Anvil.png',
 	entries: weaponMods,
 	// Strong and Forceful share every stat; the name tile shows which guess is right.
 	allowLookalikes: true,

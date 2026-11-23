@@ -20,162 +20,165 @@
 	} = $props();
 
 	let input = $state('');
-	let filtered = $derived<DropdownListItem[]>([...itemList]);
 	let dropdownIndex = $state(-1);
-	let itemElements = $state<(HTMLButtonElement | null)[]>([]); // used for smooth scrolling
+	let itemElements = $state<(HTMLButtonElement | null)[]>([]); // for scrolling into view
 
-	$effect(() => {
+	// Best matches first, so Enter picks "Hallowed Mask" over "Ancient Hallowed Mask".
+	const filtered = $derived.by(() => {
 		const query = input.toLowerCase();
-		// Best matches first, so Enter picks "Hallowed Mask" over "Ancient Hallowed Mask".
 		const rank = (name: string) => {
 			const n = name.toLowerCase();
 			return n === query ? 0 : n.startsWith(query) ? 1 : 2;
 		};
-		filtered = itemList
+		return itemList
 			.filter((item) => item.name.toLowerCase().includes(query))
 			.sort((a, b) => rank(a.name) - rank(b.name))
 			.slice(0, 20);
+	});
+
+	$effect(() => {
+		void input;
 		dropdownIndex = -1;
 	});
 
-	// Keep the selected item in view when dropdownIndex changes
 	$effect(() => {
-		if (dropdownIndex < 0) return;
-
-		const el = itemElements[dropdownIndex];
-		if (el) {
-			el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+		if (dropdownIndex >= 0) {
+			itemElements[dropdownIndex]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 		}
 	});
 
+	function pick(id: number) {
+		selectItem(id);
+		input = '';
+	}
+
 	function onKeyDown(event: KeyboardEvent) {
 		if (!input) return;
-		if (event.key === 'Tab') {
-			dropdownIndex++;
-			event.preventDefault();
-		} else if (event.key === 'ArrowDown') {
+		if (event.key === 'ArrowDown' || event.key === 'Tab') {
 			dropdownIndex = Math.min(dropdownIndex + 1, filtered.length - 1);
 			event.preventDefault();
 		} else if (event.key === 'ArrowUp') {
 			dropdownIndex = Math.max(dropdownIndex - 1, 0);
 			event.preventDefault();
 		} else if (event.key === 'Enter' && filtered.length !== 0) {
-			selectItem(filtered[Math.max(dropdownIndex, 0)].id);
-			input = '';
+			pick(filtered[Math.max(dropdownIndex, 0)].id);
 			event.preventDefault();
+		} else if (event.key === 'Escape') {
+			input = '';
 		}
 	}
 </script>
 
-<div class="wrapper">
+<div class="search">
 	<input
 		type="text"
 		placeholder="Type any {itemType} to guess..."
+		aria-label="Guess a {itemType}"
 		bind:value={input}
 		onkeydown={onKeyDown}
 	/>
 
 	{#if input}
-		<div class="dropdown">
-			{#if filtered.length !== 0}
-				{#each filtered as item, i (item.id)}
-					<button
-						class="item"
-						class:selected={i === dropdownIndex}
-						bind:this={itemElements[i]}
-						onclick={() => {
-							selectItem(item.id);
-							input = '';
-						}}
-					>
-						{#if item.image}
-							<img src={imageUrl(item.image)} alt="" loading="lazy" />
-						{/if}
-						<span>{item.name}</span>
-					</button>
-				{/each}
+		<div class="results tooltip-box" role="listbox">
+			{#each filtered as item, i (item.id)}
+				<button
+					class="result"
+					class:selected={i === dropdownIndex}
+					role="option"
+					aria-selected={i === dropdownIndex}
+					bind:this={itemElements[i]}
+					onclick={() => pick(item.id)}
+				>
+					<span class="slot mini">
+						{#if item.image}<img src={imageUrl(item.image)} alt="" loading="lazy" />{/if}
+					</span>
+					<span>{item.name}</span>
+				</button>
 			{:else}
-				<span class="no-items">No results...</span>
-			{/if}
+				<span class="none dim">No results...</span>
+			{/each}
 		</div>
 	{/if}
 </div>
 
 <style>
-	.wrapper {
+	.search {
 		position: relative;
-		display: inline-block;
-		margin: 0;
+		margin: 14px auto 0;
+		width: 300px;
+		max-width: 100%;
 	}
 
+	/* Like the game's search bar: a dark slot-coloured box. */
 	input {
-		background-color: var(--color-button);
-		padding: 10px;
-		width: 260px;
-		max-width: calc(100vw - 80px);
-		height: 20px;
+		width: 100%;
+		padding: 10px 12px;
+		font-size: 17px;
+		text-align: left;
+		background: var(--slot-inner);
+		border: none;
+		border-radius: 6px;
+		box-shadow:
+			inset 0 0 0 2px var(--slot),
+			0 0 0 2px var(--slot-outer);
+		outline: none;
+	}
+
+	input:focus {
+		box-shadow:
+			inset 0 0 0 2px var(--slot-frame-hi),
+			0 0 0 2px var(--slot-outer);
+	}
+
+	input::placeholder {
+		color: var(--text-dim);
+	}
+
+	.results {
+		position: absolute;
+		z-index: 50;
+		top: calc(100% + 6px);
+		left: 0;
+		right: 0;
+		max-height: 300px;
+		overflow-y: auto;
+		padding: 4px;
+		scrollbar-width: thin;
+	}
+
+	.result {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		padding: 4px 6px;
+		background: none;
+		border: none;
+		border-radius: 4px;
 		font-size: 16px;
 		text-align: left;
-
-		border-radius: 5px;
-		border: thin solid black;
-		text-shadow: none;
-		text-shadow:
-			0px 0px 3px #000,
-			0px 0px 2px #000;
-	}
-
-	.dropdown {
-		position: absolute;
-		width: 280px;
-		max-width: calc(100vw - 60px);
-		top: 100%;
-		left: 0;
-		background: var(--color-button);
-		max-height: 240px;
-
-		overflow-y: auto;
-		scrollbar-width: none;
-		-ms-overflow-style: none;
-
-		border-radius: 8px;
-		z-index: 50;
-		border: thin solid black;
-	}
-	.dropdown::-webkit-scrollbar {
-		display: none;
-	}
-
-	.item {
-		display: flex;
-		gap: 8px;
-		padding: 6px;
-		align-items: center;
 		cursor: pointer;
-		border-radius: 6px;
-
-		background: none;
-		width: 100%;
-		border: none;
-	}
-	.item:hover,
-	.item.selected {
-		background: var(--color-lightblue);
-	}
-	.item span {
-		font-size: 14px;
-	}
-	.item img {
-		width: 35px;
-		height: 35px;
-		object-fit: contain;
 	}
 
-	.no-items {
-		display: flex;
-		padding: 10px;
-		align-items: center;
-		cursor: pointer;
-		border-radius: 6px;
+	.result:hover,
+	.result.selected {
+		background: rgba(89, 120, 170, 0.35);
+	}
+
+	.result:hover span:last-child,
+	.result.selected span:last-child {
+		color: var(--hover);
+	}
+
+	.slot.mini {
+		width: 34px;
+		height: 34px;
+		flex-shrink: 0;
+		border-radius: 4px;
+	}
+
+	.none {
+		display: block;
+		padding: 8px;
 	}
 </style>

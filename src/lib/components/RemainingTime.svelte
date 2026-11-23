@@ -33,10 +33,11 @@
 	});
 </script>
 
-<p>Next game starts in: {remainingTime}</p>
+<p class="dim">Next puzzle in {remainingTime}</p>
 
 <style>
 	p {
-		margin-top: 0;
+		margin: 6px 0 0;
+		font-size: 15px;
 	}
 </style>

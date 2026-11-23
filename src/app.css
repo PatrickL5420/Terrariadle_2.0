@@ -1,74 +1,209 @@
+/*
+ * Terraria-style UI. Colours are sampled from the game's own inventory screen:
+ * inventory slots, equipment (accessory/vanity/dye) slots, hover tooltips and menu text.
+ */
 @font-face {
 	font-family: 'Andy';
-	src: url('/fonts/AndyBold.woff2') format('truetype');
-	font-weight: Bold;
+	src: url('/fonts/AndyBold.woff2') format('woff2');
+	font-weight: bold;
 	font-style: normal;
+	font-display: swap;
 }
 
 :root {
-	--color-backgroundblue: rgba(38, 56, 99, 0.8);
-	--color-button: rgba(48, 63, 131, 0.9);
-	--color-lightblue: rgb(73, 94, 171);
+	/* Inventory slot: fill, inner edge, outer edge, and the lighter hotbar/favourite frame. */
+	--slot: #383a86;
+	--slot-inner: #242554;
+	--slot-outer: #101021;
+	--slot-frame: #5978aa;
+	--slot-frame-hi: #6e95b5;
+	--slot-selected: #4e5fb2;
 
-	--color-green: rgb(61, 212, 41);
-	--color-red: red;
-	--color-yellow: yellow;
+	/* Equipment slots (armor/accessory green, vanity teal, dye blue) and the trash slot. */
+	--equip-green: #2d5f2a;
+	--equip-teal: #2a6059;
+	--equip-dye: #294c60;
+	--trash: #4b6674;
+
+	/* Guess results, tinted to sit with the slot colours. */
+	--match: #3d8a33;
+	--partial: #9a7a1e;
+	--miss: #84303a;
+
+	/* Panels and hover tooltips (translucent dark blue boxes). */
+	--panel: rgba(56, 58, 134, 0.82);
+	--tooltip: rgba(18, 19, 52, 0.97);
+
+	/* Menu text: white with a dark outline, hovered items turn yellow. */
+	--text: #ffffff;
+	--text-dim: #b8b8c8;
+	--hover: #ffe94d;
 }
 
 * {
+	box-sizing: border-box;
 	font-family: 'Andy', sans-serif;
+	color: var(--text);
 	text-shadow:
-		0px 0px 3px #000,
-		0px 0px 3px #000,
-		0px 0px 5px #000;
-	text-align: center;
-	color: white;
+		1px 1px 0 #000,
+		-1px 1px 0 #000,
+		1px -1px 0 #000,
+		-1px -1px 0 #000;
 }
 
+/* Night sky, like the game's main menu: a gradient with two layers of pixel stars. */
 body {
-	background-image: url('/page-backgrounds/forest-background.png');
-	background-size: cover;
-	background-position: center;
-	background-repeat: no-repeat;
-	background-attachment: fixed;
-	min-height: 100vh;
 	margin: 0;
-	padding: 0;
-	background-color: #5972f7;
-
-	/* cursor: url('/emojis/cursor.png'), auto; */
+	min-height: 100vh;
+	text-align: center;
+	background-color: #0b1030;
+	background-image:
+		radial-gradient(1px 1px at 20px 30px, #fff 50%, transparent 51%),
+		radial-gradient(1px 1px at 130px 80px, #cfd8ff 50%, transparent 51%),
+		radial-gradient(2px 2px at 70px 140px, #ffffffcc 50%, transparent 51%),
+		radial-gradient(1px 1px at 180px 170px, #fff 50%, transparent 51%),
+		linear-gradient(180deg, #050816 0%, #0d1540 55%, #1b2a6b 100%);
+	background-size:
+		200px 200px,
+		200px 200px,
+		200px 200px,
+		200px 200px,
+		100% 100%;
+	background-attachment: fixed;
 }
 
 a {
-	color: rgb(92, 193, 255);
+	color: var(--text);
+}
+
+a:hover {
+	color: var(--hover);
 }
 
 img {
-	color: transparent;
+	image-rendering: pixelated;
 }
 
-.color-cycle {
-	font-size: 22px;
-	animation: colors 6s linear infinite;
+/* ---- Inventory slot ---------------------------------------------------------------------- */
+.slot {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 52px;
+	height: 52px;
+	background: var(--slot);
+	border-radius: 5px;
+	box-shadow:
+		inset 0 0 0 2px var(--slot-inner),
+		0 0 0 2px var(--slot-outer);
 }
 
-@keyframes colors {
-	0% {
-		color: rgb(255, 0, 0);
-	}
-	20% {
-		color: rgb(255, 166, 0);
-	}
-	40% {
-		color: rgb(255, 255, 0);
-	}
-	60% {
-		color: rgb(0, 255, 0);
-	}
-	80% {
-		color: rgb(0, 162, 255);
-	}
-	100% {
-		color: rgb(255, 0, 0);
-	}
+/* Hotbar and favourited slots have a lighter dotted inner frame in the game. */
+.slot.hotbar-slot {
+	outline: 2px dotted var(--slot-frame);
+	outline-offset: -5px;
+}
+
+.slot img {
+	max-width: 70%;
+	max-height: 70%;
+	object-fit: contain;
+}
+
+/* The number in a hotbar slot's top-left corner. */
+.slot .num {
+	position: absolute;
+	top: 1px;
+	left: 5px;
+	font-size: 13px;
+}
+
+.slot.framed {
+	box-shadow:
+		inset 0 0 0 2px var(--slot-frame),
+		inset 0 0 0 4px var(--slot-inner),
+		0 0 0 2px var(--slot-outer);
+}
+
+.slot.selected {
+	background: var(--slot-selected);
+	box-shadow:
+		inset 0 0 0 2px var(--slot-frame-hi),
+		0 0 0 2px var(--slot-outer),
+		0 0 10px rgba(160, 190, 255, 0.55);
+}
+
+.slot.green {
+	background: var(--equip-green);
+	box-shadow:
+		inset 0 0 0 2px #1d3d1d,
+		0 0 0 2px #112114;
+}
+
+.slot.teal {
+	background: var(--equip-teal);
+	box-shadow:
+		inset 0 0 0 2px #20423f,
+		0 0 0 2px #101b22;
+}
+
+.slot.dye {
+	background: var(--equip-dye);
+	box-shadow:
+		inset 0 0 0 2px #233342,
+		0 0 0 2px #101521;
+}
+
+/* ---- Panels, tooltips, text buttons ------------------------------------------------------- */
+.panel {
+	background: var(--panel);
+	border-radius: 10px;
+	box-shadow:
+		inset 0 0 0 2px var(--slot-inner),
+		0 0 0 2px var(--slot-outer),
+		0 6px 18px rgba(0, 0, 0, 0.45);
+	padding: 14px 16px;
+}
+
+.tooltip-box {
+	background: var(--tooltip);
+	border-radius: 6px;
+	box-shadow: 0 0 0 2px var(--slot-outer);
+	padding: 8px 12px;
+	text-align: left;
+	line-height: 1.25;
+}
+
+/* Menu-style button: just text that turns yellow and grows on hover, like the game's menus. */
+.text-btn {
+	background: none;
+	border: none;
+	padding: 4px 8px;
+	font-size: 18px;
+	cursor: pointer;
+	transition:
+		transform 0.1s,
+		color 0.1s;
+}
+
+.text-btn:hover:not(:disabled),
+.text-btn:focus-visible {
+	color: var(--hover);
+	transform: scale(1.08);
+}
+
+.text-btn:disabled {
+	color: var(--text-dim);
+	cursor: default;
+}
+
+.title {
+	margin: 0;
+	font-size: 30px;
+	letter-spacing: 0.5px;
+}
+
+.dim {
+	color: var(--text-dim);
 }

@@ -32,15 +32,14 @@
 
 <svelte:head>
 	<title>Terrariadle {meta.title}</title>
-	<link rel="icon" href="/logos/TabLogo.ico" />
+	<link rel="icon" type="image/png" href="/items/Magic Mirror.png" />
 	<meta name="description" content={meta.description} />
 
 	<meta property="og:type" content="website" />
 	<meta property="og:site_name" content="Terrariadle" />
 	<meta property="og:title" content={`Terrariadle ${meta.title}`} />
 	<meta property="og:description" content={meta.description} />
-	<meta property="og:image" content="/og-image.png" />
-	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <div class="app">
@@ -61,6 +60,8 @@
 
 <style>
 	main {
-		padding: 20px 0;
+		padding: 8px 16px 0;
+		max-width: 1100px;
+		margin: 0 auto;
 	}
 </style>

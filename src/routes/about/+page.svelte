@@ -4,9 +4,8 @@
 	import { games } from '$lib/games';
 </script>
 
-<div class="how-to-play" in:fly={{ x: 80, duration: 500 }}>
-	<h1>How to Play</h1>
-	<hr />
+<div class="panel how-to-play" in:fly={{ y: 12, duration: 250 }}>
+	<h1 class="title">How to Play</h1>
 
 	<p>
 		Every day there's a new {games
@@ -23,7 +22,7 @@
 			amount
 		</li>
 		<li><span class="swatch red"></span> No match</li>
-		<li>▲ / ▼ The answer's value is higher / lower than your guess</li>
+		<li>▲ / ▼ in a slot's corner: the answer's value is higher / lower than your guess</li>
 	</ul>
 
 	<p>
@@ -60,73 +59,60 @@
 
 <style>
 	.link {
-		color: rgb(111, 255, 255);
+		color: var(--text);
 	}
 
 	.link:hover {
-		color: yellow;
+		color: var(--hover);
 	}
 
 	.how-to-play {
+		max-width: 620px;
+		margin: 12px auto;
+		font-size: 18px;
 		text-align: left;
-		margin: 20px auto;
-		max-width: 600px;
-		padding: 1px 15px;
-		font-size: 20px;
-
-		border: 2px solid #000;
-		border-radius: 15px;
-		background-color: var(--color-button);
 	}
 
 	.how-to-play * {
 		text-align: left;
 	}
 
-	.how-to-play h1 {
-		margin-bottom: -5px;
-	}
-
 	.how-to-play h2 {
-		padding-top: 10px;
-		margin-bottom: 0;
+		margin: 18px 0 0;
+		font-size: 22px;
 	}
 
 	.how-to-play .game-desc {
 		margin: 2px 0 4px;
-		font-size: 17px;
-		color: lightgray;
+		font-size: 16px;
+		color: var(--text-dim);
 	}
 
 	.how-to-play ul {
-		list-style-type: none;
+		list-style: none;
 		margin: 0;
 		padding: 0;
-		font-size: 17px;
+		font-size: 16px;
 	}
 
 	.swatch {
 		display: inline-block;
 		width: 14px;
 		height: 14px;
-		border: 1px solid black;
 		border-radius: 3px;
+		box-shadow: 0 0 0 1px var(--slot-outer);
 		vertical-align: middle;
 	}
 
 	.green {
-		background: var(--color-green);
-	}
-	.yellow {
-		background: var(--color-yellow);
-	}
-	.red {
-		background: var(--color-red);
+		background: var(--match);
 	}
 
-	@media (max-width: 700px) {
-		.how-to-play {
-			margin: 0 16px;
-		}
+	.yellow {
+		background: var(--partial);
+	}
+
+	.red {
+		background: var(--miss);
 	}
 </style>

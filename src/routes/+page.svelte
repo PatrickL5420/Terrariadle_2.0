@@ -1,73 +1,92 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { fly } from 'svelte/transition';
 	import { games } from '$lib/games';
+	import { imageUrl } from '$lib/images';
 	import { completion } from '$lib/progress.svelte';
 </script>
 
-<div class="landing-page" in:fly={{ y: 50, duration: 500 }}>
-	<p>
-		Welcome to Terrariadle! <br />
-		Test your Terraria knowledge through daily guessing games.
-	</p>
-	<br />
+<section class="panel inventory">
+	<h1 class="title">Inventory</h1>
+	<p class="dim">A new puzzle in every slot, every day. Press 1–6 to jump to a game.</p>
 
 	<ul>
-		{#each games as game (game.slug)}
+		{#each games as game, i (game.slug)}
 			<li>
-				{#if completion[game.slug]}
-					<img src="/emojis/red_x.png" alt="Game complete!" />
-				{/if}
-				<a href={resolve('/[mode=mode]', { mode: game.slug })}>{game.title}</a>
+				<a href={resolve('/[mode=mode]', { mode: game.slug })} class="item">
+					<span class="slot" class:framed={completion[game.slug]}>
+						<span class="num">{i + 1}</span>
+						<img src={imageUrl(game.icon)} alt="" />
+					</span>
+					<span class="tooltip-box">
+						<span class="name">{game.title}</span>
+						<span class="desc">{game.description}</span>
+						<span class="status" class:solved={completion[game.slug]}>
+							{completion[game.slug] ? 'Solved today' : 'Not solved yet'}
+						</span>
+					</span>
+				</a>
 			</li>
 		{/each}
 	</ul>
-</div>
+</section>
 
 <style>
-	p {
-		font-size: 15px;
-		color: lightgray;
+	.inventory {
+		max-width: 640px;
+		margin: 12px auto;
 	}
 
 	ul {
 		list-style: none;
 		padding: 0;
-		margin: 0;
+		margin: 16px 0 4px;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+		gap: 14px;
 	}
 
-	li {
-		margin-right: 1rem;
-		margin-bottom: 1rem;
-	}
-
-	a {
+	.item {
+		display: flex;
+		gap: 12px;
+		align-items: center;
 		text-decoration: none;
-		color: grey;
-		font-size: 23px;
-		display: inline-block;
-		transition:
-			transform 0.3s ease,
-			color 0.3s ease;
 	}
 
-	a:hover {
-		transform: scale(1.1) rotate(-3deg); /* grows and tilts left */
-		color: yellow;
+	.item .slot {
+		flex-shrink: 0;
+		transition: transform 0.1s;
 	}
 
-	img {
-		position: absolute;
-		pointer-events: none;
+	.item:hover .slot {
+		transform: scale(1.08);
 	}
 
-	@media (max-width: 700px) {
-		.landing-page {
-			margin-top: -60px;
-		}
+	.item .tooltip-box {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		gap: 2px;
+	}
 
-		p {
-			font-size: 17px;
-		}
+	.name {
+		font-size: 18px;
+	}
+
+	.item:hover .name {
+		color: var(--hover);
+	}
+
+	.desc {
+		font-size: 14px;
+		color: var(--text-dim);
+	}
+
+	.status {
+		font-size: 13px;
+		color: #ff9d9d;
+	}
+
+	.status.solved {
+		color: #9dff7a;
 	}
 </style>
