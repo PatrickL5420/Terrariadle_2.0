@@ -16,14 +16,17 @@ export function shareText(
 	game: GameConfig<Entry>,
 	day: number,
 	guesses: GuessRecord[],
-	answerId: number
+	answerId: number,
+	/** Words of the clue revealed, for games that reveal it word by word. */
+	words?: number
 ): string {
 	const lines = [...guesses].reverse().map((g) => {
 		const right = g.id === answerId;
 		if (!game.attributes.length) return right ? '🟩' : '🟥';
 		return game.attributes.map((a) => (right ? '🟩' : EMOJI[g.checks[a.key]])).join('');
 	});
-	const count = `${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}`;
+	let count = `${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}`;
+	if (words) count += `, ${words} ${words === 1 ? 'word' : 'words'}`;
 	const grid = game.attributes.length ? lines.join('\n') : lines.join('');
 	return `${game.title} #${day}: ${count}\n${grid}\n${location.origin}/${game.slug}`;
 }

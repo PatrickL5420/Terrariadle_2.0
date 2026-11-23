@@ -13,6 +13,8 @@
 		guessCount,
 		hints,
 		clue,
+		clueDone = true,
+		onNextWord,
 		onGuess,
 		onHint
 	}: {
@@ -21,6 +23,9 @@
 		guessCount: number;
 		hints: (Hint | null)[];
 		clue?: string;
+		/** False while there are more words of the clue to reveal (`game.clueByWord`). */
+		clueDone?: boolean;
+		onNextWord?: () => void;
 		onGuess: (id: number) => void;
 		onHint: (n: number) => Promise<void>;
 	} = $props();
@@ -41,7 +46,10 @@
 		<!-- Styled like an NPC's chat box. -->
 		<div class="clue tooltip-box">
 			<span class="clue-label">{game.clueLabel}</span>
-			<p>{clue}</p>
+			<p>{clue}{clueDone ? '' : ' …'}</p>
+			{#if !clueDone}
+				<Button size="sm" icon="next" onclick={onNextWord}>Next word</Button>
+			{/if}
 		</div>
 	{/if}
 
@@ -98,6 +106,10 @@
 	.clue-label {
 		font-size: 13px;
 		color: var(--hover);
+	}
+
+	.clue :global(.ui-btn) {
+		margin-top: 8px;
 	}
 
 	.clue p {

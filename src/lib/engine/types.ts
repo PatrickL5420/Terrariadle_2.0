@@ -77,6 +77,11 @@ export interface GameConfig<E extends Entry = Entry> {
 	 * (see $lib/server/text.ts) so it can't be looked up in the page's data.
 	 */
 	clueLabel?: string;
+	/**
+	 * Clue-style games: show the clue one word at a time. Players reveal more words themselves,
+	 * and the number revealed is part of their score.
+	 */
+	clueByWord?: boolean;
 	/** Wiki page for an entry, e.g. "Modifiers#Legendary". Defaults to the entry's name. */
 	wikiPage?: (e: E) => string;
 	detailLabel?: string;

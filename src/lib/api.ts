@@ -32,6 +32,9 @@ export const checkGuess = (slug: string, id: number, day: number) =>
 		`/api/${slug}/guess?id=${id}&day=${day}`
 	);
 
+export const getClue = (slug: string, words: number, day: number) =>
+	call<{ text: string; done: boolean }>(`/api/${slug}/clue?words=${words}&day=${day}`);
+
 export const getHint = (slug: string, n: number, day: number) =>
 	call<{ hint: Hint }>(`/api/${slug}/hint?n=${n}&day=${day}`);
 
