@@ -14,6 +14,8 @@
 		hints,
 		clue,
 		clueImage,
+		clueDone = true,
+		onNextWord,
 		onGuess,
 		onHint
 	}: {
@@ -23,6 +25,9 @@
 		hints: (Hint | null)[];
 		clue?: string;
 		clueImage?: string;
+		/** False while there are more words of the clue to reveal (`game.clueByWord`). */
+		clueDone?: boolean;
+		onNextWord?: () => void;
 		onGuess: (id: number) => void;
 		onHint: (n: number) => Promise<void>;
 	} = $props();
@@ -49,7 +54,10 @@
 					{clue}
 				</p>
 			{:else}
-				<p>{clue}</p>
+				<p>{clue}{clueDone ? '' : ' …'}</p>
+			{/if}
+			{#if !clueDone}
+				<Button size="sm" icon="next" onclick={onNextWord}>Next word</Button>
 			{/if}
 		</div>
 	{/if}
@@ -113,6 +121,10 @@
 	.clue-label {
 		font-size: 13px;
 		color: var(--hover);
+	}
+
+	.clue :global(.ui-btn) {
+		margin-top: 8px;
 	}
 
 	.clue p {

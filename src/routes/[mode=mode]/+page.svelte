@@ -6,10 +6,20 @@
 	import BonusPanel from '$lib/components/BonusPanel.svelte';
 	import WikiLink from '$lib/components/WikiLink.svelte';
 	import { imageUrl } from '$lib/images';
-	import { ApiError, checkBonus, checkGuess, getHint, getToday, solve, type Today } from '$lib/api';
+	import {
+		ApiError,
+		checkBonus,
+		checkGuess,
+		getClue,
+		getHint,
+		getToday,
+		solve,
+		type Today
+	} from '$lib/api';
 	import { getEntry, getGame } from '$lib/games';
 	import { loadProgress, playerId, saveProgress, type Progress } from '$lib/progress.svelte';
 	import { fly } from 'svelte/transition';
+	import { untrack } from 'svelte';
 	import { devFlags } from '$lib/dev/flags.svelte';
 	import type { PageProps } from './$types';
 
@@ -119,6 +129,39 @@
 		}
 	}
 
+	// Word-by-word clues: today's response has the first word; more are fetched on request.
+	let clueText = $state('');
+	$effect(() => {
+		const t = today;
+		const p = progress;
+		if (!t || !p) return;
+		clueText = t.clue ?? '';
+		// Only on load: later reveals set clueText themselves.
+		const words = untrack(() => p.words ?? 1);
+		if (game.clueByWord && words > 1) {
+			getClue(game.slug, words, t.day)
+				.then((c) => (clueText = c.text))
+				.catch(handleError);
+		}
+	});
+
+	async function revealWord() {
+		if (!progress || !today || busy || progress.clueDone) return;
+		busy = true;
+		try {
+			const words = (progress.words ?? 1) + 1;
+			const clue = await getClue(game.slug, words, today.day);
+			clueText = clue.text;
+			progress.words = words;
+			progress.clueDone = clue.done;
+			saveProgress(game.slug, progress);
+		} catch (e) {
+			handleError(e);
+		} finally {
+			busy = false;
+		}
+	}
+
 	async function revealHint(n: number) {
 		if (!progress || !today) return;
 		try {
@@ -147,6 +190,7 @@
 					position={progress.position}
 					solved={today.solved}
 					clue={today.clueImage ? { name: today.clue ?? '', image: today.clueImage } : undefined}
+					words={game.clueByWord ? (progress.words ?? 1) : undefined}
 				/>
 				{#if game.bonusLabel && today.bonus}
 					{@const bonusIds = new Set(progress.bonus?.guesses.map((g) => g.id))}
@@ -164,8 +208,10 @@
 					{items}
 					guessCount={progress.guesses.length}
 					hints={progress.hints}
-					clue={today.clue}
+					clue={clueText}
 					clueImage={today.clueImage}
+					clueDone={!game.clueByWord || (progress.clueDone ?? false)}
+					onNextWord={revealWord}
 					onGuess={submitGuess}
 					onHint={revealHint}
 				/>
