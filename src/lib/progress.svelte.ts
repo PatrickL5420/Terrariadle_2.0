@@ -12,6 +12,8 @@ export interface Progress {
 	finished: boolean;
 	position: number;
 	hints: (Hint | null)[];
+	/** The bonus question, once the puzzle is solved (games with `bonusLabel`). */
+	bonus?: { guesses: GuessRecord[]; finished: boolean };
 	/** Games with `clueByWord`: how many words of the clue are shown, and whether that's all. */
 	words?: number;
 	clueDone?: boolean;

@@ -17,6 +17,7 @@
 		guesses,
 		position,
 		solved,
+		clue,
 		words
 	}: {
 		game: GameConfig<Entry>;
@@ -25,6 +26,8 @@
 		guesses: GuessRecord[];
 		position: number;
 		solved: number;
+		/** Puzzle games: the puzzle (e.g. the accessory), shown with the answer. */
+		clue?: { name: string; image: string };
 		/** Words of the clue revealed (`game.clueByWord`), part of the score. */
 		words?: number;
 	} = $props();
@@ -55,12 +58,14 @@
 		<div class="answer">
 			<span class="slot framed big">
 				<WikiLink {game} entry={answer}>
-					{#if answer.image}<img src={imageUrl(answer.image)} alt="" />{:else}<span>?</span>{/if}
+					{#if clue ?? answer.image}<img src={imageUrl(clue?.image ?? answer.image!)} alt="" />{/if}
 				</WikiLink>
 			</span>
 			<div class="text">
 				<WikiLink {game} entry={answer}>
-					<span class="name" style:color={rarityColors[game.theme(answer)]}>{answer.name}</span>
+					<span class="name" style:color={rarityColors[game.theme(answer)]}
+						>{clue ? `${clue.name}: ${answer.name}` : answer.name}</span
+					>
 				</WikiLink>
 				<span class="dim">
 					Solved in {guesses.length}

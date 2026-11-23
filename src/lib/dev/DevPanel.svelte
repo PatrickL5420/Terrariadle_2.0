@@ -24,6 +24,10 @@
 		slug: string;
 		title: string;
 		answer: { id: number; name: string; image?: string };
+		/** What to guess to solve it (differs from answer.id in puzzle games). */
+		solveId: number;
+		/** Puzzle games: what the answer can be rerolled to. */
+		choices?: { id: number; name: string; image?: string }[];
 		overridden: boolean;
 		solved: number;
 		poolSize: number;
@@ -65,8 +69,8 @@
 	});
 
 	const entries = $derived(
-		game.entries
-			.map((e) => ({ id: e.id, name: e.name, image: e.image }))
+		(current?.choices ?? game.entries.map((e) => ({ id: e.id, name: e.name, image: e.image })))
+			.slice()
 			.sort((a, b) => a.name.localeCompare(b.name))
 	);
 
@@ -131,7 +135,7 @@
 			if (!info || !current) return;
 			const progress = loadProgress(selected, info.day);
 			if (progress.finished) return;
-			const id = current.answer.id;
+			const id = current.solveId;
 			const res = await checkGuess(selected, id, info.day);
 			progress.guesses = [{ id, checks: res.checks }, ...progress.guesses];
 			progress.finished = res.correct;

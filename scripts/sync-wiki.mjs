@@ -13,6 +13,7 @@
  *   fish         the Angler's quest fish: quote, height and biome
  *   critter      the Critters page tables: environment, AI, rarity, sell price, bait power
  *   enemy        the Enemies page (no bosses): hardmode, HP, attack, AI, rare, event, banner
+ *   version      desktop versions (with release dates) and when each accessory was added/changed
  *
  * Everything else (boss stage, biomes, body type, accessory function/class/source, hint text)
  * is curated by hand and never touched.
@@ -1770,6 +1771,161 @@ async function syncEnemies() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Versions (Versiondle)
+
+/** "Desktop 1.4.5.0" -> "1.4.5", "Desktop-Release" -> "1.0"; undefined for other platforms. */
+function desktopVersion(patch) {
+	if (patch === 'Desktop-Release') return '1.0';
+	const m = patch.match(/^Desktop (\d+(?:\.\d+)+)$/);
+	return m?.[1].replace(/^(\d+\.\d+\.\d+)\.0$/, '$1');
+}
+
+/** "1.4.4.9" -> 104040900: each part is two digits, so ids sort like versions. */
+const versionId = (v) =>
+	v
+		.split('.')
+		.concat(['0', '0', '0', '0'])
+		.slice(0, 5)
+		.reduce((id, part) => id * 100 + Number(part), 0);
+
+async function versionDates() {
+	const { parse } = await api({
+		action: 'parse',
+		page: 'Desktop version history',
+		prop: 'wikitext'
+	});
+	const dates = new Map();
+	for (const m of parse.wikitext.matchAll(
+		/\{\{anchor\|([\d.]+)\}\}[\s\S]*?\{\{date\|(\d+)\|(\d+)\|(\d+)\}\}/g
+	)) {
+		const v = desktopVersion(`Desktop ${m[1]}`);
+		if (!dates.has(v)) dates.set(v, `${m[2]}-${m[3].padStart(2, '0')}-${m[4].padStart(2, '0')}`);
+	}
+	return dates;
+}
+
+/** "Introduced." / "Introduced, but unobtainable." — but not "Introduced Spooky Wings". */
+const INTRODUCED = /^Introduced(?! [A-Z])/;
+
+/** Items the wiki introduces under an older name: name -> the version it was really added in. */
+const VERSION_RENAMED = { 'Spectre Wings': '1.2' }; // added as Ghost Wings
+
+/**
+ * Whether wiki text names an item: "Spooky Wings", or "Fairy" in "Fairy, Bee, and Leaf Wings"
+ * (the last word may be plural: "Copper, Silver, and Gold Watches"). A longer name doesn't count:
+ * "Tattered Fairy Wings" isn't Fairy Wings.
+ */
+function namesItem(changes, name) {
+	const t = changes.replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, '$1');
+	const words = name.split(' ').map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+	const notLonger = "(?<!\\b(?!Introduced\\b)[A-Z][\\w']* )";
+	if (new RegExp(`${notLonger}\\b${words.join(' ')}`).test(t)) return true;
+	const pattern = `${notLonger}\\b${words[0]}\\b[^.]*\\b${words.at(-1)}`;
+	return words.length > 1 && new RegExp(pattern, 'i').test(t);
+}
+
+/** name -> the page it redirects to, for names that are redirects. */
+async function redirectTargets(names) {
+	const targets = new Map();
+	for (let i = 0; i < names.length; i += 50) {
+		const body = await api({
+			action: 'query',
+			titles: names.slice(i, i + 50).join('|'),
+			redirects: '1'
+		});
+		for (const r of body.query.redirects ?? []) targets.set(r.from, r.to);
+	}
+	return targets;
+}
+
+/** page -> every page that redirects to it (a group page's members, e.g. all the wings). */
+async function redirectsTo(pages) {
+	const members = new Map();
+	for (const page of pages) {
+		const body = await api({ action: 'query', titles: page, prop: 'redirects', rdlimit: 'max' });
+		members.set(
+			page,
+			(body.query.pages[0].redirects ?? []).map((r) => r.title)
+		);
+	}
+	return members;
+}
+
+async function syncVersions() {
+	const accessories = await load('accessories.json');
+	const existing = await load('versions.json').catch(() => []);
+	const history = await cargoByNames(
+		'History',
+		'_pageName=page,patch,changes',
+		'_pageName',
+		accessories.map((a) => a.name)
+	);
+
+	// Accessories without their own page (Red String -> Strings, Spooky Wings -> Wings) share
+	// their group page's history.
+	const own = new Set(history.map((h) => h.page));
+	const groupOf = await redirectTargets(accessories.map((a) => a.name).filter((n) => !own.has(n)));
+	const groupHistory = await cargoByNames('History', '_pageName=page,patch,changes', '_pageName', [
+		...new Set(groupOf.values())
+	]);
+
+	const groupMembers = await redirectsTo([...new Set(groupOf.values())]);
+	const byVersion = (h) => versionId(desktopVersion(h.patch));
+	const puzzles = {};
+	for (const a of accessories) {
+		let rows = history.filter((h) => h.page === a.name && desktopVersion(h.patch));
+		let added = rows.find((h) => INTRODUCED.test(h.changes.trim()));
+		if (!added && groupOf.has(a.name)) {
+			rows = groupHistory
+				.filter((h) => h.page === groupOf.get(a.name) && desktopVersion(h.patch))
+				.sort((x, y) => byVersion(x) - byVersion(y));
+			added = rows.find((h) => INTRODUCED.test(h.changes.trim()));
+			if (!added) {
+				// "Introduced Spooky Wings and Tattered Fairy Wings": find the row naming this one.
+				// Lists like "Fairy, Bee, and Leaf Wings" only name the first word.
+				const mentions = (h) => namesItem(h.changes, a.name);
+				added = rows.find((h) => /Introduced/.test(h.changes) && mentions(h));
+				// Changes naming no one item ("Now craftable at Work Benches") apply to them all.
+				const members = groupMembers.get(groupOf.get(a.name)) ?? [];
+				rows = rows.filter((h) => mentions(h) || !members.some((m) => namesItem(h.changes, m)));
+			}
+		}
+		if (!added) {
+			problems.push(`versions: no desktop "Introduced" entry for ${a.name}`);
+			continue;
+		}
+		const addedId = VERSION_RENAMED[a.name] ? versionId(VERSION_RENAMED[a.name]) : byVersion(added);
+		const changed = [...new Set(rows.map(byVersion).filter((id) => id > addedId))].sort(
+			(x, y) => x - y
+		);
+		puzzles[a.id] = { added: addedId, changed };
+	}
+
+	// Every version that's an answer to either question can be guessed.
+	const used = new Set(Object.values(puzzles).flatMap((p) => [p.added, ...p.changed]));
+	const names = new Map(
+		[...history, ...groupHistory]
+			.map((h) => desktopVersion(h.patch))
+			.filter(Boolean)
+			.map((v) => [versionId(v), v])
+	);
+	const dates = await versionDates();
+	const entries = [...used]
+		.sort((x, y) => x - y)
+		.map((id) => ({ id, name: names.get(id), date: dates.get(names.get(id)) ?? '' }));
+	for (const e of entries) {
+		if (!e.date) problems.push(`versions: no release date for ${e.name}`);
+		if (!existing.some((o) => o.id === e.id))
+			changes.push(`versions     ${e.name.padEnd(22)} added`);
+	}
+	if (WRITE) {
+		await save('versions.json', entries);
+		// Which version each accessory was added / changed in is server-only.
+		await saveServerText('version-puzzles.json', puzzles);
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
 
 if (runs('boss')) await syncBosses();
 if (runs('armor')) await syncArmor();
@@ -1779,6 +1935,7 @@ if (runs('modifier')) await syncModifiers();
 if (runs('fish')) await syncFish();
 if (runs('critter')) await syncCritters();
 if (runs('enemy')) await syncEnemies();
+if (runs('version')) await syncVersions();
 
 console.log(changes.length ? changes.join('\n') : 'No differences.');
 if (problems.length)

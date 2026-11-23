@@ -13,6 +13,7 @@
 		guessCount,
 		hints,
 		clue,
+		clueImage,
 		clueDone = true,
 		onNextWord,
 		onGuess,
@@ -23,6 +24,7 @@
 		guessCount: number;
 		hints: (Hint | null)[];
 		clue?: string;
+		clueImage?: string;
 		/** False while there are more words of the clue to reveal (`game.clueByWord`). */
 		clueDone?: boolean;
 		onNextWord?: () => void;
@@ -46,7 +48,14 @@
 		<!-- Styled like an NPC's chat box. -->
 		<div class="clue tooltip-box">
 			<span class="clue-label">{game.clueLabel}</span>
-			<p>{clue}{clueDone ? '' : ' …'}</p>
+			{#if clueImage}
+				<p class="clue-item">
+					<span class="slot"><img src={imageUrl(clueImage)} alt="" /></span>
+					{clue}
+				</p>
+			{:else}
+				<p>{clue}{clueDone ? '' : ' …'}</p>
+			{/if}
 			{#if !clueDone}
 				<Button size="sm" icon="next" onclick={onNextWord}>Next word</Button>
 			{/if}
@@ -101,6 +110,12 @@
 	.clue {
 		margin: 0 auto 12px;
 		max-width: 420px;
+	}
+
+	.clue-item {
+		display: flex;
+		align-items: center;
+		gap: 12px;
 	}
 
 	.clue-label {

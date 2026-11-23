@@ -3,7 +3,14 @@ import { error, json } from '@sveltejs/kit';
 import { spawn } from 'node:child_process';
 import { dayNumber } from '$lib/engine/daily';
 import { answerPool, games, getEntry } from '$lib/games';
-import { answerFor, gameOr404, scheduledAnswer } from '$lib/server/answers';
+import {
+	answerFor,
+	gameOr404,
+	puzzleFor,
+	scheduledAnswer,
+	scheduledPuzzle
+} from '$lib/server/answers';
+import { puzzlesFor } from '$lib/server/puzzles';
 import { resetSolves, solveCount } from '$lib/server/counter';
 import { assertDev, currentDay, devState, overrideFor, saveDevState } from '$lib/server/dev';
 import type { RequestHandler } from './$types';
@@ -29,16 +36,27 @@ export const GET: RequestHandler = async ({ setHeaders }) => {
 		games: await Promise.all(
 			games.map(async (game) => {
 				const answer = answerFor(game, day);
+				// Puzzle games (Versiondle) reroll and show the puzzle: "Cloud in a Bottle (1.0)".
+				const puzzles = puzzlesFor(game.slug);
+				const puzzle = puzzleFor(game, day);
 				return {
 					slug: game.slug,
 					title: game.title,
-					answer: { id: answer.id, name: answer.name, image: answer.image },
+					answer: puzzle
+						? { id: puzzle.id, name: `${puzzle.name} (${answer.name})`, image: puzzle.image }
+						: { id: answer.id, name: answer.name, image: answer.image },
+					/** What to guess to solve it. */
+					solveId: answer.id,
+					/** What the answer can be rerolled to, when it isn't the game's entries. */
+					choices: puzzles?.map((p) => ({ id: p.id, name: p.name, image: p.image })),
 					overridden: overrideFor(game.slug, day) !== undefined,
 					solved: await solveCount(game.slug, day),
-					poolSize: answerPool(game).length,
+					poolSize: puzzles?.length ?? answerPool(game).length,
 					schedule: Array.from({ length: SCHEDULE_DAYS }, (_, i) => {
-						const e = scheduledAnswer(game, day + i + 1);
-						return { day: day + i + 1, id: e.id, name: e.name };
+						const d = day + i + 1;
+						const p = scheduledPuzzle(game, d);
+						const e = scheduledAnswer(game, d);
+						return { day: d, id: p?.id ?? e.id, name: p ? `${p.name} (${e.name})` : e.name };
 					})
 				};
 			})
@@ -99,16 +117,21 @@ export const POST: RequestHandler = async ({ request }) => {
 	switch (body.action) {
 		case 'reroll': {
 			const game = gameOr404(body.slug);
+			// Puzzle games are rerolled to another puzzle, the rest to another entry.
+			const puzzles = puzzlesFor(game.slug);
+			const current = puzzles ? puzzleFor(game, day)!.id : answerFor(game, day).id;
+			const pool = puzzles?.map((p) => p.id) ?? answerPool(game);
 			let id = body.id;
 			if (id === undefined) {
 				// Random answer from the pool, different from the current one.
-				const pool = answerPool(game).filter((p) => p !== answerFor(game, day).id);
-				id = pool[Math.floor(Math.random() * pool.length)];
+				const others = pool.filter((p) => p !== current);
+				id = others[Math.floor(Math.random() * others.length)];
 			}
-			if (!getEntry(game, id)) error(400, `Unknown ${game.noun}`);
+			const name = puzzles ? puzzles.find((p) => p.id === id)?.name : getEntry(game, id)?.name;
+			if (!name) error(400, `Unknown ${game.noun}`);
 			devState.overrides[game.slug] = { day, id };
 			await saveDevState();
-			return json({ ok: true, answer: getEntry(game, id)!.name });
+			return json({ ok: true, answer: name });
 		}
 		case 'clear-override':
 			delete devState.overrides[body.slug];

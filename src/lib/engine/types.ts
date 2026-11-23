@@ -78,6 +78,11 @@ export interface GameConfig<E extends Entry = Entry> {
 	 */
 	clueLabel?: string;
 	/**
+	 * A second question once solved, answered by guessing again (Versiondle: "When was it
+	 * changed?"). Only asked when the server has an answer for today's puzzle.
+	 */
+	bonusLabel?: string;
+	/**
 	 * Clue-style games: show the clue one word at a time. Players reveal more words themselves,
 	 * and the number revealed is part of their score.
 	 */
