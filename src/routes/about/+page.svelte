@@ -28,7 +28,7 @@
 
 	<p>
 		Hints unlock after 4, 7 and 12 guesses. There's no guess limit, and puzzles reset at midnight
-		(US Eastern time).
+		(Sydney time).
 	</p>
 
 	{#each games as game (game.slug)}

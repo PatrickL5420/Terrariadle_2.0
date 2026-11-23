@@ -105,6 +105,7 @@
 		background-color: var(--color-backgroundblue);
 		width: fit-content;
 		max-width: calc(100% - 30px);
+		box-sizing: border-box;
 		text-align: center;
 		margin: auto;
 		margin-top: 20px;
@@ -240,6 +241,23 @@
 		.hint-buttons button .lock {
 			left: 20px;
 			width: 45px;
+		}
+	}
+
+	/* Very narrow phones: three hint buttons still fit side by side. */
+	@media (max-width: 360px) {
+		.hint-buttons {
+			gap: 6px;
+		}
+
+		.hint-buttons button {
+			width: 80px;
+			height: 80px;
+			font-size: 14px;
+		}
+
+		.hint-buttons button .lock {
+			left: 16px;
 		}
 	}
 </style>

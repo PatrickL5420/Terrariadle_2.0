@@ -111,7 +111,8 @@
 	input {
 		background-color: var(--color-button);
 		padding: 10px;
-		width: 220px;
+		width: 260px;
+		max-width: calc(100vw - 80px);
 		height: 20px;
 		font-size: 16px;
 		text-align: left;
@@ -126,7 +127,8 @@
 
 	.dropdown {
 		position: absolute;
-		width: 240px;
+		width: 280px;
+		max-width: calc(100vw - 60px);
 		top: 100%;
 		left: 0;
 		background: var(--color-button);
