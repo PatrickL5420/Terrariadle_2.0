@@ -23,6 +23,8 @@ export interface Entry {
 	image?: string;
 	/** Defaults to true. Entries with `pool: false` can be guessed but are never the answer. */
 	pool?: boolean;
+	/** Entries in the same group count as one answer (e.g. any gem squirrel). */
+	group?: string;
 }
 
 export interface Attribute<E extends Entry = Entry> {

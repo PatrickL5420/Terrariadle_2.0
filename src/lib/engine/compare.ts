@@ -54,6 +54,10 @@ export function compareAttribute<E extends Entry>(
 	}
 }
 
+/** A guess is right if it's the answer or in the answer's group. */
+export const isCorrect = (guess: Entry, answer: Entry): boolean =>
+	guess.id === answer.id || (guess.group !== undefined && guess.group === answer.group);
+
 export function compareEntries<E extends Entry>(
 	attributes: Attribute<E>[],
 	guess: E,

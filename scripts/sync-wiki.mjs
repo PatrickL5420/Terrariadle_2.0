@@ -11,6 +11,7 @@
  *   accessories  rarity, hardmode, defense, expert-only, crafting tier, tooltip, image file
  *   modifiers    the whole list: which weapons each applies to, tier and every stat
  *   fish         the Angler's quest fish: quote, height and biome
+ *   critter      the Critters page tables: environment, AI, rarity, sell price, bait power
  *
  * Everything else (boss stage, biomes, body type, accessory function/class/source, hint text)
  * is curated by hand and never touched.
@@ -331,6 +332,7 @@ const RARITY = {
 	'-12': 'Expert',
 	'-13': 'Master'
 };
+const RARITY_NAMES = new Set(Object.values(RARITY));
 
 /**
  * Tooltip as one line for the hint button: drops flavour text ('quoted' lines), rejoins
@@ -1448,6 +1450,142 @@ async function syncFish() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Critters
+
+/** Critters that count as one answer: guessing any of them is right when one is the answer. */
+const CRITTER_GROUPS = [
+	{
+		group: 'Gem Squirrel',
+		match: /^(Amethyst|Topaz|Sapphire|Emerald|Ruby|Diamond|Amber) Squirrel$/
+	},
+	{ group: 'Gem Bunny', match: /^(Amethyst|Topaz|Sapphire|Emerald|Ruby|Diamond|Amber) Bunny$/ }
+];
+/** Critters merged into a single entry (their environments are combined). */
+const CRITTER_MERGE = [
+	{
+		name: 'Dragonfly',
+		match: /^(Black|Blue|Green|Orange|Red|Yellow) Dragonfly$/,
+		image: 'Blue Dragonfly'
+	}
+];
+
+/** "Passive AI (ground) / Duck AI (flying)" -> ["Passive AI", "Duck AI"]; n/a -> ["None"]. */
+const critterList = (cell) => {
+	const values = cell
+		.replace(/\bn\/a\b/g, '')
+		.split('/')
+		.map((v) => v.replace(/\([^)]*\)/g, '').trim())
+		.filter((v) => v && v !== 'n/a');
+	return values.length ? [...new Set(values)] : ['None'];
+};
+
+async function syncCritters() {
+	const existing = await load('critters.json').catch(() => []);
+	const html = await pageHtml('Critters');
+	// The main table, Butterflies, Dragonflies and Gold critters: the first four critter tables.
+	const tables = html.split('table-critters-types').slice(1, 5);
+	const cellText = (c) =>
+		decode(
+			c
+				.replace(/<br\s*\/?>/g, ' / ')
+				.replace(/<span class="(?:id|eico)[\s\S]*?<\/span><\/span>/g, '')
+				.replace(/<span class="id">[\s\S]*?<\/span>/g, '')
+				.replace(/<sup[\s\S]*?<\/sup>/g, '')
+				.replace(/<[^>]+>/g, '')
+		)
+			.replace(/\s+/g, ' ')
+			.trim();
+
+	const rows = [];
+	for (const table of tables) {
+		for (const row of table.slice(0, table.indexOf('</table>')).match(/<tr>[\s\S]*?<\/tr>/g) ??
+			[]) {
+			const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1]);
+			if (cells.length < 7) continue;
+			const name = decode(cells[1].match(/title="([^"]+)"/)?.[1] ?? cellText(cells[1]));
+			if (rows.some((r) => r.name === name)) continue; // listed in two tables
+			const bait = cellText(cells[6]);
+			rows.push({
+				name,
+				itemId: toInt(cells[1].match(/Item ID<\/a>: (\d+)/)?.[1]),
+				image: decodeURIComponent(cells[0].match(/src="\/images\/([^"?]+)/)?.[1] ?? '').replace(
+					/_/g,
+					' '
+				),
+				environment: critterList(cellText(cells[2])),
+				ai: critterList(cellText(cells[3])),
+				rarity: cells[4].match(/title="([\w ]+) \(Rarity level/)?.[1] ?? 'None',
+				sell: toInt(cells[5].match(/data-sort-value="(\d+)"/)?.[1]),
+				bait: /\d/.test(bait) ? toInt(bait) : 0
+			});
+		}
+	}
+
+	// Critters without an item (can't be caught) get an id from their NPC id instead.
+	const noItem = rows.filter((r) => !r.itemId).map((r) => r.name);
+	const npcIds = new Map(
+		(await cargoByNames('NPCs', 'nameraw,npcid', 'nameraw', noItem)).map((r) => [
+			r.nameraw,
+			toInt(r.npcid)
+		])
+	);
+
+	const entries = [];
+	for (const r of rows) {
+		const merge = CRITTER_MERGE.find((m) => m.match.test(r.name));
+		if (merge) {
+			const merged = entries.find((e) => e.name === merge.name);
+			if (merged) {
+				merged.environment = [...new Set([...merged.environment, ...r.environment])];
+				continue;
+			}
+			r.name = merge.name;
+			r.image = `${merge.image}.png`;
+		}
+		const id = r.itemId || (npcIds.get(r.name) ? 100_000 + npcIds.get(r.name) : 0);
+		if (!id) {
+			problems.push(`critters: no item or NPC id for ${r.name}`);
+			continue;
+		}
+		const old = existing.find((e) => e.name === r.name);
+		const group = CRITTER_GROUPS.find((g) => g.match.test(r.name))?.group;
+		entries.push({
+			id,
+			name: r.name,
+			image: old?.image?.startsWith('/') ? old.image : `wiki:${r.image || `${r.name}.png`}`,
+			environment: r.environment,
+			ai: r.ai,
+			rarity: RARITY_NAMES.has(r.rarity) ? r.rarity : 'None',
+			sell: r.sell,
+			bait: r.bait,
+			...(group && { group })
+		});
+	}
+
+	// One critter per group is the daily answer, so a group isn't picked 7 times as often.
+	const seen = new Set();
+	for (const e of entries) {
+		if (!e.group) continue;
+		if (seen.has(e.group)) e.pool = false;
+		seen.add(e.group);
+	}
+
+	for (const e of entries) {
+		const old = existing.find((o) => o.id === e.id);
+		if (!old) changes.push(`critters     ${e.name.padEnd(22)} added`);
+		else
+			for (const field of ['environment', 'ai', 'rarity', 'sell', 'bait'])
+				update('critters', old, field, e[field]);
+	}
+	for (const old of existing) {
+		if (!entries.some((e) => e.id === old.id))
+			changes.push(`critters     ${old.name.padEnd(22)} removed`);
+	}
+	entries.sort((a, b) => a.name.localeCompare(b.name));
+	if (WRITE) await save('critters.json', entries);
+}
+
+// ---------------------------------------------------------------------------------------------
 
 if (runs('boss')) await syncBosses();
 if (runs('armor')) await syncArmor();
@@ -1455,6 +1593,7 @@ if (runs('tooltip')) await syncTooltips();
 if (runs('accessory')) await syncAccessories();
 if (runs('modifier')) await syncModifiers();
 if (runs('fish')) await syncFish();
+if (runs('critter')) await syncCritters();
 
 console.log(changes.length ? changes.join('\n') : 'No differences.');
 if (problems.length)
