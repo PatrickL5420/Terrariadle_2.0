@@ -22,6 +22,7 @@ export const fishGame: GameConfig<Fish> = {
 	// No columns: every wrong guess is just red.
 	allowLookalikes: true,
 	clueLabel: "Angler's quest",
+	clueByWord: true,
 	attributes: [],
 	hints: [
 		{ label: 'Height', reveal: (f) => ({ text: f.height }) },
