@@ -12,6 +12,8 @@ export interface Progress {
 	finished: boolean;
 	position: number;
 	hints: (Hint | null)[];
+	/** The bonus question, once the puzzle is solved (games with `bonusLabel`). */
+	bonus?: { guesses: GuessRecord[]; finished: boolean };
 }
 
 const key = (slug: string) => `terrariadle:v1:${slug}`;

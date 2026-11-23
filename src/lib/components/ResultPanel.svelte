@@ -16,7 +16,8 @@
 		day,
 		guesses,
 		position,
-		solved
+		solved,
+		clue
 	}: {
 		game: GameConfig<Entry>;
 		answer: Entry;
@@ -24,6 +25,8 @@
 		guesses: GuessRecord[];
 		position: number;
 		solved: number;
+		/** Puzzle games: the puzzle (e.g. the accessory), shown with the answer. */
+		clue?: { name: string; image: string };
 	} = $props();
 
 	let copied = $state(false);
@@ -52,12 +55,14 @@
 		<div class="answer">
 			<span class="slot framed big">
 				<WikiLink {game} entry={answer}>
-					{#if answer.image}<img src={imageUrl(answer.image)} alt="" />{:else}<span>?</span>{/if}
+					{#if clue ?? answer.image}<img src={imageUrl(clue?.image ?? answer.image!)} alt="" />{/if}
 				</WikiLink>
 			</span>
 			<div class="text">
 				<WikiLink {game} entry={answer}>
-					<span class="name" style:color={rarityColors[game.theme(answer)]}>{answer.name}</span>
+					<span class="name" style:color={rarityColors[game.theme(answer)]}
+						>{clue ? `${clue.name}: ${answer.name}` : answer.name}</span
+					>
 				</WikiLink>
 				<span class="dim">
 					Solved in {guesses.length}

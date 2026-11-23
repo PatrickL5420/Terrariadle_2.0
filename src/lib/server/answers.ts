@@ -6,6 +6,7 @@ import { pickDaily } from '$lib/engine/daily';
 import type { Entry, GameConfig } from '$lib/engine/types';
 import { answerPool, getEntry, getGame } from '$lib/games';
 import { currentDay, overrideFor } from './dev';
+import { puzzlesFor, type Puzzle } from './puzzles';
 
 function secret(): string {
 	// Previews never use the real secret, so their dev tools can't reveal production answers.
@@ -22,13 +23,35 @@ export function gameOr404(slug: string): GameConfig<Entry> {
 	return game;
 }
 
+/** The scheduled puzzle, for games whose puzzle isn't the answer (see ./puzzles.ts). */
+export function scheduledPuzzle(game: GameConfig<Entry>, day: number): Puzzle | undefined {
+	const puzzles = puzzlesFor(game.slug);
+	if (!puzzles) return undefined;
+	const id = pickDaily(
+		puzzles.map((p) => p.id),
+		`${secret()}:${game.slug}`,
+		day
+	);
+	return puzzles.find((p) => p.id === id);
+}
+
+/** Today's puzzle including dev overrides (which hold a puzzle id for these games). */
+export function puzzleFor(game: GameConfig<Entry>, day: number): Puzzle | undefined {
+	const forced = overrideFor(game.slug, day);
+	return puzzlesFor(game.slug)?.find((p) => p.id === forced) ?? scheduledPuzzle(game, day);
+}
+
 /** The scheduled answer, ignoring dev overrides. */
 export function scheduledAnswer(game: GameConfig<Entry>, day: number): Entry {
+	const puzzle = scheduledPuzzle(game, day);
+	if (puzzle) return getEntry(game, puzzle.answer)!;
 	const id = pickDaily(answerPool(game), `${secret()}:${game.slug}`, day);
 	return getEntry(game, id)!;
 }
 
 export function answerFor(game: GameConfig<Entry>, day: number): Entry {
+	const puzzle = puzzleFor(game, day);
+	if (puzzle) return getEntry(game, puzzle.answer)!;
 	const forced = overrideFor(game.slug, day);
 	return (forced !== undefined && getEntry(game, forced)) || scheduledAnswer(game, day);
 }

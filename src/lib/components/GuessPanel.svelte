@@ -13,6 +13,7 @@
 		guessCount,
 		hints,
 		clue,
+		clueImage,
 		onGuess,
 		onHint
 	}: {
@@ -21,6 +22,7 @@
 		guessCount: number;
 		hints: (Hint | null)[];
 		clue?: string;
+		clueImage?: string;
 		onGuess: (id: number) => void;
 		onHint: (n: number) => Promise<void>;
 	} = $props();
@@ -41,7 +43,14 @@
 		<!-- Styled like an NPC's chat box. -->
 		<div class="clue tooltip-box">
 			<span class="clue-label">{game.clueLabel}</span>
-			<p>{clue}</p>
+			{#if clueImage}
+				<p class="clue-item">
+					<span class="slot"><img src={imageUrl(clueImage)} alt="" /></span>
+					{clue}
+				</p>
+			{:else}
+				<p>{clue}</p>
+			{/if}
 		</div>
 	{/if}
 
@@ -93,6 +102,12 @@
 	.clue {
 		margin: 0 auto 12px;
 		max-width: 420px;
+	}
+
+	.clue-item {
+		display: flex;
+		align-items: center;
+		gap: 12px;
 	}
 
 	.clue-label {

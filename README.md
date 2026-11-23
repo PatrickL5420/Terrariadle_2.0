@@ -1,7 +1,7 @@
 # Terrariadle
 
 Daily Terraria guessing games: **Bossdle**, **Accessorydle**, **Modifierdle**, **Accessory Modifierdle**,
-**Armordle**, **Tooltipdle**, **Fishdle**, **Critterdle** and **Enemydle**.
+**Armordle**, **Tooltipdle**, **Fishdle**, **Critterdle**, **Enemydle** and **Versiondle**.
 Pick a guess and every property is compared to the answer: 🟩 match, 🟨 partial, 🟥 miss,
 ▲▼ the answer is higher/lower. Hints unlock after 4, 7 and 12 guesses.
 
@@ -97,7 +97,7 @@ npm run sync-wiki -- --write
 ```
 
 The first reports differences; `--write` applies them. `--only=fish,boss` syncs just those games
-(boss, armor, tooltip, accessory, modifier, fish, critter, enemy).
+(boss, armor, tooltip, accessory, modifier, fish, critter, enemy, version).
 
 | Data        | From the wiki                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Curated by hand                              |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
@@ -109,6 +109,7 @@ The first reports differences; `--write` applies them. `--only=fish,boss` syncs 
 | Fish        | every Angler quest fish: height and biome (hints). The quote is server-only (`src/lib/server/fish-quotes.json`), with the fish's own name replaced by ???                                                                                                                                                                                                                                                                                                      | nothing                                      |
 | Critters    | the Critters page's main, butterfly, dragonfly and gold critter tables: environment, AI type, rarity, sell price, bait power (n/a is None). The coloured dragonflies are one entry; gem squirrels and gem bunnies are groups where any member is a correct guess (`group` in the data)                                                                                                                                                                         | the merge/group lists in the script          |
 | Enemies     | every enemy on the Enemies page except bosses, event bosses, boss servants and unspawnable ones (special seed enemies included): Hardmode, HP, attack (Classic; worms use the head), AI type, Lifeform Analyzer rare, event, banner. Hardmode comes from the page section, Hardmode-only events, or the wiki's Hardmode-only category. 1.4.5's bonus-drop slime variants (Dirt Slime, Torch Slime…) are skipped: they copy the stats of the slime they replace | the skip list in the script                  |
+| Versions    | every desktop version an accessory was added or changed in, with its release date (Desktop version history page). Which version added / changed each accessory comes from the wiki's History data, including accessories that share a page (Wings, Strings, Watches…), and is server-only (`src/lib/server/version-puzzles.json`)                                                                                                                              | `VERSION_RENAMED` in the script              |
 
 **Accessories are imported automatically.** Every playable accessory on the wiki is added
 (not vanity, music boxes, developer items or console-only items). New ones get best-guess

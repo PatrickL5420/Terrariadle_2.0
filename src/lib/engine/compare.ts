@@ -54,6 +54,17 @@ export function compareAttribute<E extends Entry>(
 	}
 }
 
+/**
+ * A guess against several right answers on a scale (Versiondle's bonus question): green if it's
+ * one of them, an arrow if they're all on one side, yellow if there are some on both sides.
+ */
+export function compareToAny(guess: number, answers: number[]): CompareResult {
+	if (answers.includes(guess)) return 'match';
+	if (answers.every((a) => a > guess)) return 'higher';
+	if (answers.every((a) => a < guess)) return 'lower';
+	return 'partial';
+}
+
 /** A guess is right if it's the answer or in the answer's group. */
 export const isCorrect = (guess: Entry, answer: Entry): boolean =>
 	guess.id === answer.id || (guess.group !== undefined && guess.group === answer.group);

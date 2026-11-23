@@ -7,6 +7,7 @@ import { enemyGame } from './enemy';
 import { fishGame } from './fish';
 import { accessoryModifierGame, modifierGame } from './modifier';
 import { tooltipGame } from './tooltip';
+import { versionGame } from './version';
 
 /** Every game mode, in the order shown in the header and on the home page. */
 export const games = [
@@ -18,7 +19,8 @@ export const games = [
 	tooltipGame,
 	fishGame,
 	critterGame,
-	enemyGame
+	enemyGame,
+	versionGame
 ] as unknown as GameConfig<Entry>[];
 
 export const gameSlugs = games.map((g) => g.slug);

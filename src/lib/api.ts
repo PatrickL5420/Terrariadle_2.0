@@ -23,6 +23,11 @@ export interface Today {
 	yesterday: number;
 	/** Clue-style games: today's clue. */
 	clue?: string;
+	/** Puzzle games (Versiondle): the clue's picture, and yesterday's clue. */
+	clueImage?: string;
+	yesterdayClue?: { name: string; image?: string };
+	/** Whether today has a bonus question. */
+	bonus?: boolean;
 }
 
 export const getToday = (slug: string) => call<Today>(`/api/${slug}/today`);
@@ -31,6 +36,9 @@ export const checkGuess = (slug: string, id: number, day: number) =>
 	call<{ correct: boolean; checks: Checks; detail?: string }>(
 		`/api/${slug}/guess?id=${id}&day=${day}`
 	);
+
+export const checkBonus = (slug: string, id: number, day: number) =>
+	call<{ correct: boolean; checks: Checks }>(`/api/${slug}/bonus?id=${id}&day=${day}`);
 
 export const getHint = (slug: string, n: number, day: number) =>
 	call<{ hint: Hint }>(`/api/${slug}/hint?n=${n}&day=${day}`);

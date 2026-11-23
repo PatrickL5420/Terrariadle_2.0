@@ -13,7 +13,8 @@
 	function onKey(e: KeyboardEvent) {
 		const target = e.target as HTMLElement;
 		if (target.closest('input, textarea, select') || e.metaKey || e.ctrlKey || e.altKey) return;
-		const game = games[Number(e.key) - 1];
+		// Like the game's hotbar: 1-9, then 0 for the tenth slot.
+		const game = games[e.key === '0' ? 9 : Number(e.key) - 1];
 		if (game) goto(resolve('/[mode=mode]', { mode: game.slug }));
 	}
 </script>
@@ -32,10 +33,10 @@
 					class:selected={current?.slug === game.slug}
 					class:framed={completion[game.slug] && current?.slug !== game.slug}
 					href={resolve('/[mode=mode]', { mode: game.slug })}
-					title="{game.title} ({i + 1})"
+					title="{game.title} ({(i + 1) % 10})"
 					aria-current={current?.slug === game.slug ? 'page' : undefined}
 				>
-					<span class="num">{i + 1}</span>
+					<span class="num">{(i + 1) % 10}</span>
 					<img src={imageUrl(game.icon)} alt={game.title} />
 					{#if completion[game.slug]}<span class="done">✓</span>{/if}
 				</a>
