@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Panel from '$lib/ui/Panel.svelte';
+	import Button from '$lib/ui/Button.svelte';
 	import RemainingTime from './RemainingTime.svelte';
 	import WikiLink from './WikiLink.svelte';
 	import type { Entry, GameConfig, GuessRecord } from '$lib/engine/types';
@@ -45,35 +47,38 @@
 	}
 </script>
 
-<section class="panel result" in:scale={{ start: 0.85, duration: 250 }}>
-	<div class="answer">
-		<span class="slot framed big">
-			<WikiLink {game} entry={answer}>
-				{#if answer.image}<img src={imageUrl(answer.image)} alt="" />{:else}<span>?</span>{/if}
-			</WikiLink>
-		</span>
-		<div class="text">
-			<WikiLink {game} entry={answer}>
-				<span class="name" style:color={rarityColors[game.theme(answer)]}>{answer.name}</span>
-			</WikiLink>
-			<span class="dim">
-				Solved in {guesses.length}
-				{guesses.length === 1 ? 'guess' : 'guesses'}
+<div in:scale={{ start: 0.85, duration: 250 }}>
+	<Panel tone="outer" class="result">
+		<div class="answer">
+			<span class="slot framed big">
+				<WikiLink {game} entry={answer}>
+					{#if answer.image}<img src={imageUrl(answer.image)} alt="" />{:else}<span>?</span>{/if}
+				</WikiLink>
 			</span>
-			{#if position > 0}
-				<span class="dim">{ordinal(position)} to solve it today</span>
-			{:else if solved > 0}
-				<span class="dim">{solved} {solved === 1 ? 'player has' : 'players have'} solved it</span>
-			{/if}
+			<div class="text">
+				<WikiLink {game} entry={answer}>
+					<span class="name" style:color={rarityColors[game.theme(answer)]}>{answer.name}</span>
+				</WikiLink>
+				<span class="dim">
+					Solved in {guesses.length}
+					{guesses.length === 1 ? 'guess' : 'guesses'}
+				</span>
+				{#if position > 0}
+					<span class="dim">{ordinal(position)} to solve it today</span>
+				{:else if solved > 0}
+					<span class="dim">{solved} {solved === 1 ? 'player has' : 'players have'} solved it</span>
+				{/if}
+			</div>
 		</div>
-	</div>
 
-	<button class="text-btn share" onclick={share}>{copied ? 'Copied!' : 'Share result'}</button>
-	<RemainingTime />
-</section>
+		<hr class="ui-divider" />
+		<Button icon="copy" onclick={share}>{copied ? 'Copied!' : 'Share'}</Button>
+		<RemainingTime />
+	</Panel>
+</div>
 
 <style>
-	.result {
+	:global(.result) {
 		max-width: 460px;
 		margin: 8px auto 0;
 	}
@@ -109,10 +114,5 @@
 
 	.name {
 		font-size: 22px;
-	}
-
-	.share {
-		margin-top: 12px;
-		font-size: 20px;
 	}
 </style>

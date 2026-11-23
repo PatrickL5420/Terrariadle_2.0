@@ -4,6 +4,8 @@
 	import { HINT_UNLOCKS, type Entry, type GameConfig, type Hint } from '$lib/engine/types';
 	import { imageUrl } from '$lib/images';
 	import { devFlags } from '$lib/dev/flags.svelte';
+	import Panel from '$lib/ui/Panel.svelte';
+	import Button from '$lib/ui/Button.svelte';
 
 	let {
 		game,
@@ -27,9 +29,6 @@
 
 	const unlocked = (i: number) => devFlags.unlockHints || guessCount >= HINT_UNLOCKS[i];
 
-	// Hint slots use the equipment slot colours, like accessory / vanity / dye.
-	const SLOT_STYLE = ['green', 'teal', 'dye'];
-
 	async function toggle(i: number) {
 		if (!unlocked(i)) return;
 		if (!hints[i]) await onHint(i + 1);
@@ -37,7 +36,7 @@
 	}
 </script>
 
-<section class="panel guess-panel">
+<Panel tone="outer" class="guess-panel">
 	{#if clue && game.clueLabel}
 		<!-- Styled like an NPC's chat box. -->
 		<div class="clue tooltip-box">
@@ -48,51 +47,52 @@
 
 	<div class="hints">
 		{#each game.hints as def, i (def.label)}
-			{@const hint = hints[i]}
-			<div class="hint">
-				<button
-					class="slot {unlocked(i) ? SLOT_STYLE[i] : ''}"
-					class:locked={!unlocked(i)}
-					class:open={open[i]}
-					disabled={!unlocked(i)}
-					onclick={() => toggle(i)}
-					title={def.label}
-				>
-					{#if open[i] && hint && 'image' in hint}
-						<img class="hint-image {hint.effect}" src={imageUrl(hint.image)} alt="Hint" />
-					{:else if unlocked(i)}
-						<span class="glyph">?</span>
-					{:else}
-						<span class="needs">{HINT_UNLOCKS[i] - guessCount}</span>
-					{/if}
-				</button>
-				<span class="hint-label" class:dim={!unlocked(i)}>{def.label}</span>
-			</div>
+			<Button
+				variant="option"
+				size="sm"
+				icon={unlocked(i) ? 'unknown' : undefined}
+				selected={open[i]}
+				disabled={!unlocked(i)}
+				onclick={() => toggle(i)}
+			>
+				{def.label}
+				{#if !unlocked(i)}<span class="needs">{HINT_UNLOCKS[i] - guessCount}</span>{/if}
+			</Button>
 		{/each}
 	</div>
 
 	{#each game.hints as def, i (def.label)}
 		{@const hint = hints[i]}
-		{#if open[i] && hint && 'text' in hint}
-			<p class="hint-text tooltip-box" transition:slide={{ duration: 150 }}>
-				<span class="hint-name">{def.label}</span>
-				{hint.text}
-			</p>
+		{#if open[i] && hint}
+			<div transition:slide={{ duration: 150 }}>
+				<Panel tone="inset" class="hint">
+					<span class="hint-name">{def.label}</span>
+					{#if 'text' in hint}
+						{hint.text}
+					{:else}
+						<img class="hint-image {hint.effect}" src={imageUrl(hint.image)} alt="Hint" />
+					{/if}
+				</Panel>
+			</div>
 		{/if}
 	{/each}
 
+	<hr class="ui-divider" />
+
 	<Dropdown selectItem={onGuess} itemList={items} itemType={game.noun} />
-</section>
+</Panel>
 
 <style>
-	.guess-panel {
-		max-width: 460px;
+	:global(.guess-panel) {
+		/* Keeps the search results above the guess grid. */
+		z-index: 2;
+		max-width: 560px;
 		margin: 8px auto 0;
 	}
 
 	.clue {
-		margin: 12px auto 4px;
-		max-width: 380px;
+		margin: 0 auto 12px;
+		max-width: 420px;
 	}
 
 	.clue-label {
@@ -108,62 +108,32 @@
 	}
 
 	.hints {
-		display: flex;
-		justify-content: center;
-		gap: 22px;
-		margin-top: 14px;
-	}
-
-	.hint {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 6px;
-		width: 84px;
-	}
-
-	.hint .slot {
-		width: 56px;
-		height: 56px;
-		border: none;
-		cursor: pointer;
-		transition: transform 0.1s;
-	}
-
-	.hint .slot:hover:not(:disabled) {
-		transform: scale(1.08);
-	}
-
-	.hint .slot.open {
-		box-shadow:
-			inset 0 0 0 2px var(--slot-frame-hi),
-			0 0 0 2px var(--slot-outer),
-			0 0 10px rgba(255, 233, 77, 0.45);
-	}
-
-	.slot.locked {
-		opacity: 0.55;
-		cursor: default;
-	}
-
-	.glyph {
-		font-size: 26px;
-		color: var(--hover);
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 10px;
 	}
 
 	.needs {
-		font-size: 22px;
+		margin-left: 6px;
 		color: var(--text-dim);
 	}
 
-	.hint-label {
-		font-size: 14px;
-		line-height: 1.1;
+	:global(.guess-panel .hint) {
+		margin-top: 10px;
+		font-size: 17px;
+		text-align: left;
+	}
+
+	.hint-name {
+		display: block;
+		font-size: 13px;
+		color: var(--hover);
 	}
 
 	.hint-image {
-		max-width: 80%;
-		max-height: 80%;
+		display: block;
+		margin: 4px auto 0;
+		max-height: 64px;
 	}
 
 	.hint-image.blur {
@@ -174,25 +144,9 @@
 		filter: brightness(0) drop-shadow(0 0 1px #fff);
 	}
 
-	.hint-text {
-		margin: 10px auto 0;
-		max-width: 380px;
-		font-size: 16px;
-	}
-
-	.hint-name {
-		display: block;
-		font-size: 13px;
-		color: var(--hover);
-	}
-
-	@media (max-width: 400px) {
+	@media (max-width: 520px) {
 		.hints {
-			gap: 10px;
-		}
-
-		.hint {
-			width: 76px;
+			grid-template-columns: 1fr;
 		}
 	}
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Panel from '$lib/ui/Panel.svelte';
 	import GuessList from '$lib/components/GuessList.svelte';
 	import GuessPanel from '$lib/components/GuessPanel.svelte';
 	import ResultPanel from '$lib/components/ResultPanel.svelte';
@@ -111,7 +112,7 @@
 </script>
 
 {#if loadError}
-	<p class="panel status">Couldn't load today's puzzle: {loadError}</p>
+	<Panel class="status">Couldn't load today's puzzle: {loadError}</Panel>
 {:else if !progress || !today}
 	<p class="status dim">Loading...</p>
 {:else}
@@ -147,7 +148,7 @@
 						{today.solved === 1 ? 'player has' : 'players have'} solved today's {game.noun}
 					</p>
 					{#if yesterday}
-						<div class="yesterday tooltip-box">
+						<Panel tone="inset" class="yesterday">
 							<span class="slot">
 								<WikiLink {game} entry={yesterday}>
 									{#if yesterday.image}<img src={imageUrl(yesterday.image)} alt="" />{/if}
@@ -157,7 +158,7 @@
 								<span class="dim">Yesterday's {game.noun}</span><br />
 								<WikiLink {game} entry={yesterday}>{yesterday.name}</WikiLink>
 							</span>
-						</div>
+						</Panel>
 					{/if}
 				</div>
 			{/if}
@@ -166,7 +167,7 @@
 {/if}
 
 <style>
-	.status {
+	:global(.status) {
 		margin: 24px auto;
 		max-width: 420px;
 	}
@@ -175,18 +176,18 @@
 		margin-top: 18px;
 	}
 
-	.yesterday {
+	:global(.yesterday) {
 		display: inline-flex;
 		align-items: center;
 		gap: 12px;
 		margin-top: 4px;
 	}
 
-	.yesterday .slot {
+	:global(.yesterday) .slot {
 		flex-shrink: 0;
 	}
 
-	.yesterday .slot :global(.wiki-link) {
+	:global(.yesterday) .slot :global(.wiki-link) {
 		display: flex;
 		align-items: center;
 		justify-content: center;

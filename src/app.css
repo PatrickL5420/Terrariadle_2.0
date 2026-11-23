@@ -38,6 +38,26 @@
 	--text: #ffffff;
 	--text-dim: #b8b8c8;
 	--hover: #ffe94d;
+
+	/* Menu panels and buttons, sampled from the bestiary, character select and world creation. */
+	--ui-panel: #495eab;
+	--ui-panel-edge: #5772d0;
+	--ui-panel-row: #3a4b8b;
+	--ui-inset: #2b3865;
+	--ui-inset-edge: #5974d5;
+	--ui-outer: rgba(33, 43, 79, 0.85);
+	--ui-fat: rgba(63, 82, 151, 0.7);
+	--ui-fat-hover: #495eab;
+	--ui-option: #34397c;
+	--ui-option-edge: #151932;
+	--ui-option-hi: #3a3f8b;
+	--ui-option-selected: #646bb2;
+	--ui-tab: #37448d;
+	--ui-tab-edge: #1a2243;
+	--ui-tab-hi: #455193;
+	--ui-tab-selected: #9ca4e5;
+	--ui-divider: #575aa0;
+	--ui-hover-edge: #ffe745;
 }
 
 * {
@@ -155,17 +175,7 @@ img {
 		0 0 0 2px #101521;
 }
 
-/* ---- Panels, tooltips, text buttons ------------------------------------------------------- */
-.panel {
-	background: var(--panel);
-	border-radius: 10px;
-	box-shadow:
-		inset 0 0 0 2px var(--slot-inner),
-		0 0 0 2px var(--slot-outer),
-		0 6px 18px rgba(0, 0, 0, 0.45);
-	padding: 14px 16px;
-}
-
+/* ---- Hover tooltip ----------------------------------------------------------------------- */
 .tooltip-box {
 	background: var(--tooltip);
 	border-radius: 6px;
@@ -175,33 +185,291 @@ img {
 	line-height: 1.25;
 }
 
-/* Menu-style button: just text that turns yellow and grows on hover, like the game's menus. */
-.text-btn {
+/* ---- Menu panels (src/lib/ui/Panel.svelte) ------------------------------------------------ */
+.ui-panel {
+	position: relative;
+	padding: 12px;
+	border-radius: 12px;
+}
+
+/* Bestiary / character list: opaque blue, a black outline and a lighter inner edge. */
+.ui-panel.normal {
+	background: var(--ui-panel);
+	box-shadow:
+		inset 0 0 0 2px var(--ui-panel-edge),
+		0 0 0 2px #000;
+}
+
+/* The translucent dark box around world and character creation. */
+.ui-panel.outer {
+	background: var(--ui-outer);
+	box-shadow: 0 0 0 2px #000;
+}
+
+/* A box inside a panel: the bestiary's text and stat boxes. */
+.ui-panel.inset {
+	background: var(--ui-inset);
+	border-radius: 8px;
+	box-shadow: inset 0 0 0 2px var(--ui-inset-edge);
+}
+
+.ui-panel.has-heading {
+	margin-top: 26px;
+	padding-top: 30px;
+}
+
+/* The title tab on a panel's top edge, like "Select Player". */
+.ui-heading {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translate(-50%, -55%);
+	margin: 0;
+	padding: 2px 22px 4px;
+	white-space: nowrap;
+	font-size: 30px;
+	font-weight: normal;
+	background: var(--ui-panel);
+	border-radius: 10px;
+	box-shadow:
+		inset 0 0 0 2px var(--ui-panel-edge),
+		0 0 0 2px #000;
+}
+
+/* The double line between rows of options. */
+.ui-divider {
+	height: 2px;
+	margin: 8px 0;
+	border: none;
+	background: var(--ui-divider);
+	box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Buttons (src/lib/ui/Button.svelte, IconButton.svelte) -------------------------------- */
+.ui-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border: none;
+	text-decoration: none;
+	cursor: pointer;
+	line-height: 1;
+	transition:
+		background-color 0.1s,
+		box-shadow 0.1s;
+}
+
+.ui-btn:disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
+.ui-btn-label {
+	position: relative;
+}
+
+/* Icons and images fit inside the button, keeping their shape. */
+.ui-btn .ui-icon,
+.ui-btn-image {
+	width: auto;
+	height: auto;
+	max-height: calc(100% - 10px);
+	max-width: 36px;
+	object-fit: contain;
+}
+
+/* Back / Create: wide, short, translucent with a black edge that turns yellow on hover. */
+.ui-btn.fat {
+	background: var(--ui-fat);
+	border-radius: 10px;
+	box-shadow: inset 0 0 0 2px #000;
+}
+
+.ui-btn.fat:hover:not(:disabled),
+.ui-btn.fat:focus-visible,
+.ui-btn.fat.selected {
+	background: var(--ui-fat-hover);
+	box-shadow: inset 0 0 0 2px var(--ui-hover-edge);
+	color: var(--text);
+	outline: none;
+}
+
+.ui-btn.fat.sm {
+	min-width: 110px;
+	height: 34px;
+	padding: 0 14px;
+	font-size: 18px;
+	border-radius: 8px;
+}
+
+.ui-btn.fat.md {
+	min-width: 170px;
+	height: 44px;
+	padding: 0 22px;
+	font-size: 24px;
+}
+
+.ui-btn.fat.lg {
+	min-width: 240px;
+	height: 58px;
+	padding: 0 28px;
+	font-size: 34px;
+}
+
+/* World-creation choice: icon on the left, label centred; selected shows a lighter bar. */
+.ui-btn.option {
+	position: relative;
+	justify-content: flex-start;
+	height: 40px;
+	padding: 0 14px 0 8px;
+	font-size: 20px;
+	background: var(--ui-option);
+	border-radius: 8px;
+	box-shadow:
+		inset 0 2px 0 var(--ui-option-hi),
+		0 0 0 2px var(--ui-option-edge);
+}
+
+.ui-btn.option .ui-btn-label {
+	flex: 1;
+	text-align: center;
+}
+
+.ui-btn.option.sm {
+	height: 32px;
+	font-size: 17px;
+}
+
+.ui-btn.option.lg {
+	height: 48px;
+	font-size: 24px;
+}
+
+.ui-btn.option > :first-child {
+	position: relative;
+	z-index: 1;
+}
+
+.ui-btn.option.selected::before {
+	content: '';
+	position: absolute;
+	top: 5px;
+	bottom: 5px;
+	left: 20px;
+	right: 5px;
+	background: var(--ui-option-selected);
+	border-radius: 6px 12px 12px 6px;
+}
+
+.ui-btn.option:hover:not(:disabled),
+.ui-btn.option:focus-visible {
+	box-shadow:
+		inset 0 2px 0 var(--ui-option-hi),
+		0 0 0 2px var(--ui-hover-edge);
+	color: var(--text);
+	outline: none;
+}
+
+/* Square category tab from character creation; selected turns pale blue. */
+.ui-icon-btn {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: none;
+	border-radius: 8px;
+	background: var(--ui-tab);
+	box-shadow:
+		inset 0 2px 0 var(--ui-tab-hi),
+		0 0 0 2px var(--ui-tab-edge);
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.ui-icon-btn img {
+	max-width: 75%;
+	max-height: 75%;
+}
+
+.ui-icon-btn.selected {
+	background: var(--ui-tab-selected);
+	box-shadow: 0 0 0 2px var(--ui-tab-edge);
+}
+
+.ui-icon-btn:hover:not(:disabled),
+.ui-icon-btn:focus-visible {
+	box-shadow:
+		inset 0 2px 0 var(--ui-tab-hi),
+		0 0 0 2px var(--ui-hover-edge);
+	outline: none;
+}
+
+.ui-icon-btn:disabled {
+	cursor: default;
+	opacity: 0.55;
+}
+
+/* ---- Text field (src/lib/ui/TextField.svelte) -------------------------------------------- */
+.ui-field {
+	display: flex;
+	gap: 8px;
+	height: 40px;
+}
+
+.ui-field-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	flex-shrink: 0;
+	background: var(--ui-option);
+	border-radius: 8px;
+	box-shadow:
+		inset 0 2px 0 var(--ui-option-hi),
+		0 0 0 2px var(--ui-option-edge);
+}
+
+.ui-field-box {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 0;
+	padding: 0 12px;
+	background: var(--ui-option);
+	border-radius: 8px;
+	box-shadow:
+		inset 0 2px 0 var(--ui-option-hi),
+		0 0 0 2px var(--ui-option-edge);
+}
+
+.ui-field-box:focus-within {
+	box-shadow:
+		inset 0 2px 0 var(--ui-option-hi),
+		0 0 0 2px var(--ui-hover-edge);
+}
+
+.ui-field-label {
+	font-size: 19px;
+}
+
+.ui-field input {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	padding: 0;
+	font-size: 19px;
 	background: none;
 	border: none;
-	padding: 4px 8px;
-	font-size: 18px;
-	cursor: pointer;
-	transition:
-		transform 0.1s,
-		color 0.1s;
+	outline: none;
 }
 
-.text-btn:hover:not(:disabled),
-.text-btn:focus-visible {
-	color: var(--hover);
-	transform: scale(1.08);
-}
-
-.text-btn:disabled {
+.ui-field input::placeholder {
 	color: var(--text-dim);
-	cursor: default;
-}
-
-.title {
-	margin: 0;
-	font-size: 30px;
-	letter-spacing: 0.5px;
 }
 
 .dim {

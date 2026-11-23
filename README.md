@@ -27,6 +27,7 @@ not affiliated with Re-Logic.
 ```
 src/lib/engine/   compare.ts (green/yellow/red/arrows), daily.ts (answer picking), types.ts
 src/lib/games/    one config per mode: columns, hints, theme (+ data tests)
+src/lib/ui/       Terraria menu components: Panel, Button, IconButton, TextField, Icon
 src/lib/data/     bosses.json, accessories.json, modifiers.json
 src/lib/server/   answers.ts (secret answer), counter.ts (Redis)
 src/routes/[mode=mode]/   the game page, shared by every mode
@@ -111,6 +112,13 @@ identical to another in every column are hidden with `"exclude"` and listed in t
 Anything it can't decide is printed under "Needs attention". After adding entries, run
 `npm run fetch-images` to download their images into `static/` (the site never hotlinks the
 wiki) and `npm test` to catch typos and lookalike entries.
+
+## UI components
+
+`src/lib/ui/` holds reusable components styled after Terraria's menus (bestiary, character and
+world creation). Their styles live in `src/app.css` and the icons in `static/ui/` come from the
+wiki's [UI images](https://terraria.wiki.gg/wiki/Category:UI_images). `npm run dev` serves every
+component and state at `/ui`.
 
 ## Adding a game mode
 

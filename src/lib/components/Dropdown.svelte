@@ -8,6 +8,7 @@
 
 <script lang="ts">
 	import { imageUrl } from '$lib/images';
+	import TextField from '$lib/ui/TextField.svelte';
 
 	let {
 		itemList,
@@ -70,8 +71,8 @@
 </script>
 
 <div class="search">
-	<input
-		type="text"
+	<TextField
+		icon="search"
 		placeholder="Type any {itemType} to guess..."
 		aria-label="Guess a {itemType}"
 		bind:value={input}
@@ -104,34 +105,9 @@
 <style>
 	.search {
 		position: relative;
-		margin: 14px auto 0;
-		width: 300px;
-		max-width: 100%;
-	}
-
-	/* Like the game's search bar: a dark slot-coloured box. */
-	input {
+		margin: 0 auto;
 		width: 100%;
-		padding: 10px 12px;
-		font-size: 17px;
-		text-align: left;
-		background: var(--slot-inner);
-		border: none;
-		border-radius: 6px;
-		box-shadow:
-			inset 0 0 0 2px var(--slot),
-			0 0 0 2px var(--slot-outer);
-		outline: none;
-	}
-
-	input:focus {
-		box-shadow:
-			inset 0 0 0 2px var(--slot-frame-hi),
-			0 0 0 2px var(--slot-outer);
-	}
-
-	input::placeholder {
-		color: var(--text-dim);
+		max-width: 100%;
 	}
 
 	.results {
