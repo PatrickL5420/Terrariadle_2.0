@@ -3,6 +3,7 @@ import { accessoryGame } from './accessory';
 import { armorGame } from './armor';
 import { bossGame } from './boss';
 import { critterGame } from './critter';
+import { enemyGame } from './enemy';
 import { fishGame } from './fish';
 import { accessoryModifierGame, modifierGame } from './modifier';
 import { tooltipGame } from './tooltip';
@@ -16,7 +17,8 @@ export const games = [
 	armorGame,
 	tooltipGame,
 	fishGame,
-	critterGame
+	critterGame,
+	enemyGame
 ] as unknown as GameConfig<Entry>[];
 
 export const gameSlugs = games.map((g) => g.slug);

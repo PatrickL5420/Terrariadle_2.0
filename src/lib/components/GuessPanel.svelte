@@ -136,6 +136,12 @@
 		max-height: 64px;
 	}
 
+	/* Plain pictures (banners) are small sprites: show them at 2x. */
+	.hint-image.none {
+		height: 56px;
+		max-height: none;
+	}
+
 	.hint-image.blur {
 		filter: blur(3px);
 	}

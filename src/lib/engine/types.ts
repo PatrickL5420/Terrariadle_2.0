@@ -44,7 +44,7 @@ export interface Attribute<E extends Entry = Entry> {
 	valueColor?: (value: string) => string | undefined;
 }
 
-export type Hint = { text: string } | { image: string; effect: 'silhouette' | 'blur' };
+export type Hint = { text: string } | { image: string; effect: 'silhouette' | 'blur' | 'none' };
 
 export interface HintDef<E extends Entry = Entry> {
 	/** Button label before the hint is revealed. */

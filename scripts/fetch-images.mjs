@@ -14,7 +14,8 @@ const FILES = {
 	'armor.json': 'armor',
 	'tooltips.json': 'items',
 	'fish.json': 'items',
-	'critters.json': 'critters'
+	'critters.json': 'critters',
+	'enemies.json': 'enemies'
 };
 const WIKI = 'https://terraria.wiki.gg/wiki/Special:FilePath/';
 const root = path.resolve(import.meta.dirname, '..');
