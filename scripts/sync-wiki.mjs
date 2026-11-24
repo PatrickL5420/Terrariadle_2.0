@@ -12,7 +12,7 @@
  *   modifiers    the whole list: which weapons each applies to, tier and every stat
  *   fish         the Angler's quest fish: quote, height and biome
  *   critter      the Critters page tables: environment, AI, rarity, sell price, bait power
- *   enemy        the Enemies page (no bosses): hardmode, HP, attack, AI, rare, event, banner
+ *   enemy        the Enemies page (no bosses): hardmode, environment, HP, attack, AI, rare, event, banner
  *   version      desktop versions (with release dates) and when each accessory was added/changed
  *
  * Everything else (boss stage, biomes, body type, accessory function/class/source, hint text)
@@ -1471,8 +1471,11 @@ const CRITTER_MERGE = [
 	}
 ];
 
-/** "Passive AI (ground) / Duck AI (flying)" -> ["Passive AI", "Duck AI"]; n/a -> ["None"]. */
-const critterList = (cell) => {
+/**
+ * A wiki list cell: "Passive AI (ground) / Duck AI (flying)" -> ["Passive AI", "Duck AI"];
+ * n/a or empty -> ["None"]. Used for critter and enemy environments and critter AI.
+ */
+const wikiList = (cell) => {
 	const values = cell
 		.replace(/\bn\/a\b/g, '')
 		.split('/')
@@ -1514,8 +1517,8 @@ async function syncCritters() {
 					/_/g,
 					' '
 				),
-				environment: critterList(cellText(cells[2])),
-				ai: critterList(cellText(cells[3])),
+				environment: wikiList(cellText(cells[2])),
+				ai: wikiList(cellText(cells[3])),
 				rarity: cells[4].match(/title="([\w ]+) \(Rarity level/)?.[1] ?? 'None',
 				sell: toInt(cells[5].match(/data-sort-value="(\d+)"/)?.[1]),
 				bait: /\d/.test(bait) ? toInt(bait) : 0
@@ -1687,7 +1690,7 @@ async function syncEnemies() {
 	const rare = await rareEnemies();
 	const rows = await cargoByNames(
 		'NPCs',
-		'_pageName=page,nameraw,image,ai,life,damage,banner,npcid',
+		'_pageName=page,nameraw,image,ai,life,damage,banner,npcid,environment',
 		'_pageName',
 		pages
 	);
@@ -1696,7 +1699,7 @@ async function syncEnemies() {
 	const missing = pages.filter((p) => !rows.some((r) => r.page === p));
 	const byName = await cargoByNames(
 		'NPCs',
-		'_pageName=page,nameraw,image,ai,life,damage,banner,npcid',
+		'_pageName=page,nameraw,image,ai,life,damage,banner,npcid,environment',
 		'nameraw',
 		missing
 	);
@@ -1747,6 +1750,7 @@ async function syncEnemies() {
 			hp: toInt(classic(npc.life)),
 			attack: toInt(classic(npc.damage)),
 			ai: text(npc.ai || '') || 'None',
+			environment: wikiList(text(npc.environment ?? '')),
 			rare: rare.has(page) || rare.has(name),
 			event: event || 'None',
 			...(banner && {
@@ -1759,7 +1763,7 @@ async function syncEnemies() {
 		const old = existing.find((o) => o.id === e.id);
 		if (!old) changes.push(`enemies      ${e.name.padEnd(22)} added`);
 		else
-			for (const field of ['hardmode', 'hp', 'attack', 'ai', 'rare', 'event'])
+			for (const field of ['hardmode', 'environment', 'hp', 'attack', 'ai', 'rare', 'event'])
 				update('enemies', old, field, e[field]);
 	}
 	for (const old of existing) {
