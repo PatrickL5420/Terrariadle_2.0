@@ -137,7 +137,7 @@ The background is Terraria's main-menu sky on Sydney time (`src/lib/sky/`): day 
 7:30 PM and night 7:30 PM to 4:30 AM, exactly as in the game (one game tick per real second).
 The sky, sun and moon colours and the sun and moon's path follow the game's own formulas, the
 moon shows the real moon phase, and the textures in `static/sky/` (forest background, clouds,
-sun, moon) come from the wiki. Dev tools: add `?skytime=21:30` to a URL to see another time.
+sun, moon) come from the wiki. Dev tools: the Sky slider in the dev panel (or `?skytime=21:30` in a URL) shows another time.
 
 ## Adding a game mode
 

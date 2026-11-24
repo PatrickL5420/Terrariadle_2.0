@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { devFlags } from '$lib/dev/flags.svelte';
 	import { clockToGameTime, gameTime, moonPhase, skyColors, sunOrMoon, type RGB } from './clock';
 
 	/**
@@ -29,6 +30,14 @@
 	const FRAME_MS = 33; // ~30 fps is plenty for slow drifting
 
 	let canvas: HTMLCanvasElement;
+	/** Draws a still frame now (reduced motion only; otherwise every frame is drawn anyway). */
+	let redraw = () => {};
+
+	// A still sky redraws as soon as the dev panel's time slider moves.
+	$effect(() => {
+		void devFlags.skyTime;
+		redraw();
+	});
 
 	const load = (src: string) =>
 		new Promise<HTMLImageElement>((resolve, reject) => {
@@ -70,14 +79,16 @@
 		let timer: ReturnType<typeof setInterval> | undefined;
 		let raf = 0;
 		let onResize = () => {};
+		redraw = () => onResize();
 
-		// Dev tools: ?skytime=21:30 shows another time of day.
-		const override = __DEV_TOOLS__
-			? new URLSearchParams(location.search).get('skytime')?.match(/^(\d{1,2}):(\d{2})$/)
-			: null;
+		// Dev tools: the dev panel's sky slider, or ?skytime=21:30, shows another time of day.
+		if (__DEV_TOOLS__) {
+			const m = new URLSearchParams(location.search).get('skytime')?.match(/^(\d{1,2}):(\d{2})$/);
+			if (m) devFlags.skyTime = Number(m[1]) * 3600 + Number(m[2]) * 60;
+		}
 		const timeNow = (now: Date) =>
-			override
-				? clockToGameTime(Number(override[1]) * 3600 + Number(override[2]) * 60)
+			__DEV_TOOLS__ && devFlags.skyTime !== null
+				? clockToGameTime(devFlags.skyTime)
 				: gameTime(now);
 
 		// Stars and clouds get fixed random places for this visit.
