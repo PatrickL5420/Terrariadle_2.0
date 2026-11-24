@@ -21,7 +21,7 @@
 </script>
 
 <Panel tone="outer" class="bonus-panel">
-	<span class="label">{game.bonusLabel}</span>
+	<span class="label"><span class="rainbow">Bonus question:</span> {game.bonusLabel}</span>
 	{#if !finished}
 		<Dropdown selectItem={onGuess} itemList={items} itemType={game.noun} />
 	{/if}

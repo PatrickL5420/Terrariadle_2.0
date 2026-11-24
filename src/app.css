@@ -459,6 +459,40 @@ img {
 	color: var(--text-dim);
 }
 
+/* Terraria's Rainbow rarity text: the colour cycles through the hues. */
+.rainbow {
+	animation: rainbow 3s linear infinite;
+}
+
+@keyframes rainbow {
+	0%,
+	100% {
+		color: #ff5a5a;
+	}
+	17% {
+		color: #ffd75a;
+	}
+	33% {
+		color: #6cff5a;
+	}
+	50% {
+		color: #5affff;
+	}
+	67% {
+		color: #6c7dff;
+	}
+	83% {
+		color: #ff5aff;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.rainbow {
+		animation: none;
+		color: #ff5aff;
+	}
+}
+
 .dim {
 	color: var(--text-dim);
 }
