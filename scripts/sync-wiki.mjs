@@ -1842,6 +1842,46 @@ async function redirectTargets(names) {
 	return targets;
 }
 
+/** Wiki History markup -> plain text: links to their text, rarity icons to their names, "**" lists to bullets. */
+function historyText(wikitext) {
+	let t = wikitext
+		.replace(/\[\[Category:[^\]]*\]\]/g, '')
+		.replace(/\[\[File:[^|\]]*\|([^|\]]*?) \(Rarity level[^\]]*\]\]/g, '$1')
+		.replace(/\[\[File:[^\]]*\]\]/g, '');
+	// Links, innermost first (a link's text can hold markup).
+	for (let i = 0; i < 3; i++) t = t.replace(/\[\[(?:[^|\]]*\|)?([^[\]]*)\]\]/g, '$1');
+	return decode(t.replace(/<[^>]+>/g, ''))
+		.split('\n')
+		.map((line) => {
+			const depth = line.match(/^\*+/)?.[0].length ?? 0;
+			const body = line
+				.replace(/^\*+\s*/, '')
+				.replace(/\s+/g, ' ')
+				.replace(/\s*Old sprites?:\s*$/, '') // its pictures were removed
+				.trim();
+			if (!/[\p{L}\p{N}]/u.test(body)) return ''; // only arrows left where sprites were
+			return depth >= 3 ? `  ◦ ${body}` : depth ? `• ${body}` : body;
+		})
+		.filter(Boolean)
+		.join('\n');
+}
+
+/**
+ * An accessory's part of a History entry. Shared pages (Wings, Strings) list several items'
+ * changes as bullets: keep the ones naming this item (with their sub-points) when there are any.
+ */
+function historyNotes(wikitext, name) {
+	const lines = historyText(wikitext).split('\n');
+	if (lines.length < 2) return lines.join('\n');
+	const kept = [];
+	let keep = false;
+	for (const line of lines) {
+		if (!line.startsWith('  ')) keep = namesItem(line, name);
+		if (keep) kept.push(line);
+	}
+	return (kept.length ? kept : lines).join('\n');
+}
+
 /** page -> every page that redirects to it (a group page's members, e.g. all the wings). */
 async function redirectsTo(pages) {
 	const members = new Map();
@@ -1902,7 +1942,17 @@ async function syncVersions() {
 		const changed = [...new Set(rows.map(byVersion).filter((id) => id > addedId))].sort(
 			(x, y) => x - y
 		);
-		puzzles[a.id] = { added: addedId, changed };
+		// The wiki's notes for each change, shown once the bonus question is answered.
+		const notes = {};
+		for (const id of changed) {
+			const text = rows
+				.filter((h) => byVersion(h) === id)
+				.map((h) => historyNotes(h.changes, a.name))
+				.filter(Boolean)
+				.join('\n');
+			if (text) notes[id] = text;
+		}
+		puzzles[a.id] = { added: addedId, changed, notes };
 	}
 
 	// Every version that's an answer to either question can be guessed.

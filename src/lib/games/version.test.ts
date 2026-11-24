@@ -32,6 +32,17 @@ describe('Versiondle data', () => {
 		expect(puzzle('Fairy Wings').bonus).not.toContain(byName('1.2.1').id);
 	});
 
+	it("has the wiki's notes for every change, without wiki markup", () => {
+		for (const p of puzzles) {
+			for (const id of p.bonus) {
+				const note = p.notes[id];
+				expect(note, `${p.name} ${id}`).toBeTruthy();
+				expect(note, p.name).not.toMatch(/\[\[|\]\]|\{\{|<\/?[a-z]|&[a-z]+;/);
+			}
+		}
+		expect(puzzle('Cloud in a Bottle').notes[byName('1.1').id]).toMatch(/Shiny Red Balloon/);
+	});
+
 	it("keeps puzzles out of the browser's version data", () => {
 		expect(JSON.stringify(versionGame.entries)).not.toContain('Cloud in a Bottle');
 	});

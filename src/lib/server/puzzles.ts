@@ -14,9 +14,14 @@ export interface Puzzle {
 	answer: number;
 	/** Entries that answer the bonus question; empty when there's no bonus question. */
 	bonus: number[];
+	/** What the wiki says changed, per bonus answer: shown once it's answered. */
+	notes: Record<number, string>;
 }
 
-const added = versionPuzzles as Record<string, { added: number; changed: number[] }>;
+const added = versionPuzzles as Record<
+	string,
+	{ added: number; changed: number[]; notes: Record<string, string> }
+>;
 
 const PUZZLES: Record<string, Puzzle[]> = {
 	version: accessories
@@ -26,7 +31,8 @@ const PUZZLES: Record<string, Puzzle[]> = {
 			name: a.name,
 			image: a.image,
 			answer: added[a.id].added,
-			bonus: added[a.id].changed
+			bonus: added[a.id].changed,
+			notes: added[a.id].notes
 		}))
 };
 

@@ -121,6 +121,7 @@
 			const res = await checkBonus(game.slug, id, today.day);
 			bonus.guesses = [{ id, checks: res.checks }, ...bonus.guesses];
 			bonus.finished = res.correct;
+			bonus.note = res.note;
 			saveProgress(game.slug, progress);
 		} catch (e) {
 			handleError(e);
@@ -199,6 +200,7 @@
 						items={allItems.filter((i) => !bonusIds.has(i.id))}
 						guesses={progress.bonus?.guesses ?? []}
 						finished={progress.bonus?.finished ?? false}
+						note={progress.bonus?.note}
 						onGuess={submitBonus}
 					/>
 				{/if}

@@ -15,13 +15,17 @@ export const GET: RequestHandler = ({ params, url, setHeaders }) => {
 	const game = gameOr404(params.mode);
 	const day = requireToday(url.searchParams.get('day'));
 	const guess = entryOr400(game, url.searchParams.get('id'));
-	const answers = puzzleFor(game, day)?.bonus ?? [];
+	const puzzle = puzzleFor(game, day);
+	const answers = puzzle?.bonus ?? [];
 	if (!game.bonusLabel || !answers.length) error(404, 'No bonus question today');
 
 	setHeaders({ 'cache-control': DEV_TOOLS ? 'no-store' : 'public, max-age=0, s-maxage=86400' });
 	const result = compareToAny(guess.id, answers);
+	const correct = result === 'match';
 	return json({
-		correct: result === 'match',
-		checks: Object.fromEntries(game.attributes.map((a) => [a.key, result]))
+		correct,
+		checks: Object.fromEntries(game.attributes.map((a) => [a.key, result])),
+		// Once right, what the wiki says changed in that version.
+		note: correct ? puzzle?.notes[guess.id] : undefined
 	});
 };
