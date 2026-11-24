@@ -404,6 +404,7 @@ img {
 
 .ui-btn.option:not(:hover):not(.selected) > .ui-icon,
 .ui-btn.option:not(:hover):not(.selected) > .ui-btn-image,
+.ui-btn.option:not(:hover):not(.selected) .ui-option-icon,
 .ui-field-icon:not(:hover) > .ui-icon {
 	filter: url('#ui-dim');
 }
