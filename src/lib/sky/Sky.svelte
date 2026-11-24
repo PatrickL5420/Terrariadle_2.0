@@ -50,10 +50,13 @@
 		let timer: ReturnType<typeof setInterval> | undefined;
 		let removeListeners = () => {};
 
-		// Dev tools: the dev panel's sky slider, or ?skytime=21:30, shows another time of day.
+		// Dev tools: the dev panel's sky controls, or ?skytime=21:30 and ?skyforest=7, show another
+		// time of day or forest style.
 		if (__DEV_TOOLS__) {
 			const m = new URLSearchParams(location.search).get('skytime')?.match(/^(\d{1,2}):(\d{2})$/);
 			if (m) devFlags.skyTime = Number(m[1]) * 3600 + Number(m[2]) * 60;
+			const forest = new URLSearchParams(location.search).get('skyforest');
+			if (forest) devFlags.skyForest = Number(forest);
 		}
 		const devTime = () => __DEV_TOOLS__ && devFlags.skyTime !== null;
 		const moment = (): Moment => {
