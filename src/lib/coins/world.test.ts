@@ -50,17 +50,13 @@ describe('a dropped coin (WorldItem.UpdateItem)', () => {
 		expect(c.vx).toBe(0);
 	});
 
-	it('merges with a stack of the same coin close by', () => {
+	it('never merges with other stacks (unlike the game)', () => {
 		const w = world();
 		w.drop([{ coin: 'silver', count: 30 }], 200, 290, () => 1e9);
 		w.drop([{ coin: 'silver', count: 20 }], 210, 290, () => 1e9);
-		w.drop([{ coin: 'gold', count: 1 }], 205, 290, () => 1e9);
 		for (const c of w.coins) c.vx = c.vy = 0;
 		w.update(null, noSlot, quiet);
-		expect(w.coins.map((c) => [c.coin, c.stack])).toEqual([
-			['silver', 50],
-			['gold', 1]
-		]);
+		expect(w.coins.map((c) => c.stack)).toEqual([30, 20]);
 	});
 });
 

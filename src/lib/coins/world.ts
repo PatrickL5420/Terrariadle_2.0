@@ -1,9 +1,9 @@
 /**
  * Dropped coins, ported from Terraria 1.4.5: how an enemy's money is split into coin stacks
- * (NPC.NPCLoot_DropMoney), how a dropped item moves (WorldItem.UpdateItem / MoveInWorld),
- * merges with nearby stacks (TryCombiningIntoNearbyItems) and is pulled in and picked up by a
- * player (Player.GrabItems, PullItem_Common, PullItem_Pickup), the sparkle dust coins give off
- * (Main.DrawItem, Dust 244-247) and the pickup text (PopupText).
+ * (NPC.NPCLoot_DropMoney), how a dropped item moves (WorldItem.UpdateItem / MoveInWorld) and
+ * is pulled in and picked up by a player (Player.GrabItems, PullItem_Common, PullItem_Pickup),
+ * the sparkle dust coins give off (Main.DrawItem, Dust 244-247) and the pickup text (PopupText).
+ * Unlike the game, stacks lying near each other don't merge (TryCombiningIntoNearbyItems).
  *
  * Here the mouse cursor is the player. Everything is in game pixels and game frames (60 a
  * second); the page draws it at 2x.
@@ -20,7 +20,6 @@ export const HITBOX: Record<Coin, [number, number]> = {
 	gold: [10, 14],
 	platinum: [12, 14]
 };
-const MAX_STACK: Record<Coin, number> = { copper: 100, silver: 100, gold: 100, platinum: 999 };
 
 /** The player's hitbox (Player.width / height) and item grab range (defaultItemGrabRange). */
 export const PLAYER_SIZE: [number, number] = [20, 42];
@@ -267,15 +266,13 @@ export class CoinWorld {
 		this.coins = this.coins.filter((c) => c.stack > 0);
 
 		// WorldItem.UpdateItem.
-		for (let i = 0; i < this.coins.length; i++) {
-			const c = this.coins[i];
+		for (const c of this.coins) {
 			if (c.grabbed) {
 				c.grabbed = false;
 				c.x += c.vx;
 				c.y += c.vy;
 				continue;
 			}
-			this.#combine(i);
 			c.vy = Math.min(7, c.vy + 0.1);
 			c.vx *= 0.95;
 			if (c.vx < 0.1 && c.vx > -0.1) c.vx = 0;
@@ -324,25 +321,6 @@ export class CoinWorld {
 		this.sparkles = this.sparkles.filter((d) => d.scale >= 0.1 && d.y <= this.height);
 
 		this.#updatePopups();
-	}
-
-	/** WorldItem.TryCombiningIntoNearbyItems: later stacks of the same coin nearby join it. */
-	#combine(i: number) {
-		const c = this.coins[i];
-		if (c.stack >= MAX_STACK[c.coin]) return;
-		for (let j = i + 1; j < this.coins.length; j++) {
-			const o = this.coins[j];
-			if (o.coin !== c.coin || o.stack <= 0) continue;
-			if (Math.abs(c.x - o.x) + Math.abs(c.y - o.y) > 30) continue;
-			const n = Math.min(o.stack, MAX_STACK[c.coin] - c.stack);
-			o.stack -= n;
-			c.stack += n;
-			const t = n / c.stack;
-			c.x = o.x + (c.x - o.x) * t;
-			c.y = o.y + (c.y - o.y) * t;
-			c.vx = o.vx + (c.vx - o.vx) * t;
-			c.vy = o.vy + (c.vy - o.vy) * t;
-		}
 	}
 
 	/** PopupText.NewText for a coin pickup: joins the coin text already showing, if any. */
