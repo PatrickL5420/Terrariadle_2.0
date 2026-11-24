@@ -157,6 +157,11 @@
 		margin: 0 0 12px;
 	}
 
+	/* Room between the name and the far edge, as much as the arrow has on its side. */
+	.walk :global(.ui-btn) {
+		padding: 0 20px;
+	}
+
 	.step {
 		display: flex;
 		align-items: center;
