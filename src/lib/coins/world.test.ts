@@ -5,6 +5,7 @@ import { CoinWorld, moneyStacks, valueToName, type Box } from './world';
 
 const measure = (t: string): [number, number] => [t.length * 5, 10];
 const noSlot = () => undefined;
+const quiet = { pickup: () => {}, arrive: () => {} };
 
 function world(height = 300) {
 	return new CoinWorld(400, height, measure);
@@ -40,10 +41,10 @@ describe('a dropped coin (WorldItem.UpdateItem)', () => {
 		const c = w.coins[0];
 		c.vx = 3;
 		c.vy = -3;
-		w.update(null, noSlot, () => {});
+		w.update(null, noSlot, quiet);
 		expect(c.vy).toBeCloseTo(-2.9);
 		expect(c.vx).toBeCloseTo(2.85); // x 0.95 a frame
-		for (let i = 0; i < 300; i++) w.update(null, noSlot, () => {});
+		for (let i = 0; i < 300; i++) w.update(null, noSlot, quiet);
 		expect(c.y + c.h).toBeCloseTo(300);
 		expect(c.vy).toBe(0);
 		expect(c.vx).toBe(0);
@@ -55,7 +56,7 @@ describe('a dropped coin (WorldItem.UpdateItem)', () => {
 		w.drop([{ coin: 'silver', count: 20 }], 210, 290, () => 1e9);
 		w.drop([{ coin: 'gold', count: 1 }], 205, 290, () => 1e9);
 		for (const c of w.coins) c.vx = c.vy = 0;
-		w.update(null, noSlot, () => {});
+		w.update(null, noSlot, quiet);
 		expect(w.coins.map((c) => [c.coin, c.stack])).toEqual([
 			['silver', 50],
 			['gold', 1]
@@ -70,17 +71,24 @@ describe('the cursor as the player (Player.GrabItems)', () => {
 		w.coins[0].vx = w.coins[0].vy = 0;
 		const got: number[] = [];
 		const player = { x: 160, y: 280, vx: 0, vy: 0 };
+		const slot: Box = { x: 380, y: 0, w: 18, h: 18 };
+		const arrived: number[] = [];
 		let frames = 0;
-		while (w.coins.length && frames++ < 200) w.update(player, noSlot, (_, n) => got.push(n));
+		while (!got.length && frames++ < 200)
+			w.update(player, () => slot, { pickup: (_, n) => got.push(n), arrive: () => {} });
 		expect(got).toEqual([5]);
 		expect(frames).toBeLessThan(60);
 		expect(w.popups[0].text).toBe('5 copper');
+		// Then it flies to the counter, the cursor or not.
+		for (let i = 0; i < 200 && w.coins.length; i++)
+			w.update(player, () => slot, { pickup: () => {}, arrive: (_, n) => arrived.push(n) });
+		expect(arrived).toEqual([5]);
 	});
 
 	it('leaves coins out of reach alone', () => {
 		const w = world();
 		w.drop([{ coin: 'copper', count: 5 }], 20, 295, () => 1e9);
-		for (let i = 0; i < 200; i++) w.update({ x: 380, y: 280, vx: 0, vy: 0 }, noSlot, () => {});
+		for (let i = 0; i < 200; i++) w.update({ x: 380, y: 280, vx: 0, vy: 0 }, noSlot, quiet);
 		expect(w.coins).toHaveLength(1);
 	});
 
@@ -90,12 +98,11 @@ describe('the cursor as the player (Player.GrabItems)', () => {
 		const slot: Box = { x: 380, y: 0, w: 18, h: 18 };
 		const got: string[] = [];
 		for (let i = 0; i < 200 && w.coins.length; i++)
-			w.update(
-				null,
-				() => slot,
-				(coin, n, at) => got.push(`${n} ${coin} ${at}`)
-			);
-		expect(got).toEqual(['3 gold counter']);
+			w.update(null, () => slot, {
+				pickup: (coin, n) => got.push(`picked up ${n} ${coin}`),
+				arrive: (coin, n) => got.push(`${n} ${coin} in`)
+			});
+		expect(got).toEqual(['3 gold in', 'picked up 3 gold']);
 	});
 });
 
@@ -105,7 +112,7 @@ describe('pickup text (PopupText)', () => {
 		const w = world();
 		w.drop([{ coin: 'silver', count: 2 }], 160, 280, () => 1e9);
 		w.drop([{ coin: 'copper', count: 7 }], 160, 280, () => 1e9);
-		w.update({ x: 160, y: 280, vx: 0, vy: 0 }, noSlot, () => {});
+		w.update({ x: 160, y: 280, vx: 0, vy: 0 }, noSlot, quiet);
 		expect(w.popups).toHaveLength(1);
 		expect(w.popups[0].text).toBe('2 silver 7 copper');
 		expect(w.popups[0].color).toEqual([181, 192, 193]); // silver's colour

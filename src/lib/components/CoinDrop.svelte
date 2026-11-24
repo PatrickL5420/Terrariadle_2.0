@@ -9,8 +9,8 @@
 	 * Coins dropped by a win, exactly like an enemy's coin drop in Terraria 1.4.5 (see
 	 * $lib/coins/world): the money splits into stacks that burst out of the answer, fall to the
 	 * ground (the bottom of the screen), spin and sparkle. The mouse cursor is the player: coins
-	 * near it are pulled in and picked up, with the game's coin sound and pickup text. Coins left
-	 * lying fly to the coin counter by themselves after a few seconds.
+	 * near it are pulled in and picked up, with the game's coin sound and pickup text, then fly
+	 * to the coin counter. Coins left lying fly there by themselves after a few seconds.
 	 *
 	 * Textures from the game: Images/Coin_0-3 (the spinning coins) and Images/Dust (sparkles).
 	 */
@@ -103,11 +103,11 @@
 		return { x: r.left / SCALE, y: r.top / SCALE, w: r.width / SCALE, h: r.height / SCALE };
 	}
 
-	function pickedUp(coin: Coin, stack: number) {
+	const events = {
 		// SoundEngine.PlaySound(38): one of five coin sounds, pitch -0.08 to +0.08 octaves.
-		play('coin', 0.5, (Math.floor(Math.random() * 81) - 40) * 0.002);
-		collected(stack * COIN_VALUE[coin]);
-	}
+		pickup: () => play('coin', 0.5, (Math.floor(Math.random() * 81) - 40) * 0.002),
+		arrive: (coin: Coin, stack: number) => collected(stack * COIN_VALUE[coin])
+	};
 
 	function frame(now: number) {
 		const w = world!;
@@ -128,7 +128,7 @@
 				};
 			}
 			lastCursor = cursor;
-			w.update(player, slot, pickedUp);
+			w.update(player, slot, events);
 		}
 		draw(w);
 		raf = w.coins.length || w.sparkles.length || w.popups.length ? requestAnimationFrame(frame) : 0;

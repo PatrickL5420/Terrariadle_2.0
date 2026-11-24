@@ -13,7 +13,7 @@
 	 * drawn with the game's spinning coin frames (Images/Coin_0-3). Coins still on the ground
 	 * ($lib/purse) aren't counted until they're collected.
 	 */
-	const SCALE = 2;
+	const SCALE = 1;
 	const split = $derived(splitCoins(dayTotal() - purse.pending));
 
 	const anims = {} as Record<Coin, CoinSlotAnim>;
@@ -43,10 +43,16 @@
 	});
 
 	let last = 0;
+	let backlog = 0;
 	function step(now: number) {
-		// One animation step per game frame (60 a second).
-		const steps = last ? Math.min(4, Math.round((now - last) / (1000 / 60))) : 1;
+		// One animation step per game frame (60 a second), however fast the screen refreshes.
+		backlog = last ? Math.min(backlog + now - last, (1000 / 60) * 4) : 1000 / 60;
 		last = now;
+		let steps = 0;
+		while (backlog >= 1000 / 60) {
+			backlog -= 1000 / 60;
+			steps++;
+		}
 		for (const coin of COINS) {
 			for (let i = 0; i < steps; i++) {
 				anims[coin].set(split[coin]);
@@ -59,6 +65,7 @@
 		else {
 			raf = 0;
 			last = 0;
+			backlog = 0;
 		}
 	}
 

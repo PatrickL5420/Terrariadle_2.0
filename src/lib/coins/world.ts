@@ -84,6 +84,8 @@ export interface WorldCoin {
 	h: number;
 	/** Being pulled in this frame (beingGrabbed). */
 	grabbed: boolean;
+	/** Picked up by the cursor, and on its way to the coin counter. */
+	picked: boolean;
 	/** Main.itemFrameCounter: 6 frames per sprite frame, 8 sprite frames. */
 	frameCounter: number;
 	/** Frames until it flies to the coin counter by itself (not in the game: see CoinDrop). */
@@ -189,6 +191,7 @@ export class CoinWorld {
 				w,
 				h,
 				grabbed: false,
+				picked: false,
 				frameCounter: r(48),
 				autoCollect: autoCollect()
 			});
@@ -197,13 +200,14 @@ export class CoinWorld {
 
 	/**
 	 * One frame. The cursor (if on the page) pulls in coins near it and picks up the ones it
-	 * touches; coins whose time is up fly to their slot in the coin counter (`counter`).
-	 * `pickedUp` is told about every stack collected.
+	 * touches; picked-up coins, and coins whose time is up, then fly to their slot in the coin
+	 * counter (`counter`). `on.pickup` is told when a stack is picked up (by the cursor, or on
+	 * reaching the counter by itself), `on.arrive` when it reaches the counter.
 	 */
 	update(
 		player: Player | null,
 		counter: (coin: Coin) => Box | undefined,
-		pickedUp: (coin: Coin, stack: number, at: 'cursor' | 'counter') => void
+		on: { pickup: (coin: Coin, stack: number) => void; arrive: (coin: Coin, stack: number) => void }
 	) {
 		const r = this.rand;
 		// Player.GrabItems: pick up what it touches, pull in what's in range.
@@ -213,11 +217,29 @@ export class CoinWorld {
 			w: PLAYER_SIZE[0],
 			h: PLAYER_SIZE[1]
 		};
+		/** Not in the game: flying to the counter, pulled like a Gold Ring pulls coins. */
+		const toCounter = (c: WorldCoin): 'flying' | 'arrived' => {
+			const slot = counter(c.coin);
+			if (!slot || intersects(slot, hitbox(c))) {
+				on.arrive(c.coin, c.stack);
+				c.stack = 0; // removed below
+				return 'arrived';
+			}
+			c.grabbed = true;
+			pullPickup(c, slot, 12, 5); // PullItem_Pickup, speed 12
+			return 'flying';
+		};
 		for (const c of this.coins) {
+			if (c.picked) {
+				toCounter(c);
+				continue;
+			}
 			if (body && intersects(body, hitbox(c))) {
-				c.stack = -c.stack; // picked up (removed below)
-				pickedUp(c.coin, -c.stack, 'cursor');
-				this.#popup(c, -c.stack, player!.x, player!.y);
+				// Picked up (Player.PickupItem): the sound and pickup text, then off to the counter.
+				c.picked = true;
+				c.grabbed = true;
+				on.pickup(c.coin, c.stack);
+				this.#popup(c, c.stack, player!.x, player!.y);
 				continue;
 			}
 			const reach = body && {
@@ -231,19 +253,15 @@ export class CoinWorld {
 				pullCommon(c, body!, player!, 0.75);
 				continue;
 			}
-			// Not in the game: a coin left lying flies to the counter by itself, pulled like a
-			// Gold Ring pulls coins (PullItem_Pickup, speed 12).
+			// Not in the game: a coin left lying flies to the counter by itself after a while.
 			if (c.autoCollect > 0) c.autoCollect--;
-			const slot = c.autoCollect <= 0 ? counter(c.coin) : undefined;
-			if (slot) {
-				if (intersects(slot, hitbox(c))) {
-					c.stack = -c.stack;
-					pickedUp(c.coin, -c.stack, 'counter');
-					this.#popup(c, -c.stack, slot.x + slot.w / 2, slot.y + slot.h / 2);
-					continue;
+			if (c.autoCollect <= 0) {
+				const { coin, stack } = c;
+				const slot = counter(coin);
+				if (toCounter(c) === 'arrived') {
+					on.pickup(coin, stack);
+					if (slot) this.#popup(c, stack, slot.x + slot.w / 2, slot.y + slot.h / 2);
 				}
-				c.grabbed = true;
-				pullPickup(c, slot, 12, 5);
 			}
 		}
 		this.coins = this.coins.filter((c) => c.stack > 0);
