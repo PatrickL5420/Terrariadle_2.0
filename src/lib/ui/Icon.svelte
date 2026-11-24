@@ -28,7 +28,12 @@
 		copper: 'Copper Coin',
 		silver: 'Silver Coin',
 		gold: 'Gold Coin',
-		platinum: 'Platinum Coin'
+		platinum: 'Platinum Coin',
+		sound: 'Music Box',
+		journey: 'Journey Mode',
+		classic: 'Classic Mode',
+		expert: 'Expert Mode',
+		master: 'Master Mode'
 	} as const;
 
 	export type UiIconName = keyof typeof UI_ICONS;

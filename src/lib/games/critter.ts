@@ -1,5 +1,6 @@
 import data from '$lib/data/critters.json';
 import type { Entry, GameConfig } from '$lib/engine/types';
+import { coins } from '$lib/money';
 import { RARITIES, rarityColors, type RarityName } from '$lib/rarity';
 
 /**
@@ -15,21 +16,6 @@ export interface Critter extends Entry {
 	sell: number;
 	/** Bait power in percent. */
 	bait: number;
-}
-
-/** 75050 copper -> "7g 50s 50c" */
-export function coins(copper: number): string {
-	if (!copper) return 'None';
-	const parts: [number, string][] = [
-		[Math.floor(copper / 1_000_000), 'p'],
-		[Math.floor(copper / 10_000) % 100, 'g'],
-		[Math.floor(copper / 100) % 100, 's'],
-		[copper % 100, 'c']
-	];
-	return parts
-		.filter(([n]) => n)
-		.map(([n, unit]) => `${n}${unit}`)
-		.join(' ');
 }
 
 const lastLetter = (name: string) => [...name.replace(/[^\p{L}\p{N}]+$/u, '')].pop() ?? '';

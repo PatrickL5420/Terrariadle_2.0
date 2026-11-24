@@ -2,6 +2,7 @@
 	import Header from './Header.svelte';
 	import Footer from './Footer.svelte';
 	import Sky from '$lib/sky/Sky.svelte';
+	import CoinDrop from '$lib/components/CoinDrop.svelte';
 	import '../app.css';
 	import { page } from '$app/state';
 	import { onMount, type Snippet } from 'svelte';
@@ -20,7 +21,7 @@
 		...Object.fromEntries(games.map((g) => [`/${g.slug}`, g.title]))
 	};
 
-	let title = $derived(titles[page.url.pathname] ?? 'Terrariadle');
+	let title = $derived(titles[page.url.pathname] ?? 'terraGauntlet');
 </script>
 
 <svelte:head>
@@ -28,12 +29,13 @@
 	<link rel="icon" type="image/png" href="/items/Magic Mirror.png" />
 
 	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content="Terrariadle" />
+	<meta property="og:site_name" content="terraGauntlet" />
 	<meta property="og:title" content={title} />
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <Sky />
+<CoinDrop />
 
 <div class="app">
 	<Header />

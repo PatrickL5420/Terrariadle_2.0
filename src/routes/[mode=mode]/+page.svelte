@@ -1,185 +1,55 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import Panel from '$lib/ui/Panel.svelte';
+	import Button from '$lib/ui/Button.svelte';
 	import GuessList from '$lib/components/GuessList.svelte';
 	import GuessPanel from '$lib/components/GuessPanel.svelte';
 	import ResultPanel from '$lib/components/ResultPanel.svelte';
 	import BonusPanel from '$lib/components/BonusPanel.svelte';
 	import WikiLink from '$lib/components/WikiLink.svelte';
 	import { imageUrl } from '$lib/images';
-	import {
-		ApiError,
-		checkBonus,
-		checkGuess,
-		getClue,
-		getHint,
-		getToday,
-		solve,
-		type Today
-	} from '$lib/api';
-	import { getEntry, getGame } from '$lib/games';
-	import { loadProgress, playerId, saveProgress, type Progress } from '$lib/progress.svelte';
+	import { games, getGame } from '$lib/games';
+	import { scores } from '$lib/progress.svelte';
+	import { GameSession } from '$lib/game-session.svelte';
 	import { fly } from 'svelte/transition';
-	import { untrack } from 'svelte';
 	import { devFlags } from '$lib/dev/flags.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	const game = $derived(getGame(data.slug)!);
+	let session = $state<GameSession | null>(null);
 
-	let today = $state<Today | null>(null);
-	let progress = $state<Progress | null>(null);
-	let loadError = $state('');
-	let busy = false;
-
-	// (Re)load whenever the mode changes (or the dev panel asks); keep the solve count fresh.
+	// A fresh session whenever the game changes (or the dev panel asks); keep the solve count fresh.
 	$effect(() => {
-		const slug = data.slug;
 		void devFlags.refresh;
-		today = null;
-		progress = null;
-		loadError = '';
-
-		let cancelled = false;
-		getToday(slug)
-			.then((t) => {
-				if (cancelled) return;
-				today = t;
-				progress = loadProgress(slug, t.day);
-			})
-			.catch((e) => (loadError = e instanceof Error ? e.message : 'Could not load the game'));
-
-		const poll = setInterval(async () => {
-			try {
-				const t = await getToday(slug);
-				if (today && t.day === today.day) today.solved = t.solved;
-			} catch {
-				/* ignore */
-			}
-		}, 30_000);
-
-		return () => {
-			cancelled = true;
-			clearInterval(poll);
-		};
+		const s = new GameSession(game);
+		session = s;
+		s.load();
+		const poll = setInterval(() => s.refreshSolved(), 30_000);
+		return () => clearInterval(poll);
 	});
 
-	const guessedIds = $derived(new Set(progress?.guesses.map((g) => g.id) ?? []));
 	const allItems = $derived(
 		game.entries
 			.map((e) => ({ id: e.id, name: e.name, image: e.image }))
 			.sort((a, b) => a.name.localeCompare(b.name))
 	);
+	const guessedIds = $derived(new Set(session?.progress?.guesses.map((g) => g.id) ?? []));
 	const items = $derived(allItems.filter((i) => !guessedIds.has(i.id)));
-	const answer = $derived(
-		progress?.finished && progress.guesses[0] ? getEntry(game, progress.guesses[0].id) : undefined
-	);
-	const yesterday = $derived(today ? getEntry(game, today.yesterday) : undefined);
 
-	function handleError(e: unknown) {
-		if (e instanceof ApiError && e.status === 409) {
-			alert('A new puzzle is available! The page will refresh.');
-			location.reload();
-		} else {
-			alert(e instanceof Error ? e.message : 'Something went wrong');
-		}
-	}
-
-	async function submitGuess(id: number) {
-		if (!progress || !today || progress.finished || busy || guessedIds.has(id)) return;
-		busy = true;
-		try {
-			const res = await checkGuess(game.slug, id, today.day);
-			progress.guesses = [{ id, checks: res.checks, detail: res.detail }, ...progress.guesses];
-			if (res.correct) {
-				progress.finished = true;
-				saveProgress(game.slug, progress);
-				try {
-					const { position } = await solve(game.slug, id, today.day, playerId());
-					progress.position = position;
-					today.solved = Math.max(today.solved, position);
-				} catch {
-					/* counting is best-effort */
-				}
-			}
-			saveProgress(game.slug, progress);
-		} catch (e) {
-			handleError(e);
-		} finally {
-			busy = false;
-		}
-	}
-
-	async function submitBonus(id: number) {
-		if (!progress || !today || busy) return;
-		progress.bonus ??= { guesses: [], finished: false };
-		// Read it back: the assignment returns the plain object, not the reactive one.
-		const bonus = progress.bonus;
-		if (bonus.finished || bonus.guesses.some((g) => g.id === id)) return;
-		busy = true;
-		try {
-			const res = await checkBonus(game.slug, id, today.day);
-			bonus.guesses = [{ id, checks: res.checks }, ...bonus.guesses];
-			bonus.finished = res.correct;
-			bonus.note = res.note;
-			saveProgress(game.slug, progress);
-		} catch (e) {
-			handleError(e);
-		} finally {
-			busy = false;
-		}
-	}
-
-	// Word-by-word clues: today's response has the first word; more are fetched on request.
-	let clueText = $state('');
-	$effect(() => {
-		const t = today;
-		const p = progress;
-		if (!t || !p) return;
-		clueText = t.clue ?? '';
-		// Only on load: later reveals set clueText themselves.
-		const words = untrack(() => p.words ?? 1);
-		if (game.clueByWord && words > 1) {
-			getClue(game.slug, words, t.day)
-				.then((c) => (clueText = c.text))
-				.catch(handleError);
-		}
-	});
-
-	async function revealWord() {
-		if (!progress || !today || busy || progress.clueDone) return;
-		busy = true;
-		try {
-			const words = (progress.words ?? 1) + 1;
-			const clue = await getClue(game.slug, words, today.day);
-			clueText = clue.text;
-			progress.words = words;
-			progress.clueDone = clue.done;
-			saveProgress(game.slug, progress);
-		} catch (e) {
-			handleError(e);
-		} finally {
-			busy = false;
-		}
-	}
-
-	async function revealHint(n: number) {
-		if (!progress || !today) return;
-		try {
-			const { hint } = await getHint(game.slug, n, today.day);
-			progress.hints[n - 1] = hint;
-			saveProgress(game.slug, progress);
-		} catch (e) {
-			handleError(e);
-		}
-	}
+	// Back / Next walk the gauntlet in order; Next on the last game goes home.
+	const index = $derived(games.findIndex((g) => g.slug === game.slug));
+	const prev = $derived(games[index - 1]);
+	const next = $derived(games[index + 1]);
 </script>
 
-{#if loadError}
-	<Panel class="status">Couldn't load today's puzzle: {loadError}</Panel>
-{:else if !progress || !today}
+{#if session?.error}
+	<Panel class="status">Couldn't load today's puzzle: {session.error}</Panel>
+{:else if !session?.progress || !session.today}
 	<p class="status dim">Loading...</p>
 {:else}
+	{@const { progress, today, answer, yesterday } = session}
 	{#key game.slug}
 		<div in:fly={{ y: 12, duration: 250 }}>
 			{#if progress.finished && answer}
@@ -190,6 +60,7 @@
 					guesses={progress.guesses}
 					position={progress.position}
 					solved={today.solved}
+					score={scores[game.slug] ?? 0}
 					clue={today.clueImage ? { name: today.clue ?? '', image: today.clueImage } : undefined}
 					words={game.clueByWord ? (progress.words ?? 1) : undefined}
 				/>
@@ -201,7 +72,7 @@
 						guesses={progress.bonus?.guesses ?? []}
 						finished={progress.bonus?.finished ?? false}
 						note={progress.bonus?.note}
-						onGuess={submitBonus}
+						onGuess={(id) => session?.answerBonus(id)}
 					/>
 				{/if}
 			{:else}
@@ -210,12 +81,12 @@
 					{items}
 					guessCount={progress.guesses.length}
 					hints={progress.hints}
-					clue={clueText}
+					clue={session.clue}
 					clueImage={today.clueImage}
 					clueDone={!game.clueByWord || (progress.clueDone ?? false)}
-					onNextWord={revealWord}
-					onGuess={submitGuess}
-					onHint={revealHint}
+					onNextWord={() => session?.revealWord()}
+					onGuess={(id) => session?.guess(id)}
+					onHint={(n) => session!.revealHint(n)}
 				/>
 			{/if}
 
@@ -248,10 +119,33 @@
 	{/key}
 {/if}
 
+<nav class="walk" aria-label="Gauntlet">
+	{#if prev}
+		<Button icon="prev" href={resolve('/[mode=mode]', { mode: prev.slug })}
+			>Back: {prev.title}</Button
+		>
+	{/if}
+	{#if next}
+		<Button icon="next" href={resolve('/[mode=mode]', { mode: next.slug })}
+			>Next: {next.title}</Button
+		>
+	{:else}
+		<Button icon="next" href={resolve('/')}>Finish</Button>
+	{/if}
+</nav>
+
 <style>
 	:global(.status) {
 		margin: 24px auto;
 		max-width: 420px;
+	}
+
+	.walk {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 12px;
+		margin-top: 28px;
 	}
 
 	.intro {

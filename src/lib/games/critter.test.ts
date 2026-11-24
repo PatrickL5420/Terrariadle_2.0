@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isCorrect } from '$lib/engine/compare';
-import { critterGame, coins } from './critter';
+import { coins } from '$lib/money';
+import { critterGame } from './critter';
 
 const byName = (name: string) => critterGame.entries.find((c) => c.name === name)!;
 
@@ -31,11 +32,5 @@ describe('Critterdle data', () => {
 		const dolphin = byName('Dolphin');
 		expect([dolphin.rarity, coins(dolphin.sell), dolphin.bait]).toEqual(['None', 'None', 0]);
 		expect(byName('Goldfish').environment).toEqual(['None']);
-	});
-
-	it('formats sell prices as coins', () => {
-		expect(coins(750)).toBe('7s 50c');
-		expect(coins(100_000)).toBe('10g');
-		expect(coins(1_020_005)).toBe('1p 2g 5c');
 	});
 });
