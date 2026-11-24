@@ -187,7 +187,7 @@
 				[0, 2]
 			])
 				ctx.fillText(p.text, ox, oy);
-			ctx.fillStyle = `rgb(${p.color.map((v) => Math.trunc(v * k)).join()})`;
+			ctx.fillStyle = `rgb(${p.color.join()})`;
 			ctx.fillText(p.text, 0, 0);
 			ctx.restore();
 		}

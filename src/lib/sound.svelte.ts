@@ -4,7 +4,7 @@
  */
 const SOUNDS = {
 	/** Picking up coins (the game's sound 38: one of five, at a slightly random pitch). */
-	coin: [0, 1, 2, 3, 4].map((i) => `/sounds/coin-${i}.mp3`),
+	coin: [0, 1, 2, 3, 4].map((i) => `/sounds/coin-${i}.wav`),
 	/** Solving a game. */
 	achievement: ['/sounds/achievement.mp3'],
 	/** Answering a bonus question. */
