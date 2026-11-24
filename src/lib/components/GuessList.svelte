@@ -32,6 +32,9 @@
 		Object.fromEntries(game.attributes.map((a) => [a.key, summarizeValues(a, game.entries)]))
 	);
 	const POPOVER_WIDTH = 260;
+	/** Expanded text boxes (games with `detailExpandable`), by guessed entry id. */
+	let expanded = $state<Record<number, boolean>>({});
+
 	let info = $state<{ key: string; left: number; top?: number; bottom?: number } | null>(null);
 	const infoAttr = $derived(info && game.attributes.find((a) => a.key === info!.key));
 
@@ -94,7 +97,16 @@
 					{/if}
 				</div>
 
-				{#if game.detailLabel}
+				{#if game.detailLabel && game.detailExpandable}
+					<button
+						class="quote tooltip-box"
+						class:open={expanded[guess.id]}
+						aria-expanded={expanded[guess.id] ?? false}
+						style="--i: 1"
+						onclick={() => (expanded[guess.id] = !expanded[guess.id])}
+						><span class="quote-text">{guess.detail ?? ''}</span></button
+					>
+				{:else if game.detailLabel}
 					<div class="slot tile detail {right ? 'match' : 'miss'}" role="cell" style="--i: 1">
 						<WikiLink {game} {entry} class="name">{entry.name}</WikiLink>
 						<span class="detail-text">{guess.detail ?? ''}</span>
@@ -193,6 +205,11 @@
 		justify-content: center;
 	}
 
+	/* Rows grow when a text box is expanded; tiles stay at the top. */
+	.row {
+		align-items: flex-start;
+	}
+
 	.row.head {
 		align-items: flex-end;
 	}
@@ -206,6 +223,7 @@
 
 	.cell-head.detail {
 		width: 300px;
+		max-width: 60vw;
 	}
 
 	.col-head {
@@ -293,6 +311,49 @@
 		font-size: 14px;
 	}
 
+	/* A text box as tall as a tile, cut short until clicked (Fishdle's quotes). */
+	.quote {
+		flex-shrink: 0;
+		width: 300px;
+		max-width: 60vw;
+		height: 76px;
+		padding: 5px 10px;
+		border: none;
+		font-size: 13px;
+		line-height: 1.25;
+		white-space: pre-line;
+		cursor: pointer;
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		animation: pop 0.35s ease-out backwards;
+		animation-delay: calc(var(--i) * 90ms);
+	}
+
+	.quote:hover,
+	.quote:focus-visible {
+		box-shadow: 0 0 0 2px var(--ui-hover-edge);
+		outline: none;
+	}
+
+	/* The text is cut at whole lines; spare height is padding, centred. */
+	.quote-text {
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 4;
+		line-clamp: 4;
+	}
+
+	.quote.open {
+		height: auto;
+		min-height: 76px;
+	}
+
+	.quote.open .quote-text {
+		display: block;
+	}
+
 	.detail-text {
 		font-size: 13px;
 		line-height: 1.2;
@@ -351,6 +412,19 @@
 		.tile {
 			height: 66px;
 			font-size: 14px;
+		}
+
+		.quote {
+			height: 66px;
+		}
+
+		.quote-text {
+			-webkit-line-clamp: 3;
+			line-clamp: 3;
+		}
+
+		.quote.open {
+			min-height: 66px;
 		}
 
 		.tile .small {

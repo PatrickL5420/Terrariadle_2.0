@@ -12,6 +12,15 @@ export const prerender = false;
  * The result only depends on (id, day), so the CDN can cache it and most guesses never
  * reach a function.
  */
+/**
+ * A guess's own text. Word-by-word clues (Fishdle) blank the answer's name as "???"; in the
+ * guessed entry's own text it's no secret, so it's put back.
+ */
+function detailFor(byWord: boolean | undefined, guess: { id: number; name: string }, slug: string) {
+	const text = serverText(slug, guess.id);
+	return byWord ? text?.replaceAll('???', guess.name) : text;
+}
+
 export const GET: RequestHandler = ({ params, url, setHeaders }) => {
 	const game = gameOr404(params.mode);
 	const day = requireToday(url.searchParams.get('day'));
@@ -23,6 +32,6 @@ export const GET: RequestHandler = ({ params, url, setHeaders }) => {
 	return json({
 		correct: isCorrect(guess, answer),
 		checks: compareEntries(game.attributes, guess, answer),
-		detail: game.detailLabel ? serverText(game.slug, guess.id) : undefined
+		detail: game.detailLabel ? detailFor(game.clueByWord, guess, game.slug) : undefined
 	});
 };

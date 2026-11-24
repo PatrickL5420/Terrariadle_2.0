@@ -90,6 +90,11 @@ export interface GameConfig<E extends Entry = Entry> {
 	/** Wiki page for an entry, e.g. "Modifiers#Legendary". Defaults to the entry's name. */
 	wikiPage?: (e: E) => string;
 	detailLabel?: string;
+	/**
+	 * Show each guess's text in a box as tall as a tile beside it, cut short; clicking it shows
+	 * all of it (Fishdle's quotes).
+	 */
+	detailExpandable?: boolean;
 }
 
 export type Checks = Record<string, CompareResult>;
