@@ -10,14 +10,14 @@ const SOUNDS = {
 	/** Answering a bonus question. */
 	research: ['/sounds/research.mp3'],
 	/** A wrong guess: the click the game's menus make when an option is chosen (Menu Open). */
-	select: ['/sounds/menu-open.mp3'],
+	select: ['/sounds/menu-open.wav'],
 	/** Hovering a button, like the game's menus. */
-	tick: ['/sounds/menu-tick.mp3'],
+	tick: ['/sounds/menu-tick.wav'],
 	/** Opening / closing something: hints, quotes. */
-	open: ['/sounds/menu-open.mp3'],
-	close: ['/sounds/menu-close.mp3'],
+	open: ['/sounds/menu-open.wav'],
+	close: ['/sounds/menu-close.wav'],
 	/** Revealing a clue word. */
-	grab: ['/sounds/grab.mp3']
+	grab: ['/sounds/grab.wav']
 } satisfies Record<string, string[]>;
 
 export type SoundName = keyof typeof SOUNDS;

@@ -1,6 +1,5 @@
 /*
- * Terraria-style UI. Colours are sampled from the game's own inventory screen:
- * inventory slots, equipment (accessory/vanity/dye) slots, hover tooltips and menu text.
+ * Terraria-style UI, drawn with the game's own UI textures (see "Game textures" below).
  */
 @font-face {
 	font-family: 'Andy';
@@ -11,64 +10,30 @@
 }
 
 :root {
-	/* Inventory slot: fill, inner edge, outer edge, and the lighter hotbar/favourite frame. */
-	--slot: #383a86;
-	--slot-inner: #242554;
+	/* A thin dark edge for small swatches. */
 	--slot-outer: #101021;
-	--slot-frame: #5978aa;
-	--slot-frame-hi: #6e95b5;
-	--slot-selected: #4e5fb2;
 
-	/* Equipment slots (armor/accessory green, vanity teal, dye blue) and the trash slot. */
-	--equip-green: #2d5f2a;
-	--equip-teal: #2a6059;
-	--equip-dye: #294c60;
-	--trash: #4b6674;
-
-	/* Guess results, tinted to sit with the slot colours. */
+	/* Guess results; the answer tiles are the game's slot tinted these colours. */
 	--match: #3d8a33;
 	--partial: #9a7a1e;
 	--miss: #84303a;
 
-	/* Panels and hover tooltips (translucent dark blue boxes). */
-	--panel: rgba(56, 58, 134, 0.82);
-	--tooltip: rgba(18, 19, 52, 0.97);
-
-	/* Menu text: white with a dark outline, hovered items turn yellow. */
+	/* Menu text: white, hovered things turn the game's yellow (Main.OurFavoriteColor). */
 	--text: #ffffff;
 	--text-dim: #b8b8c8;
-	--hover: #ffe94d;
-
-	/* Menu panels and buttons, sampled from the bestiary, character select and world creation. */
-	--ui-panel: #495eab;
-	--ui-panel-edge: #5772d0;
-	--ui-panel-row: #3a4b8b;
-	--ui-inset: #2b3865;
-	--ui-inset-edge: #5974d5;
-	--ui-outer: rgba(33, 43, 79, 0.85);
-	--ui-fat: rgba(63, 82, 151, 0.7);
-	--ui-fat-hover: #495eab;
-	--ui-option: #34397c;
-	--ui-option-edge: #151932;
-	--ui-option-hi: #3a3f8b;
-	--ui-option-selected: #646bb2;
-	--ui-tab: #37448d;
-	--ui-tab-edge: #1a2243;
-	--ui-tab-hi: #455193;
-	--ui-tab-selected: #9ca4e5;
-	--ui-divider: #575aa0;
-	--ui-hover-edge: #ffe745;
+	--hover: #ffe745;
 }
 
 * {
 	box-sizing: border-box;
 	font-family: 'Andy', sans-serif;
 	color: var(--text);
+	/* UIText's shadow: four black copies, 1.5 px left, right, up and down. */
 	text-shadow:
-		1px 1px 0 #000,
-		-1px 1px 0 #000,
-		1px -1px 0 #000,
-		-1px -1px 0 #000;
+		1.5px 0 0 #000,
+		-1.5px 0 0 #000,
+		0 1.5px 0 #000,
+		0 -1.5px 0 #000;
 }
 
 /* The background is the game's day/night sky, drawn by src/lib/sky/Sky.svelte. */
@@ -91,25 +56,106 @@ img {
 	image-rendering: pixelated;
 }
 
-/* ---- Inventory slot ---------------------------------------------------------------------- */
-.slot {
+/* ---- Game textures ---------------------------------------------------------------------------
+   The UI is drawn with Terraria's own UI textures, tinted with the colours the game draws them in
+   (static/ui/game/, made by scripts/ui-textures.mjs), as 9-slice border images on ::before (the
+   panel) and ::after (its border or highlight), behind the content. */
+/* Small things keep their layers to themselves. Panels don't (they hold popups like the search
+   results, which must stay above what follows the panel); their layers sit at the page's level,
+   above the sky, in page order. */
+.slot,
+.tooltip-box,
+.ui-heading,
+.ui-btn,
+.ui-icon-btn,
+.ui-field-icon,
+.ui-field-box {
 	position: relative;
+	isolation: isolate;
+}
+
+.ui-panel {
+	position: relative;
+}
+
+.slot::before,
+.tooltip-box::before,
+.ui-panel::before,
+.ui-panel::after,
+.ui-heading::before,
+.ui-heading::after,
+.ui-btn::before,
+.ui-btn::after,
+.ui-icon-btn::before,
+.ui-icon-btn::after,
+.ui-field-icon::before,
+.ui-field-icon::after,
+.ui-field-box::before,
+.ui-field-box::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	border-style: solid;
+	border-color: transparent;
+}
+
+/* ---- Inventory slot (ItemSlot.Draw) ---------------------------------------------------------
+   Inventory_Back, 9-sliced at 10 px like the game's other slot boxes so any size keeps its
+   corners. Its alpha pulses between 180 and 240 like Main.inventoryBack (0.2 a frame). */
+@property --inventory-back {
+	syntax: '<number>';
+	inherits: true;
+	initial-value: 0.7059;
+}
+
+:root {
+	animation: inventory-back 5s linear infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		animation: none;
+	}
+}
+
+@keyframes inventory-back {
+	from {
+		--inventory-back: 0.7059; /* 180 / 255 */
+	}
+	to {
+		--inventory-back: 0.9412; /* 240 / 255 */
+	}
+}
+
+.slot {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	width: 52px;
 	height: 52px;
-	background: var(--slot);
-	border-radius: 5px;
-	box-shadow:
-		inset 0 0 0 2px var(--slot-inner),
-		0 0 0 2px var(--slot-outer);
 }
 
-/* Hotbar and favourited slots have a lighter dotted inner frame in the game. */
-.slot.hotbar-slot {
-	outline: 2px dotted var(--slot-frame);
-	outline-offset: -5px;
+.slot::before {
+	border-width: 10px;
+	border-image: url('/ui/game/slot.png') 10 fill / 10px;
+	opacity: var(--inventory-back);
+}
+
+/* The hotbar while the inventory is closed: a steady 200, the selected slot Inventory_Back14. */
+.slot.hotbar-slot::before {
+	opacity: 0.7843; /* 200 / 255 */
+}
+
+.slot.selected::before {
+	border-image-source: url('/ui/game/slot-selected.png');
+	opacity: 1;
+}
+
+/* A favourited item's slot (Inventory_Back10). */
+.slot.framed::before {
+	border-image-source: url('/ui/game/slot-favorite.png');
 }
 
 .slot img {
@@ -126,78 +172,53 @@ img {
 	font-size: 13px;
 }
 
-.slot.framed {
-	box-shadow:
-		inset 0 0 0 2px var(--slot-frame),
-		inset 0 0 0 4px var(--slot-inner),
-		0 0 0 2px var(--slot-outer);
-}
-
-.slot.selected {
-	background: var(--slot-selected);
-	box-shadow:
-		inset 0 0 0 2px var(--slot-frame-hi),
-		0 0 0 2px var(--slot-outer),
-		0 0 10px rgba(160, 190, 255, 0.55);
-}
-
-.slot.green {
-	background: var(--equip-green);
-	box-shadow:
-		inset 0 0 0 2px #1d3d1d,
-		0 0 0 2px #112114;
-}
-
-.slot.teal {
-	background: var(--equip-teal);
-	box-shadow:
-		inset 0 0 0 2px #20423f,
-		0 0 0 2px #101b22;
-}
-
-.slot.dye {
-	background: var(--equip-dye);
-	box-shadow:
-		inset 0 0 0 2px #233342,
-		0 0 0 2px #101521;
-}
-
-/* ---- Hover tooltip ----------------------------------------------------------------------- */
+/* ---- Hover tooltip (Main.MouseText's box: Utils.DrawInvBG) ----------------------------------- */
 .tooltip-box {
-	background: var(--tooltip);
-	border-radius: 6px;
-	box-shadow: 0 0 0 2px var(--slot-outer);
 	padding: 8px 12px;
 	text-align: left;
 	line-height: 1.25;
 }
 
-/* ---- Menu panels (src/lib/ui/Panel.svelte) ------------------------------------------------ */
+.tooltip-box::before {
+	border-width: 10px;
+	border-image: url('/ui/game/tooltip.png') 10 fill / 10px;
+}
+
+/* ---- Menu panels (src/lib/ui/Panel.svelte): UIPanel, 12 px corners --------------------------- */
 .ui-panel {
-	position: relative;
 	padding: 12px;
-	border-radius: 12px;
 }
 
-/* Bestiary / character list: opaque blue, a black outline and a lighter inner edge. */
-.ui-panel.normal {
-	background: var(--ui-panel);
-	box-shadow:
-		inset 0 0 0 2px var(--ui-panel-edge),
-		0 0 0 2px #000;
+.ui-panel::before,
+.ui-panel::after,
+.ui-heading::before,
+.ui-heading::after,
+.ui-btn.fat::before,
+.ui-btn.fat::after {
+	border-width: 12px;
 }
 
-/* The translucent dark box around world and character creation. */
-.ui-panel.outer {
-	background: var(--ui-outer);
-	box-shadow: 0 0 0 2px #000;
+/* The bestiary's entry page: (73, 94, 171) with a (89, 116, 213) border. */
+.ui-panel.normal::before {
+	border-image: url('/ui/game/panel-hover.png') 12 fill / 12px;
 }
 
-/* A box inside a panel: the bestiary's text and stat boxes. */
-.ui-panel.inset {
-	background: var(--ui-inset);
-	border-radius: 8px;
-	box-shadow: inset 0 0 0 2px var(--ui-inset-edge);
+.ui-panel.normal::after {
+	border-image: url('/ui/game/border-bestiary.png') 12 / 12px;
+}
+
+/* The translucent box around a menu: (33, 43, 79) x 0.8, black border. */
+.ui-panel.outer::before {
+	border-image: url('/ui/game/panel-outer.png') 12 fill / 12px;
+}
+
+.ui-panel.outer::after {
+	border-image: url('/ui/game/border-black.png') 12 / 12px;
+}
+
+/* A box inside a panel: the bestiary's text boxes (Stat_Panel, (43, 56, 101), no border). */
+.ui-panel.inset::before {
+	border-image: url('/ui/game/panel-inset.png') 12 fill / 12px;
 }
 
 .ui-panel.has-heading {
@@ -205,7 +226,7 @@ img {
 	padding-top: 30px;
 }
 
-/* The title tab on a panel's top edge, like "Select Player". */
+/* The title tab on a panel's top edge, like "Select Player": (73, 94, 171), black border. */
 .ui-heading {
 	display: flex;
 	align-items: center;
@@ -219,20 +240,43 @@ img {
 	white-space: nowrap;
 	font-size: 30px;
 	font-weight: normal;
-	background: var(--ui-panel);
-	border-radius: 10px;
-	box-shadow:
-		inset 0 0 0 2px var(--ui-panel-edge),
-		0 0 0 2px #000;
 }
 
-/* The double line between rows of options. */
+.ui-heading::before {
+	border-image: url('/ui/game/panel-hover.png') 12 fill / 12px;
+}
+
+.ui-heading::after {
+	border-image: url('/ui/game/border-black.png') 12 / 12px;
+}
+
+/* The line between rows of options (UIHorizontalSeparator, CharCreation/Separator1). */
 .ui-divider {
-	height: 2px;
+	height: 4px;
 	margin: 8px 0;
 	border: none;
-	background: var(--ui-divider);
-	box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+	border-image: url('/ui/game/divider.png') 0 2 fill / 0 2px;
+	border-style: solid;
+	border-width: 0 2px;
+}
+
+/* Big text (UITextPanel's large text, Utils.DrawBorderStringBig): outlined all round. */
+.ui-heading,
+.ui-btn.fat {
+	text-shadow:
+		-1px -1px 0 #000,
+		0 -1px 0 #000,
+		1px -1px 0 #000,
+		-1px 0 0 #000,
+		1px 0 0 #000,
+		-1px 1px 0 #000,
+		0 1px 0 #000,
+		1px 1px 0 #000;
+}
+
+.ui-heading *,
+.ui-btn.fat * {
+	text-shadow: inherit;
 }
 
 /* ---- Buttons (src/lib/ui/Button.svelte, IconButton.svelte) -------------------------------- */
@@ -242,12 +286,10 @@ img {
 	justify-content: center;
 	gap: 8px;
 	border: none;
+	background: none;
 	text-decoration: none;
 	cursor: pointer;
 	line-height: 1;
-	transition:
-		background-color 0.1s,
-		box-shadow 0.1s;
 }
 
 .ui-btn:disabled {
@@ -269,18 +311,31 @@ img {
 	object-fit: contain;
 }
 
-/* Back / Create: wide, short, translucent with a black edge that turns yellow on hover. */
-.ui-btn.fat {
-	background: var(--ui-fat);
-	border-radius: 10px;
-	box-shadow: inset 0 0 0 2px #000;
+/* Back / Create (Select Player's UITextPanel buttons): (63, 82, 151) x 0.7 with a black border;
+   hovered, (73, 94, 171) with a (255, 231, 69) border. */
+.ui-btn.fat::before {
+	border-image: url('/ui/game/panel-button.png') 12 fill / 12px;
+}
+
+.ui-btn.fat::after {
+	border-image: url('/ui/game/border-black.png') 12 / 12px;
+}
+
+.ui-btn.fat:hover:not(:disabled)::before,
+.ui-btn.fat:focus-visible::before,
+.ui-btn.fat.selected::before {
+	border-image-source: url('/ui/game/panel-hover.png');
+}
+
+.ui-btn.fat:hover:not(:disabled)::after,
+.ui-btn.fat:focus-visible::after,
+.ui-btn.fat.selected::after {
+	border-image-source: url('/ui/game/border-hover.png');
 }
 
 .ui-btn.fat:hover:not(:disabled),
 .ui-btn.fat:focus-visible,
 .ui-btn.fat.selected {
-	background: var(--ui-fat-hover);
-	box-shadow: inset 0 0 0 2px var(--ui-hover-edge);
 	color: var(--text);
 	outline: none;
 }
@@ -290,7 +345,6 @@ img {
 	height: 34px;
 	padding: 0 14px;
 	font-size: 18px;
-	border-radius: 8px;
 }
 
 .ui-btn.fat.md {
@@ -307,18 +361,51 @@ img {
 	font-size: 34px;
 }
 
-/* World-creation choice: icon on the left, label centred; selected shows a lighter bar. */
+/* World creation's choices (GroupOptionButton), 10 px slices: the panel, the highlight when
+   selected (7 px in), and a white border when hovered. Its icon is dimmed unless the choice is
+   hovered or selected (the #ui-dim filter in src/routes/+layout.svelte). */
 .ui-btn.option {
-	position: relative;
 	justify-content: flex-start;
 	height: 40px;
 	padding: 0 14px 0 8px;
 	font-size: 20px;
-	background: var(--ui-option);
-	border-radius: 8px;
-	box-shadow:
-		inset 0 2px 0 var(--ui-option-hi),
-		0 0 0 2px var(--ui-option-edge);
+}
+
+.ui-btn.option::before,
+.ui-btn.option::after,
+.ui-btn.option > .ui-highlight,
+.ui-field-icon::before,
+.ui-field-icon::after,
+.ui-field-box::before,
+.ui-field-box::after {
+	border-width: 10px;
+}
+
+.ui-btn.option::before,
+.ui-field-icon::before {
+	border-image: url('/ui/game/option.png') 10 fill / 10px;
+}
+
+.ui-btn.option > .ui-highlight {
+	position: absolute;
+	inset: 7px;
+	z-index: -1;
+	pointer-events: none;
+	border-style: solid;
+	border-color: transparent;
+	border-image: url('/ui/game/option-selected.png') 10 fill / 10px;
+}
+
+.ui-btn.option:hover:not(:disabled)::after,
+.ui-btn.option:focus-visible::after,
+.ui-field-icon:hover::after {
+	border-image: url('/ui/game/option-hover.png') 10 / 10px;
+}
+
+.ui-btn.option:not(:hover):not(.selected) > .ui-icon,
+.ui-btn.option:not(:hover):not(.selected) > .ui-btn-image,
+.ui-field-icon:not(:hover) > .ui-icon {
+	filter: url('#ui-dim');
 }
 
 .ui-btn.option .ui-btn-label {
@@ -336,34 +423,15 @@ img {
 	font-size: 24px;
 }
 
-.ui-btn.option > :first-child {
-	position: relative;
-	z-index: 1;
-}
-
-.ui-btn.option.selected::before {
-	content: '';
-	position: absolute;
-	top: 5px;
-	bottom: 5px;
-	left: 20px;
-	right: 5px;
-	background: var(--ui-option-selected);
-	border-radius: 6px 12px 12px 6px;
-}
-
 .ui-btn.option:hover:not(:disabled),
 .ui-btn.option:focus-visible {
-	box-shadow:
-		inset 0 2px 0 var(--ui-option-hi),
-		0 0 0 2px var(--ui-hover-edge);
 	color: var(--text);
 	outline: none;
 }
 
-/* Square category tab from character creation; selected turns pale blue. */
+/* Character creation's category buttons (UIColoredImageButton), 44 x 44: CategoryPanel at 0.4
+   (1 while hovered), a white border when hovered, and the highlight when selected. */
 .ui-icon-btn {
-	position: relative;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -371,13 +439,31 @@ img {
 	height: 44px;
 	padding: 0;
 	border: none;
-	border-radius: 8px;
-	background: var(--ui-tab);
-	box-shadow:
-		inset 0 2px 0 var(--ui-tab-hi),
-		0 0 0 2px var(--ui-tab-edge);
+	background: none;
 	cursor: pointer;
 	text-decoration: none;
+}
+
+.ui-icon-btn::before {
+	background: url('/ui/game/tab.png') center / 44px 44px no-repeat;
+	opacity: 0.4;
+}
+
+.ui-icon-btn:hover:not(:disabled)::before,
+.ui-icon-btn:focus-visible::before {
+	background:
+		url('/ui/game/tab-hover.png') center / 44px 44px no-repeat,
+		url('/ui/game/tab.png') center / 44px 44px no-repeat;
+	opacity: 1;
+	outline: none;
+}
+
+.ui-icon-btn.selected::after {
+	background: url('/ui/game/tab-selected.png') center / 36px 36px no-repeat;
+}
+
+.ui-icon-btn:focus-visible {
+	outline: none;
 }
 
 .ui-icon-btn img {
@@ -385,25 +471,14 @@ img {
 	max-height: 75%;
 }
 
-.ui-icon-btn.selected {
-	background: var(--ui-tab-selected);
-	box-shadow: 0 0 0 2px var(--ui-tab-edge);
-}
-
-.ui-icon-btn:hover:not(:disabled),
-.ui-icon-btn:focus-visible {
-	box-shadow:
-		inset 0 2px 0 var(--ui-tab-hi),
-		0 0 0 2px var(--ui-hover-edge);
-	outline: none;
-}
-
 .ui-icon-btn:disabled {
 	cursor: default;
 	opacity: 0.55;
 }
 
-/* ---- Text field (src/lib/ui/TextField.svelte) -------------------------------------------- */
+/* ---- Text field (src/lib/ui/TextField.svelte): world creation's name box ------------------
+   UICharacterNameButton: CategoryPanel at 0.5, a white border when hovered; the icon tile beside
+   it is a GroupOptionButton. Empty, it shows its hint in grey. */
 .ui-field {
 	display: flex;
 	gap: 8px;
@@ -416,11 +491,6 @@ img {
 	justify-content: center;
 	width: 40px;
 	flex-shrink: 0;
-	background: var(--ui-option);
-	border-radius: 8px;
-	box-shadow:
-		inset 0 2px 0 var(--ui-option-hi),
-		0 0 0 2px var(--ui-option-edge);
 }
 
 .ui-field-box {
@@ -430,17 +500,15 @@ img {
 	flex: 1;
 	min-width: 0;
 	padding: 0 12px;
-	background: var(--ui-option);
-	border-radius: 8px;
-	box-shadow:
-		inset 0 2px 0 var(--ui-option-hi),
-		0 0 0 2px var(--ui-option-edge);
 }
 
-.ui-field-box:focus-within {
-	box-shadow:
-		inset 0 2px 0 var(--ui-option-hi),
-		0 0 0 2px var(--ui-hover-edge);
+.ui-field-box::before {
+	border-image: url('/ui/game/field.png') 10 fill / 10px;
+}
+
+.ui-field-box:hover::after,
+.ui-field-box:focus-within::after {
+	border-image: url('/ui/game/option-hover.png') 10 / 10px;
 }
 
 .ui-field-label {
@@ -459,7 +527,7 @@ img {
 }
 
 .ui-field input::placeholder {
-	color: var(--text-dim);
+	color: #808080; /* Color.Gray */
 }
 
 /* Terraria's Rainbow rarity text: the colour cycles through the hues. */

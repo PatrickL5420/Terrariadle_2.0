@@ -45,6 +45,7 @@
 </script>
 
 {#snippet content()}
+	{#if variant === 'option' && selected}<span class="ui-highlight" aria-hidden="true"></span>{/if}
 	{#if icon}<Icon name={icon} />{:else if image}<img class="ui-btn-image" src={image} alt="" />{/if}
 	{#if children}<span class="ui-btn-label" style:color>{@render children()}</span>{/if}
 {/snippet}
