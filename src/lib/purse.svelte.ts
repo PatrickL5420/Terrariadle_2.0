@@ -1,4 +1,5 @@
-import { dropStacks, type Coin } from '$lib/money';
+import type { Coin } from '$lib/money';
+import { moneyStacks } from '$lib/coins/world';
 
 /**
  * Coins on their way to the coin counter. Winning queues a drop; $lib/components/CoinDrop
@@ -20,7 +21,7 @@ export function dropCoins(amount: number, from?: string) {
 	if (amount <= 0) return;
 	if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 	purse.pending += amount;
-	purse.drops.push({ id: nextId++, from, stacks: dropStacks(amount) });
+	purse.drops.push({ id: nextId++, from, stacks: moneyStacks(amount) });
 }
 
 /** A collected stack reaches the counter. */

@@ -28,23 +28,3 @@ export function coins(copper: number): string {
 		.join(' ');
 	return text || 'None';
 }
-
-/**
- * Stacks to drop for an amount, like an enemy's coin drop: each denomination's count is spread
- * over a few stacks, at most `max` stacks in all. The stacks always add up to the amount.
- */
-export function dropStacks(copper: number, max = 20): { coin: Coin; count: number }[] {
-	const split = splitCoins(copper);
-	const present = COINS.filter((c) => split[c]);
-	const per = Math.max(1, Math.floor(max / Math.max(1, present.length)));
-	const stacks: { coin: Coin; count: number }[] = [];
-	for (const coin of present) {
-		const n = Math.min(per, split[coin]);
-		for (let i = 0; i < n; i++) {
-			// Spread the count evenly; the first stacks take the remainder.
-			const count = Math.floor(split[coin] / n) + (i < split[coin] % n ? 1 : 0);
-			stacks.push({ coin, count });
-		}
-	}
-	return stacks;
-}

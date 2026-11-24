@@ -1,71 +1,45 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import { COIN_ORDER, CoinWorld, type Box, type Player, type WorldCoin } from '$lib/coins/world';
 	import { COIN_VALUE, type Coin } from '$lib/money';
 	import { collected, purse, type Drop } from '$lib/purse.svelte';
 	import { play } from '$lib/sound.svelte';
 
 	/**
-	 * Coins dropped by a win, like an enemy's coin drop: they burst out of the answer, fall onto
-	 * the ground (the bottom of the screen), bounce and lie there spinning. Hovering (or tapping)
-	 * one picks it up; the rest are picked up by themselves after a few seconds, each at its own
-	 * random moment. A picked-up coin flies to its slot in the coin counter.
+	 * Coins dropped by a win, exactly like an enemy's coin drop in Terraria 1.4.5 (see
+	 * $lib/coins/world): the money splits into stacks that burst out of the answer, fall to the
+	 * ground (the bottom of the screen), spin and sparkle. The mouse cursor is the player: coins
+	 * near it are pulled in and picked up, with the game's coin sound and pickup text. Coins left
+	 * lying fly to the coin counter by themselves after a few seconds.
 	 *
-	 * Like the game's dropped coins they glow and give off sparkles: the coin dust sprites
-	 * (static/ui/dust/, dust 244-247), each a random one of three frames, drifting and shrinking.
+	 * Textures from the game: Images/Coin_0-3 (the spinning coins) and Images/Dust (sparkles).
 	 */
-	const GRAVITY = 1800; // px/s²
-	const SCALE = 2; // the coin sprites are drawn at 2x, like the game's items
-	const DUST: Record<Coin, number> = { copper: 244, silver: 245, gold: 246, platinum: 247 };
-	const SPARKLES_PER_SECOND = 5;
-	const SIZE: Record<Coin, [number, number]> = {
-		copper: [12, 12],
-		silver: [12, 14],
-		gold: [12, 16],
-		platinum: [14, 16]
-	};
+	const SCALE = 2; // game pixels -> CSS pixels, like the game's 2x zoomed sprites
+	const STEP_MS = 1000 / 60;
+	/** Frames before a coin left lying flies to the counter by itself (3-6 seconds). */
+	const autoCollect = () => 180 + Math.floor(Math.random() * 180);
+	/** Pickup text: the game's mouse text, in CSS pixels. */
+	const FONT_PX = 22;
+	/** Dust 244-247: their 8x8 frames in the dust sheet. */
+	const DUST_X: Record<Coin, number> = { copper: 440, silver: 450, gold: 460, platinum: 470 };
 
-	interface Sprite {
-		id: number;
-		coin: Coin;
-		count: number;
-		/** Where it starts, so it never shows in the corner before its first frame. */
-		start: string;
-	}
-	interface Motion {
-		x: number;
-		y: number;
-		vx: number;
-		vy: number;
-		w: number;
-		h: number;
-		flying: boolean;
-		speed: number;
-		collectAt: number;
-	}
-
-	interface Sparkle {
-		coin: Coin;
-		frame: number;
-		x: number;
-		y: number;
-		vx: number;
-		vy: number;
-		life: number;
-		max: number;
-	}
-
-	let sprites = $state<Sprite[]>([]);
-	let sparkles: Sparkle[] = [];
 	let canvas: HTMLCanvasElement;
-	const dustImages = {} as Record<Coin, HTMLImageElement>;
-	/** Physics for each sprite, updated every frame (not reactive: the frame loop moves elements). */
-	const motion: Record<number, Motion> = {};
-	const elements: Record<number, HTMLImageElement> = {};
-	let nextId = 0;
-	/** When a bounce last made a sound: many coins land at once, so it's rate-limited. */
-	let lastBounce = 0;
+	const images = {} as Record<Coin, HTMLImageElement>;
+	let dustSheet: HTMLImageElement;
+	let world: CoinWorld | null = null;
 	let raf = 0;
 	let last = 0;
+	let pending = 0;
+
+	/** The cursor, in CSS pixels, and where it was last frame (null when it's off the page). */
+	let cursor: { x: number; y: number } | null = null;
+	let lastCursor: { x: number; y: number } | null = null;
+
+	const load = (src: string) => {
+		const img = new Image();
+		img.src = src;
+		return img;
+	};
 
 	// Play each queued drop once its burst point is on screen.
 	$effect(() => {
@@ -74,119 +48,94 @@
 		tick().then(() => requestAnimationFrame(() => drops.forEach(spawn)));
 	});
 
+	$effect(() => {
+		const move = (e: PointerEvent) => (cursor = { x: e.clientX, y: e.clientY });
+		// A mouse leaving the window, or a finger lifting, takes the "player" away.
+		const leave = (e: PointerEvent | MouseEvent) => {
+			if ('pointerType' in e && e.pointerType === 'mouse') return;
+			cursor = null;
+		};
+		const out = (e: MouseEvent) => {
+			if (!e.relatedTarget) cursor = null;
+		};
+		window.addEventListener('pointermove', move);
+		window.addEventListener('pointerdown', move);
+		window.addEventListener('pointerup', leave);
+		window.addEventListener('pointercancel', leave);
+		document.addEventListener('mouseout', out);
+		return () => {
+			window.removeEventListener('pointermove', move);
+			window.removeEventListener('pointerdown', move);
+			window.removeEventListener('pointerup', leave);
+			window.removeEventListener('pointercancel', leave);
+			document.removeEventListener('mouseout', out);
+		};
+	});
+
+	/** Measures pickup text, in game pixels. */
+	function measure(text: string): [number, number] {
+		const ctx = canvas.getContext('2d')!;
+		ctx.font = `${FONT_PX}px Andy, sans-serif`;
+		return [ctx.measureText(text).width / SCALE, (FONT_PX * 1.1) / SCALE];
+	}
+
 	function spawn(drop: Drop) {
+		if (!world) {
+			for (const [i, coin] of COIN_ORDER.entries()) images[coin] = load(`/ui/coins/Coin_${i}.png`);
+			dustSheet = load('/ui/dust/Dust.png');
+			world = new CoinWorld(innerWidth / SCALE, innerHeight / SCALE, measure);
+		}
 		const box = drop.from ? document.querySelector(drop.from)?.getBoundingClientRect() : undefined;
 		const cx = box ? box.left + box.width / 2 : innerWidth / 2;
 		const cy = box ? box.top + box.height / 2 : innerHeight / 3;
-		const now = performance.now();
-		for (const stack of drop.stacks) {
-			const [w, h] = SIZE[stack.coin].map((n) => n * SCALE);
-			const id = nextId++;
-			motion[id] = {
-				x: cx - w / 2,
-				y: cy - h / 2,
-				vx: (Math.random() - 0.5) * 560,
-				vy: -350 - Math.random() * 450,
-				w,
-				h,
-				flying: false,
-				speed: 0,
-				collectAt: now + 3000 + Math.random() * 3000
-			};
-			sprites.push({
-				id,
-				coin: stack.coin,
-				count: stack.count,
-				start: `translate(${cx - w / 2}px, ${cy - h / 2}px)`
-			});
-		}
-		for (const coin of Object.keys(DUST) as Coin[]) {
-			if (dustImages[coin]) continue;
-			dustImages[coin] = new Image();
-			dustImages[coin].src = `/ui/dust/d${DUST[coin]}.png`;
-		}
+		world.drop(drop.stacks, cx / SCALE, cy / SCALE, autoCollect);
 		if (!raf) {
-			last = now;
+			last = performance.now();
+			pending = 0;
 			raf = requestAnimationFrame(frame);
 		}
 	}
 
-	function pickUp(id: number) {
-		const m = motion[id];
-		if (m && !m.flying) {
-			m.flying = true;
-			m.speed = 250;
-		}
+	/** The coin counter's slot for a coin, in game pixels. */
+	function slot(coin: Coin): Box | undefined {
+		const r = document.querySelector(`[data-coin="${coin}"]`)?.getBoundingClientRect();
+		if (!r || !r.width) return;
+		return { x: r.left / SCALE, y: r.top / SCALE, w: r.width / SCALE, h: r.height / SCALE };
+	}
+
+	function pickedUp(coin: Coin, stack: number) {
+		// SoundEngine.PlaySound(38): one of five coin sounds, pitch -0.08 to +0.08 octaves.
+		play('coin', 0.5, (Math.floor(Math.random() * 81) - 40) * 0.002);
+		collected(stack * COIN_VALUE[coin]);
 	}
 
 	function frame(now: number) {
-		const dt = Math.min(0.05, (now - last) / 1000);
+		const w = world!;
+		w.width = innerWidth / SCALE;
+		w.height = innerHeight / SCALE;
+		pending = Math.min(pending + now - last, STEP_MS * 4);
 		last = now;
-		const floor = innerHeight - 4;
-		for (const sprite of sprites) {
-			const m = motion[sprite.id];
-			if (!m.flying && now >= m.collectAt) pickUp(sprite.id);
-			if (m.flying) {
-				// Pulled to its counter slot, faster and faster.
-				const slot = document
-					.querySelector(`[data-coin="${sprite.coin}"]`)
-					?.getBoundingClientRect();
-				const tx = slot ? slot.left + slot.width / 2 - m.w / 2 : m.x;
-				const ty = slot ? slot.top + slot.height / 2 - m.h / 2 : -m.h;
-				const dx = tx - m.x;
-				const dy = ty - m.y;
-				const dist = Math.hypot(dx, dy);
-				m.speed += 3000 * dt;
-				if (dist <= m.speed * dt + 4) {
-					arrive(sprite);
-					continue;
-				}
-				m.x += (dx / dist) * m.speed * dt;
-				m.y += (dy / dist) * m.speed * dt;
-			} else {
-				m.vy += GRAVITY * dt;
-				m.x += m.vx * dt;
-				m.y += m.vy * dt;
-				// Off the side walls.
-				if (m.x < 0 || m.x > innerWidth - m.w) {
-					m.x = Math.max(0, Math.min(innerWidth - m.w, m.x));
-					m.vx = -m.vx * 0.5;
-				}
-				// The ground: bounce, then slide to a stop.
-				if (m.y >= floor - m.h) {
-					m.y = floor - m.h;
-					// A bounce taps the ground: louder the harder it lands.
-					if (m.vy > 150 && now - lastBounce > 60) {
-						lastBounce = now;
-						play('coin', Math.min(0.35, m.vy / 3000));
-					}
-					m.vy = m.vy > 150 ? -m.vy * 0.35 : 0;
-					m.vx *= Math.exp(-6 * dt);
-				}
+		while (pending >= STEP_MS) {
+			pending -= STEP_MS;
+			let player: Player | null = null;
+			if (cursor) {
+				const from = lastCursor ?? cursor;
+				player = {
+					x: cursor.x / SCALE,
+					y: cursor.y / SCALE,
+					vx: (cursor.x - from.x) / SCALE,
+					vy: (cursor.y - from.y) / SCALE
+				};
 			}
-			const el = elements[sprite.id];
-			if (el) el.style.transform = `translate(${m.x}px, ${m.y}px)`;
-			if (Math.random() < SPARKLES_PER_SECOND * dt) sparkle(sprite.coin, m);
+			lastCursor = cursor;
+			w.update(player, slot, pickedUp);
 		}
-		drawSparkles(dt);
-		raf = sprites.length || sparkles.length ? requestAnimationFrame(frame) : 0;
+		draw(w);
+		raf = w.coins.length || w.sparkles.length || w.popups.length ? requestAnimationFrame(frame) : 0;
+		if (!raf) clear();
 	}
 
-	function sparkle(coin: Coin, m: Motion) {
-		const max = 0.4 + Math.random() * 0.4;
-		sparkles.push({
-			coin,
-			frame: Math.floor(Math.random() * 3),
-			x: m.x + Math.random() * m.w,
-			y: m.y + Math.random() * m.h,
-			vx: (Math.random() - 0.5) * 30,
-			vy: -10 - Math.random() * 25,
-			life: max,
-			max
-		});
-	}
-
-	function drawSparkles(dt: number) {
+	function context() {
 		const dpr = devicePixelRatio || 1;
 		if (canvas.width !== Math.round(innerWidth * dpr)) canvas.width = Math.round(innerWidth * dpr);
 		if (canvas.height !== Math.round(innerHeight * dpr))
@@ -195,95 +144,91 @@
 		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		ctx.imageSmoothingEnabled = false;
 		ctx.clearRect(0, 0, innerWidth, innerHeight);
-		sparkles = sparkles.filter((sp) => (sp.life -= dt) > 0);
-		for (const sp of sparkles) {
-			sp.x += sp.vx * dt;
-			sp.y += sp.vy * dt;
-			const t = sp.life / sp.max; // shrinks and fades, like the game's dust
-			const size = 10 * SCALE * (0.4 + 0.6 * t);
-			ctx.globalAlpha = Math.min(1, t * 1.5);
-			ctx.drawImage(
-				dustImages[sp.coin],
-				0,
-				sp.frame * 10,
-				10,
-				10,
-				sp.x - size / 2,
-				sp.y - size / 2,
-				size,
-				size
-			);
-		}
-		ctx.globalAlpha = 1;
+		return ctx;
 	}
 
-	function arrive(sprite: Sprite) {
-		play('coin', 0.4);
-		collected(sprite.count * COIN_VALUE[sprite.coin]);
-		delete motion[sprite.id];
-		delete elements[sprite.id];
-		sprites = sprites.filter((s) => s.id !== sprite.id);
+	function clear() {
+		context();
+	}
+
+	function draw(w: CoinWorld) {
+		const ctx = context();
+		for (const c of w.coins) drawCoin(ctx, c);
+
+		// Sparkles: drawn additively, white (Dust.GetAlpha for 244-247).
+		ctx.globalCompositeOperation = 'lighter';
+		for (const d of w.sparkles) {
+			if (!dustSheet.complete) break;
+			ctx.save();
+			ctx.translate(d.x * SCALE, d.y * SCALE);
+			ctx.rotate(d.rotation);
+			ctx.scale(d.scale * SCALE, d.scale * SCALE);
+			ctx.drawImage(dustSheet, DUST_X[d.coin], 60 + d.frame * 10, 8, 8, -4, -4, 8, 8);
+			ctx.restore();
+		}
+		ctx.globalCompositeOperation = 'source-over';
+
+		// Pickup text (PopupText): coloured by the highest coin, outlined in black.
+		ctx.font = `${FONT_PX}px Andy, sans-serif`;
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		for (const p of w.popups) {
+			const [tw, th] = measure(p.text);
+			const k = p.scale * p.alpha;
+			ctx.save();
+			ctx.translate((p.x + tw / 2) * SCALE, (p.y + th / 2) * SCALE);
+			ctx.scale(p.scale, p.scale);
+			ctx.globalAlpha = Math.max(0, Math.min(1, k));
+			ctx.fillStyle = '#000';
+			for (const [ox, oy] of [
+				[-2, 0],
+				[2, 0],
+				[0, -2],
+				[0, 2]
+			])
+				ctx.fillText(p.text, ox, oy);
+			ctx.fillStyle = `rgb(${p.color.map((v) => Math.trunc(v * k)).join()})`;
+			ctx.fillText(p.text, 0, 0);
+			ctx.restore();
+		}
+	}
+
+	/** Main.DrawItem for a coin: its spinning frame, standing on its hitbox, tilted as it moves. */
+	function drawCoin(ctx: CanvasRenderingContext2D, c: WorldCoin) {
+		const img = images[c.coin];
+		if (!img.complete || !img.naturalWidth) return;
+		// DrawAnimationVertical(6, 8): 8 frames, each with 2 px of padding left off.
+		const fw = img.naturalWidth;
+		const step = img.naturalHeight / 8;
+		const fh = step - 2;
+		const frameIndex = Math.trunc(c.frameCounter / 6);
+		ctx.save();
+		ctx.translate((c.x + c.w / 2) * SCALE, (c.y + c.h - fh / 2) * SCALE);
+		ctx.rotate(c.vx * 0.2);
+		ctx.drawImage(
+			img,
+			0,
+			frameIndex * step,
+			fw,
+			fh,
+			(-fw / 2) * SCALE,
+			(-fh / 2) * SCALE,
+			fw * SCALE,
+			fh * SCALE
+		);
+		ctx.restore();
 	}
 </script>
 
-<div class="drop" aria-hidden="true">
-	{#each sprites as sprite (sprite.id)}
-		<img
-			bind:this={elements[sprite.id]}
-			class={sprite.coin}
-			src="/ui/coins/{sprite.coin}.gif"
-			alt=""
-			width={SIZE[sprite.coin][0] * SCALE}
-			height={SIZE[sprite.coin][1] * SCALE}
-			style:transform={sprite.start}
-			onpointerenter={() => pickUp(sprite.id)}
-			onpointerdown={() => pickUp(sprite.id)}
-		/>
-	{/each}
-	<!-- After the coins, so their sparkles are drawn on top (it lets the pointer through). -->
-	<canvas bind:this={canvas}></canvas>
-</div>
+<canvas bind:this={canvas} class="drop" aria-hidden="true"></canvas>
 
 <style>
 	.drop {
 		position: fixed;
 		inset: 0;
+		width: 100vw;
+		height: 100vh;
 		z-index: 60;
 		pointer-events: none;
-	}
-
-	canvas {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		pointer-events: none;
-	}
-
-	img {
-		position: absolute;
-		left: 0;
-		top: 0;
-		pointer-events: auto;
-		cursor: pointer;
-		image-rendering: pixelated;
-		will-change: transform;
-	}
-
-	/* Dropped coins give off light in the game. */
-	.copper {
-		filter: drop-shadow(0 0 4px rgba(255, 150, 80, 0.7));
-	}
-
-	.silver {
-		filter: drop-shadow(0 0 4px rgba(220, 230, 255, 0.7));
-	}
-
-	.gold {
-		filter: drop-shadow(0 0 5px rgba(255, 220, 90, 0.8));
-	}
-
-	.platinum {
-		filter: drop-shadow(0 0 5px rgba(225, 225, 255, 0.8));
 	}
 </style>

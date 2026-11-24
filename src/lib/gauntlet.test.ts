@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { games } from '$lib/games';
 import type { Progress } from '$lib/progress.svelte';
-import { coins, dropStacks, splitCoins, COIN_VALUE } from '$lib/money';
+import { coins, splitCoins, COIN_VALUE } from '$lib/money';
+import { moneyStacks } from '$lib/coins/world';
 import { BONUS_SHARE, ORDER, PERFECT_DAY, TIERS, bonusPrize, prize, scoreFor } from './gauntlet';
 
 const progress = (guesses: number, extra: Partial<Progress> = {}): Progress => ({
@@ -68,9 +69,8 @@ describe('money', () => {
 	});
 
 	it('drops stacks that add up to the amount', () => {
-		for (const amount of [1, 99, 30_000, 24_550, 1_000_000, 987_654]) {
-			const stacks = dropStacks(amount);
-			expect(stacks.length).toBeLessThanOrEqual(20);
+		for (const amount of [1, 99, 100, 30_000, 24_550, 1_000_000, 987_654, 2_500_000_000]) {
+			const stacks = moneyStacks(amount);
 			expect(stacks.reduce((sum, s) => sum + s.count * COIN_VALUE[s.coin], 0)).toBe(amount);
 		}
 	});
