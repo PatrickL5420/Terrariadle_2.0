@@ -227,7 +227,6 @@
 </script>
 
 <div class="drop" aria-hidden="true">
-	<canvas bind:this={canvas}></canvas>
 	{#each sprites as sprite (sprite.id)}
 		<img
 			bind:this={elements[sprite.id]}
@@ -241,6 +240,8 @@
 			onpointerdown={() => pickUp(sprite.id)}
 		/>
 	{/each}
+	<!-- After the coins, so their sparkles are drawn on top (it lets the pointer through). -->
+	<canvas bind:this={canvas}></canvas>
 </div>
 
 <style>
@@ -256,6 +257,7 @@
 		inset: 0;
 		width: 100%;
 		height: 100%;
+		pointer-events: none;
 	}
 
 	img {
