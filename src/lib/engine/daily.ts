@@ -34,6 +34,12 @@ export function dayNumber(now = new Date(), timeZone = RESET_TIME_ZONE): number 
 	return Math.round(Date.UTC(p.year, p.month - 1, p.day) / DAY_MS);
 }
 
+/** Seconds since local midnight in the reset time zone. */
+export function secondsSinceMidnight(now = new Date(), timeZone = RESET_TIME_ZONE): number {
+	const p = zonedParts(now, timeZone);
+	return p.hour * 3600 + p.minute * 60 + p.second + now.getMilliseconds() / 1000;
+}
+
 /** Seconds until the next puzzle (ignores the rare 23/25-hour DST day). */
 export function secondsUntilReset(now = new Date(), timeZone = RESET_TIME_ZONE): number {
 	const p = zonedParts(now, timeZone);

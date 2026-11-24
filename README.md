@@ -131,6 +131,14 @@ world creation). Their styles live in `src/app.css` and the icons in `static/ui/
 wiki's [UI images](https://terraria.wiki.gg/wiki/Category:UI_images). `/ui` shows every component and
 state in `npm run dev` and on previews.
 
+## Sky
+
+The background is Terraria's main-menu sky on Sydney time (`src/lib/sky/`): day runs 4:30 AM to
+7:30 PM and night 7:30 PM to 4:30 AM, exactly as in the game (one game tick per real second).
+The sky, sun and moon colours and the sun and moon's path follow the game's own formulas, the
+moon shows the real moon phase, and the textures in `static/sky/` (forest background, clouds,
+sun, moon) come from the wiki. Dev tools: add `?skytime=21:30` to a URL to see another time.
+
 ## Adding a game mode
 
 1. Add `src/lib/data/<things>.json`.

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Header from './Header.svelte';
 	import Footer from './Footer.svelte';
+	import Sky from '$lib/sky/Sky.svelte';
 	import '../app.css';
 	import { page } from '$app/state';
 	import { onMount, type Snippet } from 'svelte';
@@ -31,6 +32,8 @@
 	<meta property="og:title" content={title} />
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
+
+<Sky />
 
 <div class="app">
 	<Header />
