@@ -343,15 +343,53 @@ export function moonPhase(now = new Date()): number {
 	return (eighth + 4) % 8;
 }
 
+/** A random number generator seeded by a string (mulberry32), so everyone gets the same rolls. */
+export function seededRandom(seed: string): (max: number) => number {
+	let a = 0;
+	for (const ch of seed) a = (Math.imul(a, 31) + ch.charCodeAt(0)) >>> 0;
+	return (max) => {
+		a = (a + 0x6d2b79f5) >>> 0;
+		let t = a;
+		t = Math.imul(t ^ (t >>> 15), t | 1);
+		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+		return Math.floor((((t ^ (t >>> 14)) >>> 0) / 4294967296) * max);
+	};
+}
+
+/** The Sydney date `hours` before `now`: the period a menu roll belongs to. */
+function periodSince(now: Date, hours: number): string {
+	const then = new Date(now.getTime() - hours * 3_600_000);
+	return then.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
+}
+
 /**
- * Which of the 9 moons shows. The menu picks a random one each night (Main.UpdateMenu); this
- * picks one per night from the date, so everyone sees the same moon.
+ * Which of the 9 moons shows. The menu rolls a new one at noon (Main.UpdateMenu); this rolls
+ * one per noon-to-noon from the date, so everyone sees the same moon.
  */
 export function moonType(now = new Date()): number {
-	// The night belongs to the evening it started on (Sydney time).
-	const evening = new Date(now.getTime() - DAWN * 1000);
-	const day = evening.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
-	let h = 0;
-	for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-	return h % 9;
+	return seededRandom(`moon ${periodSince(now, 12)}`)(9);
+}
+
+/** WorldGen.RollRandomForestBGStyle. */
+export function rollForestStyle(next: (max: number) => number): number {
+	let n = next(14);
+	if ((n === 1 || n === 2) && next(2) === 0) n = next(14);
+	if (n === 0) n = next(14);
+	if (n === 3 && next(3) === 0) n = 31;
+	if (n === 5 && next(2) === 0) n = 51;
+	if (n === 7 && next(4) === 0) n = 71 + next(3);
+	return n;
+}
+
+/**
+ * The forest background style. The menu rerolls its backgrounds at midnight (Main.UpdateMenu:
+ * WorldGen.RandomizeBackgrounds, rolled again up to twice if it gets style 6); this rolls one
+ * per day from the date.
+ */
+export function forestStyle(now = new Date()): number {
+	const next = seededRandom(`forest ${periodSince(now, 0)}`);
+	let style = rollForestStyle(next);
+	if (style === 6) style = rollForestStyle(next);
+	if (style === 6) style = rollForestStyle(next);
+	return style;
 }

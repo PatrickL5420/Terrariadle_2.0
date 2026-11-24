@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { devFlags } from '$lib/dev/flags.svelte';
-	import { clockToGameTime, gameTime, moonPhase, moonType, skyColors } from './clock';
+	import { secondsSinceMidnight } from '$lib/engine/daily';
+	import {
+		clockToGameTime,
+		forestStyle,
+		moonPhase,
+		moonType,
+		skyColors,
+		type GameTime
+	} from './clock';
 	import { SpriteRenderer } from './gl';
 	import { loadTextures, SkyScene, type Moment } from './scene';
 
@@ -15,6 +23,14 @@
 	 */
 	const GAME_HEIGHT = 1080;
 	const STEP_MS = 1000 / 60; // the game updates 60 times a second
+	const DAWN = 4.5 * 3600;
+	const DUSK = 19.5 * 3600;
+	/** Things the mouse can use, so pressing on them doesn't grab the sun. */
+	const INTERACTIVE =
+		'a, button, input, select, textarea, label, summary, [role="button"], [contenteditable], .ui-panel, dialog';
+
+	/** How far the sun or moon has been dragged from the real time, in seconds (this visit). */
+	let dragOffset = 0;
 
 	let canvas: HTMLCanvasElement;
 	/** Draws a frame now (for a still sky; a moving one draws every frame anyway). */
@@ -23,6 +39,7 @@
 	// A still sky redraws as soon as the dev panel's time slider moves.
 	$effect(() => {
 		void devFlags.skyTime;
+		void devFlags.skyForest;
 		redraw();
 	});
 
@@ -31,22 +48,31 @@
 		let stopped = false;
 		let raf = 0;
 		let timer: ReturnType<typeof setInterval> | undefined;
+		let removeListeners = () => {};
 
 		// Dev tools: the dev panel's sky slider, or ?skytime=21:30, shows another time of day.
 		if (__DEV_TOOLS__) {
 			const m = new URLSearchParams(location.search).get('skytime')?.match(/^(\d{1,2}):(\d{2})$/);
 			if (m) devFlags.skyTime = Number(m[1]) * 3600 + Number(m[2]) * 60;
 		}
+		const devTime = () => __DEV_TOOLS__ && devFlags.skyTime !== null;
 		const moment = (): Moment => {
 			const now = new Date();
+			const seconds = devTime()
+				? devFlags.skyTime!
+				: (secondsSinceMidnight(now) + dragOffset + 86_400) % 86_400;
 			return {
-				time:
-					__DEV_TOOLS__ && devFlags.skyTime !== null
-						? clockToGameTime(devFlags.skyTime)
-						: gameTime(now),
+				time: clockToGameTime(seconds),
 				moonPhase: moonPhase(now),
-				moonType: moonType(now)
+				moonType: moonType(now),
+				forest: __DEV_TOOLS__ && devFlags.skyForest !== null ? devFlags.skyForest : forestStyle(now)
 			};
+		};
+		/** Dragging the sun or moon moves the time (the dev panel's, or this visit's). */
+		const dragTo = (t: GameTime) => {
+			const seconds = Math.round(t.dayTime ? DAWN + t.time : (DUSK + t.time) % 86_400);
+			if (devTime()) devFlags.skyTime = seconds;
+			else dragOffset = seconds - secondsSinceMidnight();
 		};
 
 		const gl = canvas.getContext('webgl2', { alpha: false, antialias: false });
@@ -66,6 +92,43 @@
 		loadTextures(renderer).then((textures) => {
 			if (stopped) return;
 			const scene = new SkyScene(renderer, textures);
+			scene.onDrag = dragTo;
+
+			// The mouse, held down on the sky (not on the page's buttons or panels).
+			let held = false;
+			const toGame = (e: PointerEvent) => ({
+				x: (e.clientX / window.innerWidth) * scene.W,
+				y: (e.clientY / window.innerHeight) * scene.H
+			});
+			const onDown = (e: PointerEvent) => {
+				if (e.button !== 0 || (e.target as Element | null)?.closest?.(INTERACTIVE)) return;
+				held = true;
+				scene.pointer = toGame(e);
+				redraw();
+			};
+			const onMove = (e: PointerEvent) => {
+				if (!held) return;
+				scene.pointer = toGame(e);
+				// No text selection while dragging the sun.
+				document.documentElement.style.userSelect = scene.grabbing ? 'none' : '';
+				redraw();
+			};
+			const onUp = () => {
+				held = false;
+				scene.pointer = null;
+				scene.grabbing = false;
+				document.documentElement.style.userSelect = '';
+			};
+			window.addEventListener('pointerdown', onDown);
+			window.addEventListener('pointermove', onMove);
+			window.addEventListener('pointerup', onUp);
+			window.addEventListener('pointercancel', onUp);
+			removeListeners = () => {
+				window.removeEventListener('pointerdown', onDown);
+				window.removeEventListener('pointermove', onMove);
+				window.removeEventListener('pointerup', onUp);
+				window.removeEventListener('pointercancel', onUp);
+			};
 
 			const frame = () => {
 				const dpr = window.devicePixelRatio || 1;
@@ -76,7 +139,9 @@
 					canvas.height = h;
 				}
 				scene.resize(Math.max(1, Math.round((w / h) * GAME_HEIGHT)), GAME_HEIGHT);
-				return moment();
+				const m = moment();
+				scene.loadStyle(m.forest)?.then(() => redraw());
+				return m;
 			};
 
 			if (reduceMotion) {
@@ -114,6 +179,7 @@
 			cancelAnimationFrame(raf);
 			clearInterval(timer);
 			window.removeEventListener('resize', redraw);
+			removeListeners();
 		};
 	});
 </script>

@@ -6,12 +6,14 @@
  *  1. The sky: Images/Background_0 tinted by the sky colour; the sunrise or sunset gradient;
  *     stars; the sun (with its sunrise / sunset flares) or the moon.
  *  2. The landscape, drawn into its own target like the game's screen capture: mountains
- *     (Background_7, 8), clouds (lit by the sun or moon), forest (Background_9-11), and the
+ *     and forest (the day's style, see ./forest.ts), clouds (lit by the sun or moon), and the
  *     sunrise / sunset light over the trees.
  *  3. The lens flare, dimmed by how much of the landscape covers the sun.
  */
 import {
 	celestialLight,
+	DAY_LENGTH,
+	NIGHT_LENGTH,
 	scaleColor,
 	skyColors,
 	sunOrMoon,
@@ -26,20 +28,16 @@ import {
 	type RGBA
 } from './clock';
 import { SpriteRenderer, type Target, type Texture } from './gl';
+import { forestLayout, forestTextures, type LayerDraw } from './forest';
 import { Clouds, CLOUD_SIZES, Stars } from './sim';
 
-/** The menu's camera moves right 4 pixels a frame (Main.MenuXMovement). */
-export const MENU_SCROLL = 4;
+/** The menu's camera moves right 4 pixels a frame (Main.MenuXMovement); this goes at half that. */
+export const MENU_SCROLL = 2;
 /** The menu's clock runs this many ticks a frame at night; ours runs one a second (60 frames). */
 const MENU_NIGHT_TICKS_PER_FRAME = 30.857142857142858;
 
 const FILES = [
 	'Background_0',
-	'Background_7',
-	'Background_8',
-	'Background_9',
-	'Background_10',
-	'Background_11',
 	'Sun',
 	...[0, 1, 2, 3].map((i) => `Star_${i}`),
 	...[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => `Moon_${i}`),
@@ -55,9 +53,12 @@ const FILES = [
 	'Sunflare/Lens/Flare2'
 ];
 
-export async function loadTextures(r: SpriteRenderer): Promise<Record<string, Texture>> {
+export async function loadTextures(
+	r: SpriteRenderer,
+	files = FILES
+): Promise<Record<string, Texture>> {
 	const entries = await Promise.all(
-		FILES.map(async (name) => {
+		files.map(async (name) => {
 			const blob = await (await fetch(`/sky/${name}.png`)).blob();
 			const img = await createImageBitmap(blob, {
 				premultiplyAlpha: 'none',
@@ -68,9 +69,6 @@ export async function loadTextures(r: SpriteRenderer): Promise<Record<string, Te
 	);
 	return Object.fromEntries(entries);
 }
-
-/** C#'s Math.IEEERemainder. */
-const ieeeRemainder = (x: number, y: number) => x - y * Math.round(x / y);
 
 /** A lens flare element (LensFlareElement). */
 interface Flare {
@@ -189,6 +187,14 @@ export interface Moment {
 	time: GameTime;
 	moonPhase: number;
 	moonType: number;
+	/** The forest background style (see ./forest.ts). */
+	forest: number;
+}
+
+/** The mouse, in game pixels, while it's held down on the sky. */
+export interface Pointer {
+	x: number;
+	y: number;
 }
 
 export class SkyScene {
@@ -202,6 +208,21 @@ export class SkyScene {
 	stars = new Stars();
 	/** Main.screenPosition.X: how far the menu's camera has scrolled. */
 	cameraX = 0;
+	/** The forest style whose textures are loaded and drawn. */
+	style = -1;
+	#loading = -1;
+	#failed = new Set<number>();
+	/** The mouse while it's held down on the sky (null when it isn't). */
+	pointer: Pointer | null = null;
+	/** Main.alreadyGrabbingSunOrMoon. */
+	grabbing = false;
+	/** Called with the time the sun or moon has been dragged to. */
+	onDrag: (time: GameTime) => void = () => {};
+	/** Main.sunModY / moonModY: how far the sun or moon's been dragged off its path. */
+	#sunModY = 0;
+	#moonModY = 0;
+	/** Main.GetBackgroundCounter on the menu: seconds x 40, for animated backgrounds. */
+	counter = 0;
 	W = 0;
 	H = 0;
 
@@ -223,8 +244,33 @@ export class SkyScene {
 		else this.clouds = new Clouds(W, H);
 	}
 
+	/** Loads a forest style's textures, then switches to it (nothing to do: undefined). */
+	loadStyle(style: number): Promise<void> | undefined {
+		// A style that failed to load shows the plain forest instead.
+		if (this.#failed.has(style)) style = 0;
+		if (style === this.style || style === this.#loading) return;
+		this.#loading = style;
+		const missing = forestTextures(style)
+			.map((n) => `Background_${n}`)
+			.filter((name) => !this.#tex[name]);
+		return loadTextures(this.#r, missing).then(
+			(textures) => {
+				Object.assign(this.#tex, textures);
+				if (this.#loading === style) this.style = style;
+			},
+			() => {
+				this.#failed.add(style);
+				if (this.#loading === style) this.#loading = -1;
+			}
+		);
+	}
+
 	/** One 60th of a second of the menu: clouds, stars, the scrolling camera. */
 	update(time: GameTime) {
+		// The dragged sun or moon drifts back to its path (Main.DrawSunAndMoon).
+		this.#sunModY = Math.trunc(this.#sunModY * 0.999);
+		this.#moonModY = Math.trunc(this.#moonModY * 0.999);
+		this.counter += 40 / 60;
 		this.cameraX += MENU_SCROLL;
 		this.stars.update(time.dayTime, time.time, 1 / 12 / MENU_NIGHT_TICKS_PER_FRAME / 60);
 		this.clouds?.update(MENU_SCROLL);
@@ -330,6 +376,8 @@ export class SkyScene {
 		if (m.time.dayTime) {
 			const tex = t.Sun;
 			const b = sunOrMoon(m.time, this.W, tex.width);
+			this.#drag(m.time, b, tex.width, tex.height, this.#sunModY, (y) => (this.#sunModY = y));
+			b.y += this.#sunModY;
 			const o = {
 				rotation: b.rotation,
 				origin: [tex.width / 2, tex.height / 2] as [number, number],
@@ -358,6 +406,8 @@ export class SkyScene {
 		const tex = t[`Moon_${m.moonType}`];
 		const b = sunOrMoon(m.time, this.W, tex.width);
 		const size = tex.width; // square frames, one per phase
+		this.#drag(m.time, b, size, size, this.#moonModY, (y) => (this.#moonModY = y));
+		b.y += this.#moonModY;
 		r.draw(tex, b.x, b.y, WHITE, {
 			src: [0, size * m.moonPhase, size, size],
 			rotation: b.rotation,
@@ -365,6 +415,37 @@ export class SkyScene {
 			scale: b.scale
 		});
 		return [b.x, b.y];
+	}
+
+	/**
+	 * The title screen's sun and moon grabbing (Main.DrawSunAndMoon): while the mouse is held
+	 * over it, or has grabbed it, the time follows the mouse across the screen and the sun or
+	 * moon follows it up and down.
+	 */
+	#drag(
+		time: GameTime,
+		b: { x: number; y: number; scale: number },
+		w: number,
+		h: number,
+		modY: number,
+		setModY: (y: number) => void
+	) {
+		const p = this.pointer;
+		if (!p) {
+			this.grabbing = false;
+			return;
+		}
+		const left = Math.trunc(b.x - w * 0.5 * b.scale);
+		const top = Math.trunc(b.y - h * 0.5 * b.scale + modY);
+		const size = Math.trunc(w * b.scale);
+		const over = p.x >= left && p.x < left + size && p.y >= top && p.y < top + size;
+		if (!over && !this.grabbing) return;
+		const length = time.dayTime ? DAY_LENGTH : NIGHT_LENGTH;
+		let t = length * ((Math.trunc(p.x) + w) / (this.W + w * 2));
+		t = Math.max(10, Math.min(length - 10, t));
+		setModY(Math.trunc(p.y - b.y));
+		this.grabbing = true;
+		this.onDrag({ dayTime: time.dayTime, time: t });
 	}
 
 	/** Main.DrawSurfaceBG on the menu (forest), with NextHorizonRenderer's clouds and light. */
@@ -414,14 +495,25 @@ export class SkyScene {
 			r.use('sprite');
 		};
 
-		/** One background layer, tiled sideways (DrawSurfaceBG_DrawBackMountainsLayer etc.). */
-		const layer = (name: string, scale: number, parallax: number, top: number, shift = 0) => {
-			const tex = t[name];
-			const width = Math.trunc(tex.width * scale);
-			const startX =
-				Math.trunc(-ieeeRemainder(this.cameraX * parallax, width) - Math.trunc(width / 2)) + shift;
-			const loops = Math.trunc(W / width) + 2;
-			for (let i = 0; i < loops; i++) r.draw(tex, startX + width * i, top, sky, { scale });
+		// Nothing until the style's textures are in.
+		const forest =
+			this.style < 0
+				? { far: [], near: [], trees: [] }
+				: forestLayout(
+						this.style,
+						this.cameraX,
+						W,
+						(n) => [t[`Background_${n}`].width, t[`Background_${n}`].height],
+						Math.trunc(this.counter)
+					);
+		const layer = (draws: LayerDraw[]) => {
+			for (const d of draws) {
+				r.draw(t[`Background_${d.tex}`], d.x, d.y, sky, {
+					src: d.src,
+					scale: d.scale,
+					flipX: d.flipX
+				});
+			}
 		};
 
 		// On the menu: no screen scroll (scAdj 0); the far layers sit 180 px lower (pushBGTopHack).
@@ -432,21 +524,19 @@ export class SkyScene {
 			(s) => s < 1,
 			(cy) => cy + topMagic * 750 + 830 + 180
 		);
-		layer('Background_7', 2, 0.15, 100 + 180);
+		layer(forest.far);
 		drawClouds(
 			2,
 			(s) => s < 1.15 && s >= 1,
 			(cy) => cy * (H / 600) + (280 - 50) + 200
 		);
-		layer('Background_8', 1.15 * 2, 0.2, 230 + 180, -500);
+		layer(forest.near);
 		drawClouds(
 			3,
 			(s) => s >= 1.15,
 			(cy) => cy * (H / 600) - 100 + (410 * 1.01 - 150)
 		);
-		layer('Background_9', 1.25 * 2, 0.4, 320);
-		layer('Background_10', 1.31 * 2, 0.43, 400, -80);
-		layer('Background_11', 1.34 * 2, 0.49, 480, -120);
+		layer(forest.trees);
 
 		// NextHorizonRenderer.DrawSurfaceLayer(3): sunlight across the trees, from the sun's side.
 		const gradient = t['Sunflare/colorgradient'];

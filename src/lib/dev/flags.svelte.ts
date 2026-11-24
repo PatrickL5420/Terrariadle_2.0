@@ -8,5 +8,7 @@ export const devFlags = $state({
 	/** Bumped to make the game page reload today's state. */
 	refresh: 0,
 	/** Sky background time, in seconds since midnight (Sydney); null follows the real clock. */
-	skyTime: null as number | null
+	skyTime: null as number | null,
+	/** Sky forest background style; null uses today's. */
+	skyForest: null as number | null
 });

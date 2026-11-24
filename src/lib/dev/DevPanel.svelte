@@ -16,6 +16,7 @@
 	import { dropCoins, purse } from '$lib/purse.svelte';
 	import { onMount } from 'svelte';
 	import { secondsSinceMidnight } from '$lib/engine/daily';
+	import { FOREST_STYLES } from '$lib/sky/forest';
 	import { devFlags } from './flags.svelte';
 
 	/**
@@ -296,6 +297,18 @@
 					>⟲ Live</button
 				>
 			</div>
+			<label class="row">
+				Forest
+				<select
+					value={devFlags.skyForest ?? ''}
+					onchange={(e) =>
+						(devFlags.skyForest =
+							e.currentTarget.value === '' ? null : Number(e.currentTarget.value))}
+				>
+					<option value="">Today's</option>
+					{#each FOREST_STYLES as style (style)}<option value={style}>Style {style}</option>{/each}
+				</select>
+			</label>
 
 			<h4>Time travel</h4>
 			<div class="buttons">
