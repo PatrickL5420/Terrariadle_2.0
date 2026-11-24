@@ -46,6 +46,29 @@
 	const next = $derived(games[index + 1]);
 </script>
 
+<!-- Back and next through the gauntlet, like the game's step buttons (GroupOptionButton with
+     its 16 px IconPrev / IconNext arrows drawn 28 px wide), just under the hotbar. -->
+<nav class="walk" aria-label="Gauntlet">
+	{#if prev}
+		<Button variant="option" href={resolve('/[mode=mode]', { mode: prev.slug })} title="Back">
+			<span class="step">
+				<img class="arrow ui-option-icon" src={uiIconUrl('prev')} alt="Back" />
+				<GameIcon src={prev.icon} size={28} />{prev.title}
+			</span>
+		</Button>
+	{/if}
+	<Button
+		variant="option"
+		href={next ? resolve('/[mode=mode]', { mode: next.slug }) : resolve('/')}
+		title="Next"
+	>
+		<span class="step">
+			{#if next}<GameIcon src={next.icon} size={28} />{next.title}{:else}Home{/if}
+			<img class="arrow ui-option-icon" src={uiIconUrl('next')} alt="Next" />
+		</span>
+	</Button>
+</nav>
+
 {#if session?.error}
 	<Panel class="status">Couldn't load today's puzzle: {session.error}</Panel>
 {:else if !session?.progress || !session.today}
@@ -121,27 +144,6 @@
 	{/key}
 {/if}
 
-<nav class="walk" aria-label="Gauntlet">
-	{#if prev}
-		<Button size="lg" href={resolve('/[mode=mode]', { mode: prev.slug })} title="Back">
-			<span class="step">
-				<img class="arrow" src={uiIconUrl('prev')} alt="Back" />
-				<GameIcon src={prev.icon} />{prev.title}
-			</span>
-		</Button>
-	{/if}
-	<Button
-		size="lg"
-		href={next ? resolve('/[mode=mode]', { mode: next.slug }) : resolve('/')}
-		title="Next"
-	>
-		<span class="step">
-			{#if next}<GameIcon src={next.icon} />{next.title}{/if}
-			<img class="arrow" src={uiIconUrl('next')} alt="Next" />
-		</span>
-	</Button>
-</nav>
-
 <style>
 	:global(.status) {
 		margin: 24px auto;
@@ -152,21 +154,21 @@
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 12px;
-		margin-top: 28px;
+		gap: 8px;
+		margin: 0 0 12px;
 	}
 
 	.step {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		font-size: 26px;
+		gap: 8px;
+		font-size: 20px;
 	}
 
-	/* The game's green arrows, at 3x. */
+	/* IconPrev / IconNext, 16 px, drawn 28 px wide like the game's step buttons. */
 	.arrow {
-		width: 27px;
-		height: 39px;
+		width: 28px;
+		height: 28px;
 	}
 
 	.intro {

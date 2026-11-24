@@ -14,13 +14,25 @@
 
 	onMount(() => refreshCompletion(gameSlugs));
 
-	// Like the game's menus: a tick when the pointer moves onto a button.
-	const BUTTONS = '.ui-btn, .ui-icon-btn, .hotbar-slot, .quote';
+	// Like the game's menus: a tick (Menu_Tick) when the pointer moves onto a button.
+	const BUTTONS = '.ui-btn, .ui-icon-btn, .ui-field-box, .ui-field-icon, .hotbar-slot, .quote';
 	function onPointerOver(e: PointerEvent) {
 		if (e.pointerType !== 'mouse') return;
 		const button = (e.target as Element).closest(BUTTONS);
 		const from = (e.relatedTarget as Element | null)?.closest(BUTTONS);
 		if (button && button !== from && !button.matches(':disabled')) play('tick', 0.3);
+	}
+
+	// And on pressing one: a choice or category button ticks again (GroupOptionButton,
+	// UIColoredImageButton); a Back / Create style button or a name box opens (Menu_Open), or
+	// closes if it's marked data-sound="close" (Menu_Close).
+	function onPointerDown(e: PointerEvent) {
+		if (e.button !== 0) return;
+		const el = (e.target as Element).closest(BUTTONS);
+		if (!el || el.matches(':disabled')) return;
+		if (el.matches('.ui-btn.option, .ui-icon-btn, .ui-field-icon')) play('tick', 0.3);
+		else if (el.matches('.ui-btn.fat, .ui-field-box'))
+			play(el.getAttribute('data-sound') === 'close' ? 'close' : 'open', 0.3);
 	}
 
 	// Dev tools are only loaded in dev and on previews; production builds drop this import entirely.
@@ -34,7 +46,17 @@
 	let title = $derived(titles[page.url.pathname] ?? 'terraGauntlet');
 </script>
 
-<svelte:window onpointerover={onPointerOver} />
+<svelte:window onpointerover={onPointerOver} onpointerdown={onPointerDown} />
+
+<!-- GroupOptionButton's icon when not hovered or selected: times (137, 138, 156) x 0.7. -->
+<svg class="filters" aria-hidden="true">
+	<filter id="ui-dim" color-interpolation-filters="sRGB">
+		<feColorMatrix
+			type="matrix"
+			values="0.5373 0 0 0 0  0 0.5412 0 0 0  0 0 0.6118 0 0  0 0 0 0.698 0"
+		/>
+	</filter>
+</svg>
 
 <svelte:head>
 	<title>{title}</title>
@@ -66,6 +88,12 @@
 {/if}
 
 <style>
+	.filters {
+		position: absolute;
+		width: 0;
+		height: 0;
+	}
+
 	main {
 		padding: 8px 16px 0;
 		max-width: 1100px;

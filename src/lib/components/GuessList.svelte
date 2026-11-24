@@ -258,18 +258,23 @@
 		animation-delay: calc(var(--i) * 90ms);
 	}
 
-	.tile.match {
-		background: var(--match);
+	/* The game's white slot (Inventory_Back13), tinted like its loadout slots. */
+	.tile::before {
+		opacity: 1;
 	}
 
-	.tile.partial {
-		background: var(--partial);
+	.tile.match::before {
+		border-image-source: url('/ui/game/slot-match.png');
 	}
 
-	.tile.miss,
-	.tile.higher,
-	.tile.lower {
-		background: var(--miss);
+	.tile.partial::before {
+		border-image-source: url('/ui/game/slot-partial.png');
+	}
+
+	.tile.miss::before,
+	.tile.higher::before,
+	.tile.lower::before {
+		border-image-source: url('/ui/game/slot-miss.png');
 	}
 
 	.tile img {
@@ -335,7 +340,7 @@
 
 	.quote:hover,
 	.quote:focus-visible {
-		box-shadow: 0 0 0 2px var(--ui-hover-edge);
+		box-shadow: 0 0 0 2px var(--hover);
 		outline: none;
 	}
 

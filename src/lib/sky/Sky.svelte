@@ -111,16 +111,19 @@
 			};
 			const onMove = (e: PointerEvent) => {
 				if (!held) return;
-				scene.pointer = toGame(e);
-				// No text selection while dragging the sun.
-				document.documentElement.style.userSelect = scene.grabbing ? 'none' : '';
+				// Over the page's UI the mouse can't take hold of the sun (but keeps what it holds).
+				const overUi = !!(e.target as Element | null)?.closest?.(INTERACTIVE);
+				scene.pointer = overUi && !scene.grabbing ? null : toGame(e);
+				// Like the game's mouseInterface: while the sun or moon is held, the page's UI doesn't
+				// react to the mouse (no hovers, no clicks, no text selection).
+				document.documentElement.classList.toggle('sky-grabbing', scene.grabbing);
 				redraw();
 			};
 			const onUp = () => {
 				held = false;
 				scene.pointer = null;
 				scene.grabbing = false;
-				document.documentElement.style.userSelect = '';
+				document.documentElement.classList.remove('sky-grabbing');
 			};
 			window.addEventListener('pointerdown', onDown);
 			window.addEventListener('pointermove', onMove);
