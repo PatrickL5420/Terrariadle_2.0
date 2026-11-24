@@ -28,25 +28,28 @@
 		<CoinCounter />
 	</div>
 
-	<nav aria-label="Games">
-		<p class="held">{current?.title ?? ''}</p>
-		<div class="hotbar">
-			{#each games as game, i (game.slug)}
-				<a
-					class="slot hotbar-slot"
-					class:selected={current?.slug === game.slug}
-					class:framed={completion[game.slug] && current?.slug !== game.slug}
-					href={resolve('/[mode=mode]', { mode: game.slug })}
-					title="{game.title} ({(i + 1) % 10})"
-					aria-current={current?.slug === game.slug ? 'page' : undefined}
-				>
-					<span class="num">{(i + 1) % 10}</span>
-					<img src={imageUrl(game.icon)} alt={game.title} />
-					{#if completion[game.slug]}<span class="done">✓</span>{/if}
-				</a>
-			{/each}
-		</div>
-	</nav>
+	<!-- The home page lists every game itself, so the hotbar is only on the other pages. -->
+	{#if page.url.pathname !== '/'}
+		<nav aria-label="Games">
+			<p class="held">{current?.title ?? ''}</p>
+			<div class="hotbar">
+				{#each games as game, i (game.slug)}
+					<a
+						class="slot hotbar-slot"
+						class:selected={current?.slug === game.slug}
+						class:framed={completion[game.slug] && current?.slug !== game.slug}
+						href={resolve('/[mode=mode]', { mode: game.slug })}
+						title="{game.title} ({(i + 1) % 10})"
+						aria-current={current?.slug === game.slug ? 'page' : undefined}
+					>
+						<span class="num">{(i + 1) % 10}</span>
+						<img src={imageUrl(game.icon)} alt={game.title} />
+						{#if completion[game.slug]}<span class="done">✓</span>{/if}
+					</a>
+				{/each}
+			</div>
+		</nav>
+	{/if}
 </header>
 
 <style>

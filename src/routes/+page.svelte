@@ -34,7 +34,7 @@
 						<span class="pay" class:dim={!completion[slug]}>
 							<CoinText
 								text={coins(completion[slug] ? (scores[slug] ?? 0) : prize(slug))}
-								scale={2}
+								scale={1.5}
 							/>
 						</span>
 					</span>
@@ -45,9 +45,14 @@
 {/each}
 
 <style>
-	:global(.tier) {
+	/* Beats the panel's own heading margin (.ui-panel.has-heading in app.css). */
+	:global(.ui-panel.tier.has-heading) {
 		max-width: 640px;
-		margin: 40px auto 0;
+		margin: 72px auto 0;
+	}
+
+	:global(.ui-panel.tier:last-child) {
+		margin-bottom: 24px;
 	}
 
 	.games {
@@ -67,7 +72,7 @@
 	}
 
 	.pay {
-		font-size: 24px;
+		font-size: 20px;
 		white-space: nowrap;
 	}
 </style>
