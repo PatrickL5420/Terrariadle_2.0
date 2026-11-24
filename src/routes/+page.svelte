@@ -29,9 +29,14 @@
 					selected={completion[slug]}
 					href={resolve('/[mode=mode]', { mode: slug })}
 				>
-					{game.title}
-					<span class="pay" class:dim={!completion[slug]}>
-						<CoinText text={coins(completion[slug] ? (scores[slug] ?? 0) : prize(slug))} />
+					<span class="game">
+						{game.title}
+						<span class="pay" class:dim={!completion[slug]}>
+							<CoinText
+								text={coins(completion[slug] ? (scores[slug] ?? 0) : prize(slug))}
+								scale={2}
+							/>
+						</span>
 					</span>
 				</Button>
 			{/each}
@@ -51,8 +56,18 @@
 		gap: 12px;
 	}
 
+	/* Name on the left, its coins on the right. */
+	.game {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding-left: 6px;
+		text-align: left;
+	}
+
 	.pay {
-		display: block;
-		font-size: 15px;
+		font-size: 24px;
+		white-space: nowrap;
 	}
 </style>

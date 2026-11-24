@@ -3,7 +3,21 @@
  * a sound with several files plays a random one of them.
  */
 const SOUNDS = {
-	coin: [0, 1, 2, 3, 4].map((i) => `/sounds/coin-${i}.wav`)
+	/** A coin reaching the coin counter. */
+	coin: [0, 1, 2, 3, 4].map((i) => `/sounds/coin-${i}.mp3`),
+	/** Solving a game. */
+	achievement: ['/sounds/achievement.mp3'],
+	/** Answering a bonus question. */
+	research: ['/sounds/research.mp3'],
+	/** A wrong guess. */
+	hit: [0, 1, 2].map((i) => `/sounds/hit-${i}.mp3`),
+	/** Hovering a button, like the game's menus. */
+	tick: ['/sounds/menu-tick.mp3'],
+	/** Opening / closing something: hints, quotes. */
+	open: ['/sounds/menu-open.mp3'],
+	close: ['/sounds/menu-close.mp3'],
+	/** Revealing a clue word. */
+	grab: ['/sounds/grab.mp3']
 } satisfies Record<string, string[]>;
 
 export type SoundName = keyof typeof SOUNDS;

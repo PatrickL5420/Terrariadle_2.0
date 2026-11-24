@@ -12,6 +12,7 @@ import type { Entry, GameConfig } from '$lib/engine/types';
 import { getEntry } from '$lib/games';
 import { loadProgress, playerId, saveProgress, scores, type Progress } from '$lib/progress.svelte';
 import { dropCoins } from '$lib/purse.svelte';
+import { play } from '$lib/sound.svelte';
 
 /** Where winning coins burst out of: the answer in the result panel, or the bonus panel. */
 const SOLVED_FROM = '.result .slot';
@@ -69,8 +70,12 @@ export class GameSession {
 			if (p.finished || p.guesses.some((g) => g.id === id)) return;
 			const res = await checkGuess(this.game.slug, id, day);
 			p.guesses = [{ id, checks: res.checks, detail: res.detail }, ...p.guesses];
-			if (!res.correct) return;
+			if (!res.correct) {
+				play('hit', 0.35);
+				return;
+			}
 			p.finished = true;
+			play('achievement');
 			this.#save(SOLVED_FROM);
 			try {
 				const { position } = await solve(this.game.slug, id, day, playerId());
@@ -92,6 +97,7 @@ export class GameSession {
 			bonus.guesses = [{ id, checks: res.checks }, ...bonus.guesses];
 			bonus.finished = res.correct;
 			bonus.note = res.note;
+			play(res.correct ? 'research' : 'hit', res.correct ? 0.5 : 0.35);
 			if (res.correct) this.#save(BONUS_FROM);
 		});
 	}
@@ -104,6 +110,7 @@ export class GameSession {
 			this.clue = clue.text;
 			p.words = words;
 			p.clueDone = clue.done;
+			play('grab', 0.4);
 		});
 	}
 

@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import Panel from '$lib/ui/Panel.svelte';
 	import Button from '$lib/ui/Button.svelte';
+	import { uiIconUrl } from '$lib/ui/Icon.svelte';
 	import GuessList from '$lib/components/GuessList.svelte';
 	import GuessPanel from '$lib/components/GuessPanel.svelte';
 	import ResultPanel from '$lib/components/ResultPanel.svelte';
@@ -121,17 +122,23 @@
 
 <nav class="walk" aria-label="Gauntlet">
 	{#if prev}
-		<Button icon="prev" href={resolve('/[mode=mode]', { mode: prev.slug })}
-			>Back: {prev.title}</Button
-		>
+		<Button size="lg" href={resolve('/[mode=mode]', { mode: prev.slug })} title="Back">
+			<span class="step">
+				<img class="arrow" src={uiIconUrl('prev')} alt="Back" />
+				<img class="game-icon" src={imageUrl(prev.icon)} alt="" />{prev.title}
+			</span>
+		</Button>
 	{/if}
-	{#if next}
-		<Button icon="next" href={resolve('/[mode=mode]', { mode: next.slug })}
-			>Next: {next.title}</Button
-		>
-	{:else}
-		<Button icon="next" href={resolve('/')}>Finish</Button>
-	{/if}
+	<Button
+		size="lg"
+		href={next ? resolve('/[mode=mode]', { mode: next.slug }) : resolve('/')}
+		title="Next"
+	>
+		<span class="step">
+			{#if next}<img class="game-icon" src={imageUrl(next.icon)} alt="" />{next.title}{/if}
+			<img class="arrow" src={uiIconUrl('next')} alt="Next" />
+		</span>
+	</Button>
 </nav>
 
 <style>
@@ -146,6 +153,24 @@
 		justify-content: center;
 		gap: 12px;
 		margin-top: 28px;
+	}
+
+	.step {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: 26px;
+	}
+
+	/* The game's green arrows, at 3x. */
+	.arrow {
+		width: 27px;
+		height: 39px;
+	}
+
+	.game-icon {
+		max-width: 40px;
+		max-height: 40px;
 	}
 
 	.intro {

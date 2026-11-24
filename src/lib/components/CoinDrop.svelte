@@ -9,9 +9,14 @@
 	 * the ground (the bottom of the screen), bounce and lie there spinning. Hovering (or tapping)
 	 * one picks it up; the rest are picked up by themselves after a few seconds, each at its own
 	 * random moment. A picked-up coin flies to its slot in the coin counter.
+	 *
+	 * Like the game's dropped coins they glow and give off sparkles: the coin dust sprites
+	 * (static/ui/dust/, dust 244-247), each a random one of three frames, drifting and shrinking.
 	 */
 	const GRAVITY = 1800; // px/s²
 	const SCALE = 2; // the coin sprites are drawn at 2x, like the game's items
+	const DUST: Record<Coin, number> = { copper: 244, silver: 245, gold: 246, platinum: 247 };
+	const SPARKLES_PER_SECOND = 5;
 	const SIZE: Record<Coin, [number, number]> = {
 		copper: [12, 12],
 		silver: [12, 14],
@@ -38,7 +43,21 @@
 		collectAt: number;
 	}
 
+	interface Sparkle {
+		coin: Coin;
+		frame: number;
+		x: number;
+		y: number;
+		vx: number;
+		vy: number;
+		life: number;
+		max: number;
+	}
+
 	let sprites = $state<Sprite[]>([]);
+	let sparkles: Sparkle[] = [];
+	let canvas: HTMLCanvasElement;
+	const dustImages = {} as Record<Coin, HTMLImageElement>;
 	/** Physics for each sprite, updated every frame (not reactive: the frame loop moves elements). */
 	const motion: Record<number, Motion> = {};
 	const elements: Record<number, HTMLImageElement> = {};
@@ -78,6 +97,11 @@
 				count: stack.count,
 				start: `translate(${cx - w / 2}px, ${cy - h / 2}px)`
 			});
+		}
+		for (const coin of Object.keys(DUST) as Coin[]) {
+			if (dustImages[coin]) continue;
+			dustImages[coin] = new Image();
+			dustImages[coin].src = `/ui/dust/d${DUST[coin]}.png`;
 		}
 		if (!raf) {
 			last = now;
@@ -135,8 +159,55 @@
 			}
 			const el = elements[sprite.id];
 			if (el) el.style.transform = `translate(${m.x}px, ${m.y}px)`;
+			if (Math.random() < SPARKLES_PER_SECOND * dt) sparkle(sprite.coin, m);
 		}
-		raf = sprites.length ? requestAnimationFrame(frame) : 0;
+		drawSparkles(dt);
+		raf = sprites.length || sparkles.length ? requestAnimationFrame(frame) : 0;
+	}
+
+	function sparkle(coin: Coin, m: Motion) {
+		const max = 0.4 + Math.random() * 0.4;
+		sparkles.push({
+			coin,
+			frame: Math.floor(Math.random() * 3),
+			x: m.x + Math.random() * m.w,
+			y: m.y + Math.random() * m.h,
+			vx: (Math.random() - 0.5) * 30,
+			vy: -10 - Math.random() * 25,
+			life: max,
+			max
+		});
+	}
+
+	function drawSparkles(dt: number) {
+		const dpr = devicePixelRatio || 1;
+		if (canvas.width !== Math.round(innerWidth * dpr)) canvas.width = Math.round(innerWidth * dpr);
+		if (canvas.height !== Math.round(innerHeight * dpr))
+			canvas.height = Math.round(innerHeight * dpr);
+		const ctx = canvas.getContext('2d')!;
+		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		ctx.imageSmoothingEnabled = false;
+		ctx.clearRect(0, 0, innerWidth, innerHeight);
+		sparkles = sparkles.filter((sp) => (sp.life -= dt) > 0);
+		for (const sp of sparkles) {
+			sp.x += sp.vx * dt;
+			sp.y += sp.vy * dt;
+			const t = sp.life / sp.max; // shrinks and fades, like the game's dust
+			const size = 10 * SCALE * (0.4 + 0.6 * t);
+			ctx.globalAlpha = Math.min(1, t * 1.5);
+			ctx.drawImage(
+				dustImages[sp.coin],
+				0,
+				sp.frame * 10,
+				10,
+				10,
+				sp.x - size / 2,
+				sp.y - size / 2,
+				size,
+				size
+			);
+		}
+		ctx.globalAlpha = 1;
 	}
 
 	function arrive(sprite: Sprite) {
@@ -149,9 +220,11 @@
 </script>
 
 <div class="drop" aria-hidden="true">
+	<canvas bind:this={canvas}></canvas>
 	{#each sprites as sprite (sprite.id)}
 		<img
 			bind:this={elements[sprite.id]}
+			class={sprite.coin}
 			src="/ui/coins/{sprite.coin}.gif"
 			alt=""
 			width={SIZE[sprite.coin][0] * SCALE}
@@ -171,6 +244,13 @@
 		pointer-events: none;
 	}
 
+	canvas {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
+
 	img {
 		position: absolute;
 		left: 0;
@@ -179,5 +259,22 @@
 		cursor: pointer;
 		image-rendering: pixelated;
 		will-change: transform;
+	}
+
+	/* Dropped coins give off light in the game. */
+	.copper {
+		filter: drop-shadow(0 0 4px rgba(255, 150, 80, 0.7));
+	}
+
+	.silver {
+		filter: drop-shadow(0 0 4px rgba(220, 230, 255, 0.7));
+	}
+
+	.gold {
+		filter: drop-shadow(0 0 5px rgba(255, 220, 90, 0.8));
+	}
+
+	.platinum {
+		filter: drop-shadow(0 0 5px rgba(225, 225, 255, 0.8));
 	}
 </style>
