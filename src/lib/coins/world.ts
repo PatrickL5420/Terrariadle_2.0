@@ -26,8 +26,8 @@ export const PLAYER_SIZE: [number, number] = [20, 42];
 const GRAB_RANGE = 42;
 const GRAB_SPEED = 0.45; // Player.itemGrabSpeed
 const GRAB_SPEED_MAX = 4; // Player.itemGrabSpeedMax
-/** The most coins one drop spreads into. */
-const MAX_COINS = 400;
+/** The biggest stack a drop is split into. */
+const STACK_SIZE = 5;
 
 /** UnifiedRandom.Next(max) / Next(min, max). */
 export type Rand = (min: number, max?: number) => number;
@@ -178,22 +178,18 @@ export class CoinWorld {
 	) {}
 
 	/**
-	 * Item.NewItem at the centre of `from`. Unlike the game, every stack is dropped as single
-	 * coins (so 7 gold is 7 coins), up to MAX_COINS a drop; past that, the rest stay stacked.
+	 * Item.NewItem at the centre of `from`. Unlike the game, stacks are dropped in coins of
+	 * at most STACK_SIZE (37 silver is seven coins of 5 and one of 2).
 	 */
 	drop(stacks: { coin: Coin; count: number }[], cx: number, cy: number, autoCollect: () => number) {
 		const r = this.rand;
-		let room = MAX_COINS;
-		const singles = stacks.flatMap((s) => {
-			const n = Math.max(0, Math.min(s.count, room));
-			room -= n;
-			if (n === s.count) return Array.from({ length: n }, () => ({ coin: s.coin, count: 1 }));
-			// Out of room: the rest of this stack (at least one coin's worth) stays together.
-			const out = Array.from({ length: Math.max(0, n - 1) }, () => ({ coin: s.coin, count: 1 }));
-			out.push({ coin: s.coin, count: s.count - Math.max(0, n - 1) });
-			return out;
-		});
-		for (const s of singles) {
+		const pieces = stacks.flatMap((s) =>
+			Array.from({ length: Math.ceil(s.count / STACK_SIZE) }, (_, i) => ({
+				coin: s.coin,
+				count: Math.min(STACK_SIZE, s.count - i * STACK_SIZE)
+			}))
+		);
+		for (const s of pieces) {
 			const [w, h] = HITBOX[s.coin];
 			this.coins.push({
 				coin: s.coin,

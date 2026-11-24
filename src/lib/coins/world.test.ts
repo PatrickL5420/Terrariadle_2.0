@@ -50,11 +50,11 @@ describe('a dropped coin (WorldItem.UpdateItem)', () => {
 		expect(c.vx).toBe(0);
 	});
 
-	it('drops every stack as single coins (unlike the game)', () => {
+	it('drops stacks in coins of 5 at most (unlike the game)', () => {
 		const w = world();
 		w.drop(
 			[
-				{ coin: 'gold', count: 7 },
+				{ coin: 'silver', count: 37 },
 				{ coin: 'copper', count: 3 }
 			],
 			200,
@@ -62,24 +62,10 @@ describe('a dropped coin (WorldItem.UpdateItem)', () => {
 			() => 1e9
 		);
 		expect(w.coins.map((c) => `${c.stack} ${c.coin}`)).toEqual([
-			...Array(7).fill('1 gold'),
-			...Array(3).fill('1 copper')
+			...Array(7).fill('5 silver'),
+			'2 silver',
+			'3 copper'
 		]);
-	});
-
-	it('keeps a huge drop to 400 coins, the rest stacked', () => {
-		const w = world();
-		w.drop(
-			[
-				{ coin: 'silver', count: 99 },
-				{ coin: 'copper', count: 999 }
-			],
-			200,
-			100,
-			() => 1e9
-		);
-		expect(w.coins).toHaveLength(400);
-		expect(w.coins.reduce((sum, c) => sum + c.stack, 0)).toBe(99 + 999);
 	});
 
 	it('never merges with other stacks (unlike the game)', () => {
