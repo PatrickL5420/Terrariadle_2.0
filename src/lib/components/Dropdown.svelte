@@ -80,24 +80,28 @@
 	/>
 
 	{#if input}
-		<div class="results tooltip-box" role="listbox">
-			{#each filtered as item, i (item.id)}
-				<button
-					class="result"
-					class:selected={i === dropdownIndex}
-					role="option"
-					aria-selected={i === dropdownIndex}
-					bind:this={itemElements[i]}
-					onclick={() => pick(item.id)}
-				>
-					<span class="slot mini">
-						{#if item.image}<img src={imageUrl(item.image)} alt="" loading="lazy" />{/if}
-					</span>
-					<span>{item.name}</span>
-				</button>
-			{:else}
-				<span class="none dim">No results...</span>
-			{/each}
+		<!-- The box stays put; the list inside it scrolls (the box's texture is a layer of the box,
+		     so a scrolling box would scroll its own background away). -->
+		<div class="results tooltip-box">
+			<div class="list" role="listbox">
+				{#each filtered as item, i (item.id)}
+					<button
+						class="result"
+						class:selected={i === dropdownIndex}
+						role="option"
+						aria-selected={i === dropdownIndex}
+						bind:this={itemElements[i]}
+						onclick={() => pick(item.id)}
+					>
+						<span class="slot mini">
+							{#if item.image}<img src={imageUrl(item.image)} alt="" loading="lazy" />{/if}
+						</span>
+						<span>{item.name}</span>
+					</button>
+				{:else}
+					<span class="none dim">No results...</span>
+				{/each}
+			</div>
 		</div>
 	{/if}
 </div>
@@ -116,9 +120,12 @@
 		top: calc(100% + 6px);
 		left: 0;
 		right: 0;
-		max-height: 300px;
-		overflow-y: auto;
 		padding: 4px;
+	}
+
+	.list {
+		max-height: 292px;
+		overflow-y: auto;
 		scrollbar-width: thin;
 	}
 
