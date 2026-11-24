@@ -13,6 +13,7 @@
 		saveProgress
 	} from '$lib/progress.svelte';
 	import { onMount } from 'svelte';
+	import { secondsSinceMidnight } from '$lib/engine/daily';
 	import { devFlags } from './flags.svelte';
 
 	/**
@@ -145,6 +146,10 @@
 			saveProgress(selected, progress);
 		});
 
+	/** 75600 -> "21:00" */
+	const clock = (seconds: number) =>
+		`${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}`;
+
 	async function runTask(task: string) {
 		busy = task;
 		output = `Running ${task}…`;
@@ -253,6 +258,24 @@
 			</div>
 			<div class="pick">
 				<Dropdown itemList={entries} itemType={game.noun} selectItem={(id) => reroll(id)} />
+			</div>
+
+			<h4>Sky</h4>
+			<label class="row sky-time">
+				<input
+					type="range"
+					min="0"
+					max="86340"
+					step="60"
+					value={devFlags.skyTime ?? Math.floor(secondsSinceMidnight() / 60) * 60}
+					oninput={(e) => (devFlags.skyTime = Number(e.currentTarget.value))}
+				/>
+				<span class="clock">{devFlags.skyTime === null ? 'Live' : clock(devFlags.skyTime)}</span>
+			</label>
+			<div class="buttons">
+				<button disabled={devFlags.skyTime === null} onclick={() => (devFlags.skyTime = null)}
+					>⟲ Live</button
+				>
 			</div>
 
 			<h4>Time travel</h4>
@@ -406,6 +429,15 @@
 		margin: 12px 0 4px;
 		font-size: 13px;
 		color: #aaa;
+	}
+
+	.sky-time input {
+		flex: 1;
+	}
+
+	.clock {
+		min-width: 3.2em;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.buttons {

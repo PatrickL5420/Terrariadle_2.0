@@ -71,25 +71,12 @@
 		-1px -1px 0 #000;
 }
 
-/* Night sky, like the game's main menu: a gradient with two layers of pixel stars. */
+/* The background is the game's day/night sky, drawn by src/lib/sky/Sky.svelte. */
 body {
 	margin: 0;
 	min-height: 100vh;
 	text-align: center;
 	background-color: #0b1030;
-	background-image:
-		radial-gradient(1px 1px at 20px 30px, #fff 50%, transparent 51%),
-		radial-gradient(1px 1px at 130px 80px, #cfd8ff 50%, transparent 51%),
-		radial-gradient(2px 2px at 70px 140px, #ffffffcc 50%, transparent 51%),
-		radial-gradient(1px 1px at 180px 170px, #fff 50%, transparent 51%),
-		linear-gradient(180deg, #050816 0%, #0d1540 55%, #1b2a6b 100%);
-	background-size:
-		200px 200px,
-		200px 200px,
-		200px 200px,
-		200px 200px,
-		100% 100%;
-	background-attachment: fixed;
 }
 
 a {
