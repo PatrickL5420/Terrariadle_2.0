@@ -499,3 +499,10 @@ img {
 .dim {
 	color: var(--text-dim);
 }
+
+/* Dragging the sun or moon (src/lib/sky/Sky.svelte): the UI ignores the mouse until it's let go,
+   like the game's mouseInterface. */
+.sky-grabbing body * {
+	pointer-events: none !important;
+	user-select: none !important;
+}
