@@ -36,6 +36,13 @@ describe('Enemydle data', () => {
 		expect(byName('Skeleton').image).not.toMatch(/Headache/);
 	});
 
+	it("lists the wiki's environments, split into separate values", () => {
+		expect(byName('Hornet').environment).toEqual(['Underground Jungle']);
+		expect(byName('Zombie').environment).toEqual(['Surface+Night']);
+		expect(byName('Chattering Teeth Bomb').environment).toEqual(['None']);
+		for (const e of enemyGame.entries) expect(e.environment.length, e.name).toBeGreaterThan(0);
+	});
+
 	it('flags Lifeform Analyzer rares', () => {
 		expect(byName('Mimic').rare).toBe(true);
 		expect(byName('Zombie').rare).toBe(false);

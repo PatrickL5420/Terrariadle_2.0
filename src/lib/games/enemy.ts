@@ -10,6 +10,8 @@ export interface Enemy extends Entry {
 	/** Wiki page, when it isn't the name (e.g. "Ghost (enemy)"). */
 	page?: string;
 	hardmode: boolean;
+	/** The wiki's environment list, e.g. ["Jungle", "Underground Jungle"]; ["None"] if it has none. */
+	environment: string[];
 	hp: number;
 	attack: number;
 	ai: string;
@@ -39,6 +41,7 @@ export const enemyGame: GameConfig<Enemy> = {
 			kind: 'exact',
 			value: (e) => (e.hardmode ? 'Hardmode' : 'Pre-Hardmode')
 		},
+		{ key: 'environment', label: 'Environment', kind: 'set', value: (e) => e.environment },
 		{ key: 'hp', label: 'HP', kind: 'number', value: (e) => e.hp },
 		{ key: 'attack', label: 'Attack', kind: 'number', value: (e) => e.attack },
 		{ key: 'ai', label: 'AI Type', kind: 'exact', value: (e) => e.ai },
