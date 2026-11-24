@@ -3,9 +3,7 @@
  * a sound with several files plays a random one of them.
  */
 const SOUNDS = {
-	/** A dropped coin bouncing on the ground. */
-	tink: [0, 1, 2].map((i) => `/sounds/tink-${i}.mp3`),
-	/** A coin reaching the coin counter. */
+	/** A coin bouncing on the ground, and reaching the coin counter. */
 	coin: [0, 1, 2, 3, 4].map((i) => `/sounds/coin-${i}.mp3`),
 	/** Solving a game. */
 	achievement: ['/sounds/achievement.mp3'],

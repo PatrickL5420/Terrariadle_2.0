@@ -63,7 +63,7 @@
 	const elements: Record<number, HTMLImageElement> = {};
 	let nextId = 0;
 	/** When a bounce last made a sound: many coins land at once, so it's rate-limited. */
-	let lastTink = 0;
+	let lastBounce = 0;
 	let raf = 0;
 	let last = 0;
 
@@ -156,9 +156,9 @@
 				if (m.y >= floor - m.h) {
 					m.y = floor - m.h;
 					// A bounce taps the ground: louder the harder it lands.
-					if (m.vy > 150 && now - lastTink > 60) {
-						lastTink = now;
-						play('tink', Math.min(0.35, m.vy / 3000));
+					if (m.vy > 150 && now - lastBounce > 60) {
+						lastBounce = now;
+						play('coin', Math.min(0.35, m.vy / 3000));
 					}
 					m.vy = m.vy > 150 ? -m.vy * 0.35 : 0;
 					m.vx *= Math.exp(-6 * dt);
