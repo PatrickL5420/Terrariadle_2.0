@@ -1,248 +1,188 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { devFlags } from '$lib/dev/flags.svelte';
-	import { clockToGameTime, gameTime, moonPhase, skyColors, sunOrMoon, type RGB } from './clock';
+	import { secondsSinceMidnight } from '$lib/engine/daily';
+	import {
+		clockToGameTime,
+		forestStyle,
+		moonPhase,
+		moonType,
+		skyColors,
+		type GameTime
+	} from './clock';
+	import { SpriteRenderer } from './gl';
+	import { loadTextures, SkyScene, type Moment } from './scene';
 
 	/**
-	 * The page background: Terraria's main-menu sky, on Sydney time (see ./clock.ts). Drawn on a
-	 * canvas behind everything, with the game's textures from the wiki (static/sky/).
+	 * The page background: Terraria 1.4.5's main-menu sky on Sydney time (see ./clock.ts and
+	 * ./scene.ts), drawn with the game's own textures and shaders (static/sky/).
 	 *
-	 * Layers, back to front: sky gradient, stars, sun or moon, clouds, then the forest background
-	 * (mountains 7 and 8, tree lines 9, 10 and 11). The sky, clouds and background are multiplied
-	 * by the game's sky colour, like the game does.
+	 * The game's positions are for its screen in pixels; this draws a screen 1080 game pixels
+	 * tall (as wide as the page's shape needs) and scales it to fit, so it always looks like the
+	 * menu at 1080p. Without WebGL2 it's just the sky's colour.
 	 */
+	const GAME_HEIGHT = 1080;
+	const STEP_MS = 1000 / 60; // the game updates 60 times a second
+	const DAWN = 4.5 * 3600;
+	const DUSK = 19.5 * 3600;
+	/** Things the mouse can use, so pressing on them doesn't grab the sun. */
+	const INTERACTIVE =
+		'a, button, input, select, textarea, label, summary, [role="button"], [contenteditable], .ui-panel, dialog';
 
-	/** The sky texture at noon (untinted), sampled from the game: top, and at the horizon. */
-	const SKY_TOP: RGB = [53, 43, 243];
-	const SKY_HORIZON: RGB = [105, 145, 248];
-	const HORIZON = 0.42;
-
-	/** Forest background layers: where their top sits (fraction of the screen) and drift speed. */
-	const LAYERS = [
-		{ file: 'bg-7', top: 0.3, speed: 2 },
-		{ file: 'bg-8', top: 0.38, speed: 4 },
-		{ file: 'bg-9', top: 0.52, speed: 8 },
-		{ file: 'bg-10', top: 0.6, speed: 13 },
-		{ file: 'bg-11', top: 0.68, speed: 20 }
-	];
-	const CLOUD_FILES = 18;
-	const CLOUD_COUNT = 9;
-	const FRAME_MS = 33; // ~30 fps is plenty for slow drifting
+	/** How far the sun or moon has been dragged from the real time, in seconds (this visit). */
+	let dragOffset = 0;
 
 	let canvas: HTMLCanvasElement;
-	/** Draws a still frame now (reduced motion only; otherwise every frame is drawn anyway). */
+	/** Draws a frame now (for a still sky; a moving one draws every frame anyway). */
 	let redraw = () => {};
 
 	// A still sky redraws as soon as the dev panel's time slider moves.
 	$effect(() => {
 		void devFlags.skyTime;
+		void devFlags.skyForest;
 		redraw();
 	});
 
-	const load = (src: string) =>
-		new Promise<HTMLImageElement>((resolve, reject) => {
-			const img = new Image();
-			img.onload = () => resolve(img);
-			img.onerror = reject;
-			img.src = src;
-		});
-
-	/** A copy of an image multiplied by a colour, cached until the colour changes. */
-	const tints = new WeakMap<HTMLImageElement, { key: string; canvas: HTMLCanvasElement }>();
-	function tinted(img: HTMLImageElement, rgb: RGB): HTMLCanvasElement {
-		const key = rgb.join();
-		const cached = tints.get(img);
-		if (cached?.key === key) return cached.canvas;
-		const c = cached?.canvas ?? document.createElement('canvas');
-		c.width = img.width;
-		c.height = img.height;
-		const ctx = c.getContext('2d')!;
-		ctx.globalCompositeOperation = 'source-over';
-		ctx.clearRect(0, 0, c.width, c.height);
-		ctx.drawImage(img, 0, 0);
-		ctx.globalCompositeOperation = 'multiply';
-		ctx.fillStyle = `rgb(${key})`;
-		ctx.fillRect(0, 0, c.width, c.height);
-		ctx.globalCompositeOperation = 'destination-in'; // keep the image's own transparency
-		ctx.drawImage(img, 0, 0);
-		tints.set(img, { key, canvas: c });
-		return c;
-	}
-
-	const times = (a: RGB, b: RGB): string =>
-		`rgb(${a.map((v, i) => Math.round((v * b[i]) / 255)).join()})`;
-
 	onMount(() => {
-		const ctx = canvas.getContext('2d')!;
 		const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 		let stopped = false;
-		let timer: ReturnType<typeof setInterval> | undefined;
 		let raf = 0;
-		let onResize = () => {};
-		redraw = () => onResize();
+		let timer: ReturnType<typeof setInterval> | undefined;
+		let removeListeners = () => {};
 
-		// Dev tools: the dev panel's sky slider, or ?skytime=21:30, shows another time of day.
+		// Dev tools: the dev panel's sky controls, or ?skytime=21:30 and ?skyforest=7, show another
+		// time of day or forest style.
 		if (__DEV_TOOLS__) {
 			const m = new URLSearchParams(location.search).get('skytime')?.match(/^(\d{1,2}):(\d{2})$/);
 			if (m) devFlags.skyTime = Number(m[1]) * 3600 + Number(m[2]) * 60;
+			const forest = new URLSearchParams(location.search).get('skyforest');
+			if (forest) devFlags.skyForest = Number(forest);
 		}
-		const timeNow = (now: Date) =>
-			__DEV_TOOLS__ && devFlags.skyTime !== null
-				? clockToGameTime(devFlags.skyTime)
-				: gameTime(now);
+		const devTime = () => __DEV_TOOLS__ && devFlags.skyTime !== null;
+		const moment = (): Moment => {
+			const now = new Date();
+			const seconds = devTime()
+				? devFlags.skyTime!
+				: (secondsSinceMidnight(now) + dragOffset + 86_400) % 86_400;
+			return {
+				time: clockToGameTime(seconds),
+				moonPhase: moonPhase(now),
+				moonType: moonType(now),
+				forest: __DEV_TOOLS__ && devFlags.skyForest !== null ? devFlags.skyForest : forestStyle(now)
+			};
+		};
+		/** Dragging the sun or moon moves the time (the dev panel's, or this visit's). */
+		const dragTo = (t: GameTime) => {
+			const seconds = Math.round(t.dayTime ? DAWN + t.time : (DUSK + t.time) % 86_400);
+			if (devTime()) devFlags.skyTime = seconds;
+			else dragOffset = seconds - secondsSinceMidnight();
+		};
 
-		// Stars and clouds get fixed random places for this visit.
-		const stars = Array.from({ length: 140 }, () => ({
-			x: Math.random(),
-			y: Math.random() * 0.7,
-			big: Math.random() < 0.2,
-			phase: Math.random() * Math.PI * 2,
-			speed: 0.5 + Math.random() * 1.5
-		}));
-		const clouds = Array.from({ length: CLOUD_COUNT }, () => ({
-			file: Math.floor(Math.random() * CLOUD_FILES),
-			x: Math.random(),
-			y: 0.02 + Math.random() * 0.3,
-			speed: 4 + Math.random() * 10,
-			scale: 0.7 + Math.random() * 0.5
-		}));
+		const gl = canvas.getContext('webgl2', { alpha: false, antialias: false });
+		if (!gl) {
+			// No WebGL2: the sky's colour (the sky texture's middle, tinted) is enough.
+			const paint = () => {
+				const [r, g, b] = skyColors(moment().time, moonPhase()).sky;
+				canvas.style.background = `rgb(${(r * 100) >> 8}, ${(g * 135) >> 8}, ${(b * 248) >> 8})`;
+			};
+			redraw = paint;
+			paint();
+			timer = setInterval(paint, 60_000);
+			return () => clearInterval(timer);
+		}
 
-		Promise.all([
-			Promise.all(LAYERS.map((l) => load(`/sky/${l.file}.png`))),
-			Promise.all(Array.from({ length: CLOUD_FILES }, (_, i) => load(`/sky/cloud-${i}.png`))),
-			load('/sky/sun.png'),
-			Promise.all(Array.from({ length: 8 }, (_, i) => load(`/sky/moon-${i}.png`)))
-		]).then(([layerImgs, cloudImgs, sunImg, moonImgs]) => {
+		const renderer = new SpriteRenderer(gl);
+		loadTextures(renderer).then((textures) => {
 			if (stopped) return;
-			let last = 0;
-			let lastCloudMove = performance.now();
+			const scene = new SkyScene(renderer, textures);
+			scene.onDrag = dragTo;
 
-			function draw(ms: number) {
+			// The mouse, held down on the sky (not on the page's buttons or panels).
+			let held = false;
+			const toGame = (e: PointerEvent) => ({
+				x: (e.clientX / window.innerWidth) * scene.W,
+				y: (e.clientY / window.innerHeight) * scene.H
+			});
+			const onDown = (e: PointerEvent) => {
+				if (e.button !== 0 || (e.target as Element | null)?.closest?.(INTERACTIVE)) return;
+				held = true;
+				scene.pointer = toGame(e);
+				redraw();
+			};
+			const onMove = (e: PointerEvent) => {
+				if (!held) return;
+				scene.pointer = toGame(e);
+				// No text selection while dragging the sun.
+				document.documentElement.style.userSelect = scene.grabbing ? 'none' : '';
+				redraw();
+			};
+			const onUp = () => {
+				held = false;
+				scene.pointer = null;
+				scene.grabbing = false;
+				document.documentElement.style.userSelect = '';
+			};
+			window.addEventListener('pointerdown', onDown);
+			window.addEventListener('pointermove', onMove);
+			window.addEventListener('pointerup', onUp);
+			window.addEventListener('pointercancel', onUp);
+			removeListeners = () => {
+				window.removeEventListener('pointerdown', onDown);
+				window.removeEventListener('pointermove', onMove);
+				window.removeEventListener('pointerup', onUp);
+				window.removeEventListener('pointercancel', onUp);
+			};
+
+			const frame = () => {
 				const dpr = window.devicePixelRatio || 1;
-				const w = window.innerWidth;
-				const h = window.innerHeight;
-				if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-					canvas.width = Math.round(w * dpr);
-					canvas.height = Math.round(h * dpr);
+				const w = Math.round(window.innerWidth * dpr);
+				const h = Math.round(window.innerHeight * dpr);
+				if (canvas.width !== w || canvas.height !== h) {
+					canvas.width = w;
+					canvas.height = h;
 				}
-				ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-				ctx.imageSmoothingEnabled = false;
-
-				const now = new Date();
-				const time = timeNow(now);
-				const colors = skyColors(time);
-				const sky = colors.sky;
-				// Game pixels: the game's positions are for a 1080 px tall screen.
-				const k = h / 1080;
-				const s = Math.max(0.5, h / 864); // background texture scale (1.25 at 1080p)
-
-				// Sky: the sky texture (a vertical gradient) times the sky colour.
-				const grad = ctx.createLinearGradient(0, 0, 0, h);
-				grad.addColorStop(0, times(SKY_TOP, sky));
-				grad.addColorStop(HORIZON, times(SKY_HORIZON, sky));
-				grad.addColorStop(1, times([160, 230, 252], sky));
-				ctx.fillStyle = grad;
-				ctx.fillRect(0, 0, w, h);
-
-				// Stars fade in as the sky darkens.
-				const brightness = (sky[0] + sky[1] + sky[2]) / 3;
-				const starAlpha = Math.max(0, Math.min(1, (90 - brightness) / 70));
-				if (starAlpha > 0) {
-					for (const st of stars) {
-						const twinkle = reduceMotion
-							? 1
-							: 0.6 + 0.4 * Math.sin((ms / 1000) * st.speed + st.phase);
-						ctx.globalAlpha = starAlpha * twinkle;
-						ctx.fillStyle = '#fff';
-						const x = Math.round(st.x * w);
-						const y = Math.round(st.y * h);
-						ctx.fillRect(x, y, 2, 2);
-						if (st.big) {
-							ctx.fillRect(x - 2, y, 6, 2);
-							ctx.fillRect(x, y - 2, 2, 6);
-						}
-					}
-					ctx.globalAlpha = 1;
-				}
-
-				// Sun by day, moon by night (in the real moon phase).
-				const img = time.dayTime ? sunImg : moonImgs[moonPhase(now)];
-				const body = sunOrMoon(time, w / k, img.width);
-				const size = img.width * body.scale * k;
-				ctx.save();
-				ctx.translate(body.x * k, body.y * k);
-				ctx.rotate(body.rotation);
-				ctx.drawImage(
-					tinted(img, time.dayTime ? colors.sun : colors.moon),
-					-size / 2,
-					-size / 2,
-					size,
-					size
-				);
-				ctx.restore();
-
-				// Clouds drift right and wrap around.
-				const dt = (ms - lastCloudMove) / 1000;
-				lastCloudMove = ms;
-				for (const cl of clouds) {
-					const cimg = cloudImgs[cl.file];
-					const cw = cimg.width * cl.scale * s;
-					if (!reduceMotion) cl.x += (cl.speed * dt) / (w + cw);
-					if (cl.x > 1) cl.x -= 1;
-					const x = cl.x * (w + cw) - cw;
-					ctx.drawImage(tinted(cimg, sky), x, cl.y * h, cw, cimg.height * cl.scale * s);
-				}
-
-				// Forest background, tiled sideways, drifting slowly like the main menu.
-				LAYERS.forEach((layer, i) => {
-					const limg = layerImgs[i];
-					const tex = tinted(limg, sky);
-					const lw = limg.width * s;
-					const lh = limg.height * s;
-					const y = Math.round(layer.top * h);
-					const offset = reduceMotion ? 0 : ((ms / 1000) * layer.speed) % lw;
-					for (let x = -offset; x < w; x += lw) {
-						ctx.drawImage(tex, Math.floor(x), y, Math.ceil(lw) + 1, lh);
-						// Below the texture, carry on with its bottom row.
-						if (y + lh < h)
-							ctx.drawImage(
-								tex,
-								0,
-								limg.height - 1,
-								limg.width,
-								1,
-								Math.floor(x),
-								y + lh,
-								Math.ceil(lw) + 1,
-								h - y - lh + 1
-							);
-					}
-				});
-			}
+				scene.resize(Math.max(1, Math.round((w / h) * GAME_HEIGHT)), GAME_HEIGHT);
+				const m = moment();
+				scene.loadStyle(m.forest)?.then(() => redraw());
+				return m;
+			};
 
 			if (reduceMotion) {
 				// No animation: a still frame, redrawn each minute and on resize.
-				onResize = () => draw(0);
-				draw(0);
-				timer = setInterval(onResize, 60_000);
-				window.addEventListener('resize', onResize);
-			} else {
-				const frame = (ms: number) => {
-					if (stopped) return;
-					raf = requestAnimationFrame(frame);
-					if (ms - last < FRAME_MS) return;
-					last = ms;
-					draw(ms);
+				redraw = () => {
+					const m = frame();
+					scene.draw(m, canvas.width, canvas.height);
 				};
-				raf = requestAnimationFrame(frame);
+				redraw();
+				timer = setInterval(redraw, 60_000);
+				window.addEventListener('resize', redraw);
+				return;
 			}
+
+			let last = performance.now();
+			let pending = 0;
+			const loop = (ms: number) => {
+				if (stopped) return;
+				raf = requestAnimationFrame(loop);
+				const m = frame();
+				// Catch up in 60ths of a second, but don't fast-forward after the tab was hidden.
+				pending = Math.min(pending + ms - last, STEP_MS * 4);
+				last = ms;
+				while (pending >= STEP_MS) {
+					scene.update(m.time);
+					pending -= STEP_MS;
+				}
+				scene.draw(m, canvas.width, canvas.height);
+			};
+			raf = requestAnimationFrame(loop);
 		});
 
 		return () => {
 			stopped = true;
 			cancelAnimationFrame(raf);
 			clearInterval(timer);
-			window.removeEventListener('resize', onResize);
+			window.removeEventListener('resize', redraw);
+			removeListeners();
 		};
 	});
 </script>
