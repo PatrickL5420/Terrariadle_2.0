@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import Panel from '$lib/ui/Panel.svelte';
 	import Button from '$lib/ui/Button.svelte';
+	import GameIcon from '$lib/ui/GameIcon.svelte';
 	import { uiIconUrl } from '$lib/ui/Icon.svelte';
 	import GuessList from '$lib/components/GuessList.svelte';
 	import GuessPanel from '$lib/components/GuessPanel.svelte';
@@ -125,7 +126,7 @@
 		<Button size="lg" href={resolve('/[mode=mode]', { mode: prev.slug })} title="Back">
 			<span class="step">
 				<img class="arrow" src={uiIconUrl('prev')} alt="Back" />
-				<img class="game-icon" src={imageUrl(prev.icon)} alt="" />{prev.title}
+				<GameIcon src={prev.icon} />{prev.title}
 			</span>
 		</Button>
 	{/if}
@@ -135,7 +136,7 @@
 		title="Next"
 	>
 		<span class="step">
-			{#if next}<img class="game-icon" src={imageUrl(next.icon)} alt="" />{next.title}{/if}
+			{#if next}<GameIcon src={next.icon} />{next.title}{/if}
 			<img class="arrow" src={uiIconUrl('next')} alt="Next" />
 		</span>
 	</Button>
@@ -166,11 +167,6 @@
 	.arrow {
 		width: 27px;
 		height: 39px;
-	}
-
-	.game-icon {
-		max-width: 40px;
-		max-height: 40px;
 	}
 
 	.intro {

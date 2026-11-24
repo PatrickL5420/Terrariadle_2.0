@@ -13,7 +13,7 @@
 		saveProgress,
 		scores
 	} from '$lib/progress.svelte';
-	import { dropCoins } from '$lib/purse.svelte';
+	import { dropCoins, purse } from '$lib/purse.svelte';
 	import { onMount } from 'svelte';
 	import { secondsSinceMidnight } from '$lib/engine/daily';
 	import { devFlags } from './flags.svelte';
@@ -130,6 +130,21 @@
 		act('progress', async () => {
 			for (const slug of all ? gameSlugs : [selected]) clearProgress(slug);
 		});
+	/** Drops a random amount (1 silver to 50 gold) from the middle of the screen, added to today. */
+	function spawnCoins() {
+		const amount = 100 + Math.floor(Math.random() ** 2 * 500_000);
+		scores.dev = (scores.dev ?? 0) + amount;
+		dropCoins(amount);
+	}
+
+	/** Coins come from progress, so this clears the spawned coins and every game's progress. */
+	const resetCoins = () =>
+		act('coins', async () => {
+			delete scores.dev;
+			purse.pending = 0;
+			for (const slug of gameSlugs) clearProgress(slug);
+		});
+
 	const resetSolves = () => act('solves', () => post({ action: 'reset-solves' }));
 
 	/** Plays the correct guess through the real API, exactly like a player would. */
@@ -287,6 +302,12 @@
 				<button disabled={!!busy} onclick={() => shiftDay(-1)}>◀ Day −1</button>
 				<button disabled={!!busy || info?.dayOffset === 0} onclick={resetDay}>Today</button>
 				<button disabled={!!busy} onclick={() => shiftDay(1)}>Day +1 ▶</button>
+			</div>
+
+			<h4>Coins</h4>
+			<div class="buttons">
+				<button onclick={spawnCoins}>🪙 Spawn coins</button>
+				<button disabled={!!busy} onclick={resetCoins}>🧹 Reset coins</button>
 			</div>
 
 			<h4>Player</h4>

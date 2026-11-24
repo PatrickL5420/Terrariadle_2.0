@@ -24,7 +24,7 @@ export const critterGame: GameConfig<Critter> = {
 	slug: 'critter',
 	title: 'Critterdle',
 	noun: 'critter',
-	icon: (data as Critter[]).find((c) => c.name === 'Bunny')?.image ?? '',
+	icon: '/ui/games/critter.png',
 	entries: data as Critter[],
 	firstColumn: 'Critter',
 	theme: (c) => (c.rarity === 'None' ? 'White' : c.rarity),

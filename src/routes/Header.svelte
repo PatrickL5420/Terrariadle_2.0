@@ -3,9 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { games } from '$lib/games';
-	import { imageUrl } from '$lib/images';
 	import { completion } from '$lib/progress.svelte';
 	import CoinCounter from '$lib/components/CoinCounter.svelte';
+	import GameIcon from '$lib/ui/GameIcon.svelte';
 
 	// Like the game's hotbar: the selected slot's name shows above the bar, and the number keys
 	// switch between games.
@@ -28,25 +28,28 @@
 		<CoinCounter />
 	</div>
 
-	<nav aria-label="Games">
-		<p class="held">{current?.title ?? ''}</p>
-		<div class="hotbar">
-			{#each games as game, i (game.slug)}
-				<a
-					class="slot hotbar-slot"
-					class:selected={current?.slug === game.slug}
-					class:framed={completion[game.slug] && current?.slug !== game.slug}
-					href={resolve('/[mode=mode]', { mode: game.slug })}
-					title="{game.title} ({(i + 1) % 10})"
-					aria-current={current?.slug === game.slug ? 'page' : undefined}
-				>
-					<span class="num">{(i + 1) % 10}</span>
-					<img src={imageUrl(game.icon)} alt={game.title} />
-					{#if completion[game.slug]}<span class="done">✓</span>{/if}
-				</a>
-			{/each}
-		</div>
-	</nav>
+	<!-- The home page lists every game itself, so the hotbar is only on the other pages. -->
+	{#if page.url.pathname !== '/'}
+		<nav aria-label="Games">
+			<p class="held">{current?.title ?? ''}</p>
+			<div class="hotbar">
+				{#each games as game, i (game.slug)}
+					<a
+						class="slot hotbar-slot"
+						class:selected={current?.slug === game.slug}
+						class:framed={completion[game.slug] && current?.slug !== game.slug}
+						href={resolve('/[mode=mode]', { mode: game.slug })}
+						title="{game.title} ({(i + 1) % 10})"
+						aria-current={current?.slug === game.slug ? 'page' : undefined}
+					>
+						<span class="num">{(i + 1) % 10}</span>
+						<GameIcon src={game.icon} alt={game.title} />
+						{#if completion[game.slug]}<span class="done">✓</span>{/if}
+					</a>
+				{/each}
+			</div>
+		</nav>
+	{/if}
 </header>
 
 <style>
@@ -112,6 +115,12 @@
 		height: 48px;
 		text-decoration: none;
 		transition: transform 0.1s;
+	}
+
+	/* GameIcon sizes the icon itself (whole-number scaling); don't squeeze it to 70%. */
+	.hotbar :global(.game-icon) {
+		max-width: none;
+		max-height: none;
 	}
 
 	.hotbar .slot:hover {

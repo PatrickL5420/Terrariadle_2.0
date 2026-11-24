@@ -27,7 +27,7 @@ export const bossGame: GameConfig<Boss> = {
 	slug: 'boss',
 	title: 'Bossdle',
 	noun: 'boss',
-	icon: '/bosses/Eye of Cthulhu.png',
+	icon: '/ui/games/boss.gif',
 	entries: data as Boss[],
 	firstColumn: 'Boss',
 	theme: (b) => categoryTheme[b.category] ?? 'White',

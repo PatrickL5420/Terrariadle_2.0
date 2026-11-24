@@ -27,7 +27,7 @@ export const versionGame: GameConfig<Version> = {
 	slug: 'version',
 	title: 'Versiondle',
 	noun: 'version',
-	icon: '/ui/Power Menu Time.png',
+	icon: '/ui/games/version.png',
 	entries: data as Version[],
 	firstColumn: 'Version',
 	theme: () => 'White',

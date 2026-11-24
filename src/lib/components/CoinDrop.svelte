@@ -75,7 +75,7 @@
 	});
 
 	function spawn(drop: Drop) {
-		const box = document.querySelector(drop.from)?.getBoundingClientRect();
+		const box = drop.from ? document.querySelector(drop.from)?.getBoundingClientRect() : undefined;
 		const cx = box ? box.left + box.width / 2 : innerWidth / 2;
 		const cy = box ? box.top + box.height / 2 : innerHeight / 3;
 		const now = performance.now();
