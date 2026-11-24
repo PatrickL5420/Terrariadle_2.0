@@ -4,7 +4,7 @@ A bunch of Terraria based daily games.
 
 I initially found [Terrariadle](https://github.com/BradyDriebergen/Terrariadle_2.0) by Brady Driebergen to play with my friends each day, but found myself wanting more categories to feed our terraria-based daily game addiction. As such, I forked his project and started adding more features of my own. Since I wasn't familiar with the tech stack used by that project though, I decided to port everything to a serverless platform without the need for an external database to reduce dependencies and simplify deployment. 
 
-I have the utmost respect for Brady and their original Terrariadle project, and hope that they aren't too mad I slopped most of this project lol.
+I have the utmost respect for Brady and their original Terrariadle project, and hope that they aren't too mad I slopped most of this project lol. As such I've tried to make this project distinct both visually and mechanically to avoid tarnishing the passionately handcrafted work of the original.
 
 ## How it works
 
