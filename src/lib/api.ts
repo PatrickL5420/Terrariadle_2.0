@@ -38,7 +38,9 @@ export const checkGuess = (slug: string, id: number, day: number) =>
 	);
 
 export const checkBonus = (slug: string, id: number, day: number) =>
-	call<{ correct: boolean; checks: Checks }>(`/api/${slug}/bonus?id=${id}&day=${day}`);
+	call<{ correct: boolean; checks: Checks; note?: string }>(
+		`/api/${slug}/bonus?id=${id}&day=${day}`
+	);
 
 export const getClue = (slug: string, words: number, day: number) =>
 	call<{ text: string; done: boolean }>(`/api/${slug}/clue?words=${words}&day=${day}`);

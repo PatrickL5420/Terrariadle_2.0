@@ -1,1325 +1,2713 @@
 {
 	"1": {
 		"added": 100000000,
-		"changed": [101000000, 102000000, 102030000, 103010000, 103020000, 104050700]
+		"changed": [101000000, 102000000, 102030000, 103010000, 103020000, 104050700],
+		"notes": {
+			"101000000": "Now used to craft the Spectre Boots.",
+			"102000000": "Item sprite updated. Old sprite was:",
+			"102030000": "Now has an equipped sprite.",
+			"103010000": "Item sprite updated. Old sprite was:",
+			"103020000": "Equipped sprite updated. Old sprite was:",
+			"104050700": "Are now properly affected by speed reducing debuffs."
+		}
 	},
 	"4": {
 		"added": 100000000,
-		"changed": [101000000, 102000000, 103000100, 103010000, 104010000, 104040000]
+		"changed": [101000000, 102000000, 103000100, 103010000, 104010000, 104040000],
+		"notes": {
+			"101000000": "Can now be combined with the Obsidian Skull to craft the Obsidian Horseshoe.",
+			"102000000": "Can now be combined with Balloons to craft Horseshoe Balloons.",
+			"103000100": "Now used to craft Green, Amber, and Pink Horseshoe Balloons.",
+			"103010000": "Sprite updated.",
+			"104010000": "Now found in Cavern layer Gold Chests instead of Skyware Chests.",
+			"104040000": "• Reverted 1.4.1 change; now found in Skyware Chests again.\n• Added flavor text.\n• Now grants +0.05 luck.\n• Now used to craft the Bundle of Horseshoe Balloons."
+		}
 	},
 	"5": {
 		"added": 100000000,
 		"changed": [
 			100050000, 101000000, 102000000, 102030000, 102040100, 103000100, 103010000, 103020000,
 			104000200
-		]
+		],
+		"notes": {
+			"100050000": "• Rocket Boots no longer use Mana, instead having a fixed use time. Lift speed has been slightly increased to compensate.",
+			"101000000": "No longer drops from Goblins during the Goblin Army event. It can now instead be purchased from the Goblin Tinkerer for 5 Gold.",
+			"102000000": "• Item sprite updated. Old sprite was:\n• Can now be combined with Flurry Boots to craft Spectre Boots as an alternative to Hermes Boots.",
+			"102030000": "Now has an equipped sprite.",
+			"102040100": "Fixed bug where Wing time would go into infinity if you held the jump button while standing and having Rocket Boots equipped.",
+			"103000100": "Can now be combined with Sailfish Boots to craft Spectre Boots as an alternative to Flurry or Hermes Boots.",
+			"103010000": "Item sprite updated. Old sprite was:",
+			"103020000": "Equipped sprite updated. Old sprite was:",
+			"104000200": "Can now be combined with Dunerider Boots to craft Spectre Boots as an alternative to Flurry, Hermes, or Sailfish Boots."
+		}
 	},
 	"6": {
 		"added": 101000000,
 		"changed": [
 			102000000, 102030000, 103000100, 103010000, 103020000, 104000100, 104000200, 104040000
-		]
+		],
+		"notes": {
+			"102000000": "• Item sprite updated. Old sprite was:\n• Can now be crafted with Flurry Boots.\n• Now used to craft the Lightning Boots.",
+			"102030000": "Now has an equipped sprite.",
+			"103000100": "Can now be crafted with Sailfish Boots.",
+			"103010000": "Item sprite updated. Old sprite was:",
+			"103020000": "Equipped sprite updated. Old sprite was:",
+			"104000100": "Now used to craft the Fairy Boots.",
+			"104000200": "Can now be crafted with Dunerider Boots.",
+			"104040000": "Now used to craft the Hellfire Treads."
+		}
 	},
 	"7": {
 		"added": 102000000,
-		"changed": [102010200, 103020000]
+		"changed": [102010200, 103020000],
+		"notes": {
+			"102010200": "Can now be combined with the Ice Skates to create the Frostspark Boots.",
+			"103020000": "Item sprite updated. Old sprite was:"
+		}
 	},
 	"8": {
 		"added": 102010200,
-		"changed": [103020000, 104000100]
+		"changed": [103020000, 104000100],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104000100": "Now used to craft the Terraspark Boots."
+		}
 	},
 	"9": {
 		"added": 104000100,
-		"changed": [104010000]
+		"changed": [104010000],
+		"notes": {
+			"104010000": "• Added an achievement.\n• Now gives the lava damage reduction from the Obsidian Rose."
+		}
 	},
 	"10": {
 		"added": 102000000,
-		"changed": [103020000, 104000100, 104010000, 104040000]
+		"changed": [103020000, 104000100, 104010000, 104040000],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104000100": "• Now used to craft the Terraspark Boots and the Hellfire Treads.\n• Can now be crafted using the Molten Charm.",
+			"104010000": "Now requires an Obsidian Rose to craft, thus receiving its lava damage reduction function.",
+			"104040000": "• Can now be crafted with a Molten Skull Rose and Water Walking Boots/Obsidian Water Walking Boots.\n• No longer used to craft Hellfire Treads."
+		}
 	},
 	"11": {
 		"added": 102000000,
-		"changed": [103010000, 103020000, 104000100, 104040000]
+		"changed": [103010000, 103020000, 104000100, 104040000],
+		"notes": {
+			"103010000": "Inventory sprite updated.",
+			"103020000": "Equipped sprite updated.",
+			"104000100": "• Chance of being contained in Water Chests increased from 1/15 (6.67%) to 9/100 (9%).\n• Can now be used to directly craft the Lava Waders.",
+			"104040000": "Chance of being contained in Water Chests and found in Ocean/Seaside Crates increased from 9/100 (9%) to 1/10 (10%)."
+		}
 	},
 	"12": {
 		"added": 102000000,
-		"changed": [104030300, 104040000, 104050000]
+		"changed": [104030300, 104040000, 104050000],
+		"notes": {
+			"104030300": "Sprites updated.",
+			"104040000": "Now used to craft Bundle of Horseshoe Balloons.",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"13": {
 		"added": 102040000,
-		"changed": [103010000, 104000100, 104000300, 104020000, 104040000, 104050700]
+		"changed": [103010000, 104000100, 104000300, 104020000, 104040000, 104050700],
+		"notes": {
+			"103010000": "Sprite updated.",
+			"104000100": "Now used to craft the Frog Flipper, Frog Webbing and Amphibian Boots.",
+			"104000300": "Fixed an issue where wearing the Frog Leg and Moon Lord Legs at the same time would give the player no legs at all.",
+			"104020000": "No longer stacks with the Amphibian Boots.",
+			"104040000": "• Players can now stack any Frog Leg-derived tinker to gain additive benefits.\n• Fixed an issue where wearing the Frog Leg and Silly Sunflower Bottoms at the same time would give the player no legs at all.",
+			"104050700": "Fixed a camera glitch involving the Step Stool and the Frog Leg."
+		}
 	},
 	"15": {
 		"added": 102000000,
-		"changed": [104000100]
+		"changed": [104000100],
+		"notes": {
+			"104000100": "• Now used to craft the Frog Webbing and Frog Gear.\n• Sprite updated."
+		}
 	},
 	"16": {
 		"added": 102000000,
-		"changed": [102010200, 103000100, 104000100, 104010000, 104040000]
+		"changed": [102010200, 103000100, 104000100, 104010000, 104040000],
+		"notes": {
+			"102010200": "Now brings the player to full speed instead of stopping.",
+			"103000100": "Dashing is now longer, but it requires more time to recharge.",
+			"104000100": "Sprite updated.",
+			"104010000": "Fixed an issue where dodged attacks could still result in debuffs on the player.",
+			"104040000": "\"Instant kill\" attacks will no longer be avoided by dodges."
+		}
 	},
 	"17": {
 		"added": 103000100,
-		"changed": [103020000, 104000100, 104000500]
+		"changed": [103020000, 104000100, 104000500],
+		"notes": {
+			"103020000": "Sprites updated.",
+			"104000100": "Damage is now affected by banners.",
+			"104000500": "Fixed a bug where its invulnerability time would actually reset pre-existing damage immunity, allowing the player to get hit faster."
+		}
 	},
 	"18": {
 		"added": 101000000,
-		"changed": [102000000, 102030100, 102040100, 104010000, 104050700]
+		"changed": [102000000, 102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102000000": "• Angel and Demon Wings' flight time increased from 1.5 s to 1.67 s, horizontal speed increased from 15 mph to 32 mph.",
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"19": {
 		"added": 104000100,
-		"changed": [104010000, 104040000]
+		"changed": [104010000, 104040000],
+		"notes": {
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104040000": "• Fledgling Wings have been removed as a primary drop from Skyware Chests. They now have a 1/40 (2.5%) chance of being secondary loot.\n  ◦ Sky Crates have been updated to account for the above changes."
+		}
 	},
 	"20": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 104000100, 104010000, 104040000, 104050700]
+		"changed": [102030100, 102040100, 104000100, 104010000, 104040000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104000100": "• Sprites updated for Fairy Wings, Harpy Wings, Leaf Wings, Bee Wings, and Beetle Wings. The item sprite for the Jetpack was also updated.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104040000": "• Leaf Wings are now only sold after Plantera has been defeated, with its cost increased to 1 Platinum 50 Gold.\n  ◦ Its power has been increased to be the same as uncommon pre-Plantera wings (Flame, Butterfly, Bee, and Bat).",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"21": {
 		"added": 102040000,
-		"changed": [102040100, 104010000, 104050700]
+		"changed": [102040100, 104010000, 104050700],
+		"notes": {
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"25": {
 		"added": 103000100,
-		"changed": [103010000, 104010000, 104050700]
+		"changed": [103010000, 104010000, 104050700],
+		"notes": {
+			"103010000": "Now Stardust Wings has the same stats as Solar Wings, and Nebula Mantle has the same stats as Vortex Booster.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"26": {
 		"added": 100000000,
-		"changed": [100060000, 101000000, 102030000, 103010000, 103020000, 104000100, 104050700]
+		"changed": [100060000, 101000000, 102030000, 103010000, 103020000, 104000100, 104050700],
+		"notes": {
+			"100060000": "Reduced the armor bonus from 2 to 1.",
+			"101000000": "Now used to craft the Obsidian Shield.",
+			"102030000": "• Item sprite updated. Old sprite was:\n• Now has an equipped sprite.",
+			"103010000": "Item sprite updated. Old sprite was:",
+			"103020000": "Equipped sprite updated. Old sprite was:",
+			"104000100": "Sell value increased from 54 Silver to 1 Gold 75 Silver.",
+			"104050700": "Now used to craft the Restoration Shield and Royal Guard's Harness."
+		}
 	},
 	"27": {
 		"added": 101000000,
-		"changed": [102000000, 102030000, 103020000, 104050700]
+		"changed": [102000000, 102030000, 103020000, 104050700],
+		"notes": {
+			"102000000": "Now used to craft the Ankh Shield.",
+			"102030000": "• Item sprite updated. Old sprite was:\n• Now has an equipped sprite.",
+			"103020000": "Equipped sprite updated. Old sprite was:",
+			"104050700": "Now used to craft the Silver Shield."
+		}
 	},
 	"28": {
 		"added": 102000000,
-		"changed": [102020000, 103000100, 104040000]
+		"changed": [102020000, 103000100, 104040000],
+		"notes": {
+			"102020000": "Fixed so that it no longer drops when trying to record the Pumpkin Moon theme.",
+			"103000100": "Sprite updated.",
+			"104040000": "• Now provides immunity to the Stoned debuff.\n• Now crafted with the Reflective Shades instead of the Blindfold."
+		}
 	},
 	"29": {
 		"added": 102000000,
-		"changed": [103000100, 103020000, 104040000, 104050700]
+		"changed": [103000100, 103020000, 104040000, 104050700],
+		"notes": {
+			"103000100": "Now provides immunity to the Chilled debuff.",
+			"103020000": "Sprites updated.",
+			"104040000": "• Added an achievement for crafting the Ankh Shield.",
+			"104050700": "Defense increased from 4 to 5."
+		}
 	},
 	"30": {
 		"added": 102000000,
-		"changed": [102030000, 103010000, 103020000, 104000100, 104050000, 104050700]
+		"changed": [102030000, 103010000, 103020000, 104000100, 104050000, 104050700],
+		"notes": {
+			"102030000": "Sprite updated.",
+			"103010000": "Fixed a bug from Desktop 1.3.0.8 where damage would not be properly reduced.",
+			"103020000": "Sprites updated.",
+			"104000100": "• Now used to craft the Hero Shield and Frozen Shield.\n• Drop rates increased from 9.33% / 13.56% to 10% / 19%.",
+			"104050000": "• Getting killed by the Paladin's Shield now displays a unique death message.",
+			"104050700": "Fixed an issue caused by Paladin's Shield trying to spawn particles when it cannot find the player wearing it."
+		}
 	},
 	"31": {
 		"added": 102000000,
-		"changed": [103000100, 104000100, 104040000]
+		"changed": [103000100, 104000100, 104040000],
+		"notes": {
+			"103000100": "• Now grants 25% damage reduction instead of 30 defense.\n• Buff now triggers when player is at 50% health, instead of 25%.",
+			"104000100": "Now used to craft the Frozen Shield.",
+			"104040000": "Drop rate increased from 1/100 (1%) to 1/50 (2%)."
+		}
 	},
 	"32": {
 		"added": 103000100,
-		"changed": [103020000]
+		"changed": [103020000],
+		"notes": {
+			"103020000": "Equipped sprite updated."
+		}
 	},
 	"34": {
 		"added": 101000000,
-		"changed": [102000000, 103000100, 103020000, 104050700]
+		"changed": [102000000, 103000100, 103020000, 104050700],
+		"notes": {
+			"102000000": "Now used to craft the Star Veil.",
+			"103000100": "Inventory sprite updated. Old sprite was .",
+			"103020000": "Sprites updated.",
+			"104050700": "Now used to craft the Seraph Necklace and Crossed Heart Necklace."
+		}
 	},
 	"35": {
 		"added": 102000000,
-		"changed": [103000100, 104000100, 104010000, 104010200]
+		"changed": [103000100, 104000100, 104010000, 104010200],
+		"notes": {
+			"103000100": "Sprite updated.",
+			"104000100": "Projectile ID changed from 92 to 725.",
+			"104010000": "• Stars now deal 75 damage and have 25 armor penetration.\n  ◦ This damage is multiplied by 2× in Expert Mode, and 3× in Master Mode (the armor penetration remains unchanged).\n• Now uses local invincibility frames, will not interfere with other piercing projectiles.",
+			"104010200": "Now only creates stars when taking damage from enemies."
+		}
 	},
 	"36": {
 		"added": 100000000,
-		"changed": [102000000, 103000100, 103020000, 104010000]
+		"changed": [102000000, 103000100, 103020000, 104010000],
+		"notes": {
+			"102000000": "Now used to craft the Mana Regeneration Band and the Charm of Myths.",
+			"103000100": "Inventory sprite updated. Old sprite was .",
+			"103020000": "Equipped sprite updated.",
+			"104010000": "Doubled healing gain from 0.5 HP per second to 1 HP per second."
+		}
 	},
 	"37": {
 		"added": 101000000,
-		"changed": [102000000, 103010000, 104040000, 104050700]
+		"changed": [102000000, 103010000, 104040000, 104050700],
+		"notes": {
+			"102000000": "Now used to craft the Charm of Myths.",
+			"103010000": "Sprite updated.",
+			"104040000": "Potion Sickness reduction is no longer \"front-loaded\" at the time of using the potion. Instead, the cooldown is dynamically updated whenever the accessory is equipped. Equipping it will reduce the remaining cooldown proportionally, and removing it will increase the remaining cooldown proportionally.",
+			"104050700": "Now used to craft the Catalyst Band."
+		}
 	},
 	"38": {
 		"added": 102000000,
-		"changed": [103000100, 103020000, 104010000, 104040000]
+		"changed": [103000100, 103020000, 104010000, 104040000],
+		"notes": {
+			"103000100": "Inventory sprite updated. Old sprite was .",
+			"103020000": "Equipped sprite updated.",
+			"104010000": "Increased healing gain from 0.5 HP per second to 1 HP per second.",
+			"104040000": "Potion Sickness reduction is no longer \"front-loaded\" at the time of using the potion. Instead, the cooldown is dynamically updated whenever the accessory is equipped. Equipping it will reduce the remaining cooldown proportionally, and removing it will increase the remaining cooldown proportionally."
+		}
 	},
 	"39": {
 		"added": 103000100,
-		"changed": [104040300, 104040800]
+		"changed": [104040300, 104040800],
+		"notes": {
+			"104040300": "Now affects Shimmer Slimes.",
+			"104040800": "Now affects Golden Slimes."
+		}
 	},
 	"40": {
 		"added": 103000100,
-		"changed": [103000600, 104000100]
+		"changed": [103000600, 104000100],
+		"notes": {
+			"103000600": "Can now hide the Celestial Shell's werewolf and merfolk transformation.",
+			"104000100": "No longer stacks with the Celestial Stone, Moon Stone, and Sun Stone."
+		}
 	},
 	"41": {
 		"added": 100000000,
-		"changed": [102000000, 103010000, 103020000, 104010000, 104050700]
+		"changed": [102000000, 103010000, 103020000, 104010000, 104050700],
+		"notes": {
+			"102000000": "Now used to craft the Power Glove.",
+			"103010000": "Inventory sprite updated.",
+			"103020000": "Equipped sprite updated.",
+			"104010000": "Now will give autoswing to all melee weapons and whips, a feature removed from the Titan Glove.",
+			"104050700": "• Now used to craft the Wicked Claws.\n• Chance of being found in Ivy Chests changed from 21.72% to 22.17% due to the Seaweed becoming a secondary item."
+		}
 	},
 	"42": {
 		"added": 102000000,
-		"changed": [102040000, 103000100, 103020000, 104000100, 104010000]
+		"changed": [102040000, 103000100, 103020000, 104000100, 104010000],
+		"notes": {
+			"102040000": "Now affects only melee knockback correctly.",
+			"103000100": "Inventory sprite updated. Old sprite was .",
+			"103020000": "Equipped sprite updated.",
+			"104000100": "• Now used to craft the Berserker's Glove.\n• Now gives autoswing to all melee weapons and whips.",
+			"104010000": "Now also increases the size of melee weapons by 10%."
+		}
 	},
 	"43": {
 		"added": 102000000,
-		"changed": [102030000, 102040000, 103020000, 104000100, 104010000]
+		"changed": [102030000, 102040000, 103020000, 104000100, 104010000],
+		"notes": {
+			"102030000": "Now only increases melee damage (previously also ranged and magic). Tooltip correctly listing 12% instead of 10%.",
+			"102040000": "Now only yields melee knockback instead of all types.",
+			"103020000": "Sprites updated.",
+			"104000100": "Now gives autoswing to whips and all melee weapons.",
+			"104010000": "Now increases the size of all melee weapons by 10%."
+		}
 	},
 	"44": {
 		"added": 102000000,
-		"changed": [102040000, 103000100, 104000100, 104010000]
+		"changed": [102040000, 103000100, 104000100, 104010000],
+		"notes": {
+			"102040000": "Now only yields melee knockback instead of all types.",
+			"103000100": "• Increased melee damage and attack speed boosts from 9% to 10%.\n• Duration of the debuff on enemies increased from 1/2/6 seconds (4/7, 3/7, 1/7 chance respectively, average of 2 seconds) to 2/4/6 seconds (2/8, 3/8, 3/8 chance respectively, average of 3.75 seconds). The debuff duration when inflicted on other players in PvP remains unchanged.",
+			"104000100": "Now gives autoswing to whips and all melee weapons.",
+			"104010000": "• Now increases the size of (eligible) melee weapons by 10%.\n• Damage and melee speed increased from 10% to 12%.\n• Now inflicts Hellfire instead of On Fire!."
+		}
 	},
 	"45": {
 		"added": 102000000,
 		"changed": [
 			102010000, 102010100, 102030000, 103000100, 104000100, 104010000, 104040000, 104040600,
 			104050700
-		]
+		],
+		"notes": {
+			"102010000": "No longer shows a fire effect for non-melee weapons.",
+			"102010100": "No longer erroneously dropped by Giant Fungi Bulbs; now dropped by Hellbats instead.",
+			"102030000": "Fixed an issue where the Magma Stone's fire particles would apply to the Bug Net.",
+			"103000100": "Duration of the debuff on enemies increased from 1/2/6 seconds (4/7, 3/7, 1/7 chance respectively, average of 2 seconds) to 2/4/6 seconds (2/8, 3/8, 3/8 chance respectively, average of 3.75 seconds). The debuff duration when inflicted on other players in PvP remains unchanged.",
+			"104000100": "Now used to craft the Molten Quiver, Molten Skull Rose, and Magma Skull.",
+			"104010000": "Now inflicts Hellfire instead of On Fire!.",
+			"104040000": "• No longer used to craft the Molten Skull Rose and Magma Skull.\n• Now used to craft the Lava Charm via Shimmer.",
+			"104040600": "Lava Charm is now used to craft the Magma Stone via Shimmer.",
+			"104050700": "Now used to craft the Pyroclastic Stone."
+		}
 	},
 	"46": {
 		"added": 101000000,
-		"changed": [103010000]
+		"changed": [103010000],
+		"notes": {
+			"103010000": "Sprite updated."
+		}
 	},
 	"47": {
 		"added": 101000000,
-		"changed": [102000000, 103010000, 103020000]
+		"changed": [102000000, 103010000, 103020000],
+		"notes": {
+			"102000000": "Rarity increased from White to Light Red to match the other emblems.",
+			"103010000": "Sprite updated.",
+			"103020000": "Sprite updated."
+		}
 	},
 	"48": {
 		"added": 101000000,
-		"changed": [102000000, 103000100, 103010000]
+		"changed": [102000000, 103000100, 103010000],
+		"notes": {
+			"102000000": "Can now be combined with a Warrior Emblem and a Ranger Emblem at a Tinkerer's Workshop to craft the Avenger Emblem.",
+			"103000100": "Increased drop rate to 1/4 (25%) in Expert Mode.",
+			"103010000": "Sprite updated."
+		}
 	},
 	"49": {
 		"added": 103000100,
-		"changed": [103020000, 104010000, 104040000]
+		"changed": [103020000, 104010000, 104040000],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104010000": "Changed tooltip from \"15% increased summon damage\" to \"15% increased minion damage\". Regardless of this, however, sentries and whips are still boosted. Previously, summon damage boosts are referred to as \"minion damage\" in other items' tooltips, with the Summoner Emblem being the only exception.",
+			"104040000": "Tooltips of summon-related items now say \"summon damage\" instead of \"minion damage\". As a result, tooltip changed from \"15% increased minion damage\" to \"15% increased summon damage\"."
+		}
 	},
 	"50": {
 		"added": 102000000,
-		"changed": [102030000, 103000100, 103010000]
+		"changed": [102030000, 103000100, 103010000],
+		"notes": {
+			"102030000": "Now used to craft the Celestial Emblem.",
+			"103000100": "Crafting recipe changed to one of the four emblems and five of each of the mechanical boss souls.",
+			"103010000": "Sprite updated. Old sprite was ."
+		}
 	},
 	"51": {
 		"added": 102000000,
-		"changed": [102010200, 103010000]
+		"changed": [102010200, 103010000],
+		"notes": {
+			"102010200": "Now used to craft the Sniper Scope.",
+			"103010000": "Sprite updated."
+		}
 	},
 	"52": {
 		"added": 103000100,
-		"changed": [104000100]
+		"changed": [104000100],
+		"notes": {
+			"104000100": "Now used to craft the Stinger Necklace."
+		}
 	},
 	"53": {
 		"added": 102000000,
 		"changed": [
 			102040000, 103000100, 103020000, 104000100, 104040000, 104040100, 104040800, 104050000
-		]
+		],
+		"notes": {
+			"102040000": "Fixed a grammar issue in the tooltip (\"Increase arrow speed and damage by 10%\" and \"20% chance to not consume arrow\").",
+			"103000100": "Tooltip changed from \"Increases arrow speed and damage by 10%\" to \"Increases damage by 10% and greatly increases arrow speed\".",
+			"103020000": "Sprites updated.",
+			"104000100": "• Now used to craft the Stalker's Quiver and Molten Quiver.\n• Tooltip changed from \"Increases damage by 10% and greatly increases arrow speed\" to \"Increases arrow damage by 10% and greatly increases arrow speed\".",
+			"104040000": "• The damage bonus is now additive with other ranged damage bonuses, rather than multiplicative.\n• Arrows and Stakes are now also affected by the velocity bonus. Previously, the bonus was only applied to the ''weapon's'' velocity value.",
+			"104040100": "• No longer rounds down the increased knockback value. Previously, this rounding had the following effects:\n  ◦ Most weapons did not see a change in knockback at all, due to their base knockback being a low natural number. For example, the Molten Fury's base knockback of 2 would be increased by the Magic Quiver to 2.2, then rounded back down to 2.\n  ◦ For the remaining 13 weapons, the rounding mostly resulted in a knockback ''decrease''. The concrete resulting knockback changes of all affected weapons were as follows (knockback-affecting modifiers and other knockback boosts are disregarded; they caused different results):\n  ◦ +9.09%: Chlorophyte Shotbow (2.75 → 3), Hellwing Bow (5.5 → 6)\n  ◦ +7.69%: Stake Launcher (6.5 → 7)\n  ◦ +6.38%: Marrow (4.7 → 5)\n  ◦ -11.11%: Daedalus Stormbow (2.25 → 2), Aerial Bane/Ice Bow/Shadowflame Bow (4.5 → 4)\n  ◦ -20%: Adamantite Repeater/Hallowed Repeater/Titanium Repeater (2.5 → 2)\n  ◦ -33.33%: Cobalt Repeater (1.5 → 1)\n  ◦ -42.86%: Palladium Repeater (1.75 → 1)",
+			"104040800": "Drop rate increased from 1/80 (1.25%) to 1/40 (2.5%).",
+			"104050000": "Arrows and Stakes are now also affected by the damage bonus. Previously, the bonus was only applied to the ''weapon's'' damage value."
+		}
 	},
 	"54": {
 		"added": 102010200,
-		"changed": [102030000, 103050200, 104000100, 104040000]
+		"changed": [102030000, 103050200, 104000100, 104040000],
+		"notes": {
+			"102030000": "Fixed bug where zooming with Sniper Scope / Binoculars would go in opposite height direction when in reversed gravity.",
+			"103050200": "Fixed player's breath meter moving unexpectedly when using the Sniper Scope.",
+			"104000100": "Now used to craft the Recon Scope.",
+			"104040000": "Now compatible with the Clentaminator."
+		}
 	},
 	"55": {
 		"added": 102030000,
-		"changed": [104040100]
+		"changed": [104040100],
+		"notes": {
+			"104040100": "Sprite updated. Old sprite was ."
+		}
 	},
 	"56": {
 		"added": 102000000,
-		"changed": [103020000, 104000100, 104010000]
+		"changed": [103020000, 104000100, 104010000],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104000100": "A player no longer needs to have the Pygmy Staff in their inventory for the Witch Doctor to sell the Pygmy Necklace.",
+			"104010000": "The Witch Doctor can now sell this item at any stage in the game."
+		}
 	},
 	"57": {
 		"added": 102010200,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Tooltips of summon-related items now say \"summon damage\" instead of \"minion damage\"."
+		}
 	},
 	"58": {
 		"added": 102010000,
-		"changed": [102010200, 104040000]
+		"changed": [102010200, 104040000],
+		"notes": {
+			"102010200": "Now used to craft the Papyrus Scarab.",
+			"104040000": "Tooltips of summon-related items now say \"summon damage\" instead of \"minion damage\"."
+		}
 	},
 	"59": {
 		"added": 100000000,
-		"changed": [102000000, 103000100, 104000300, 104050000, 104050700]
+		"changed": [102000000, 103000100, 104000300, 104050000, 104050700],
+		"notes": {
+			"102000000": "• No longer craftable. Previously, it was crafted from 10 Copper Bars, 8 Silver Bars, and 6 Gold Bars at a table and chair.\n• Now dropped by Cave Bats.",
+			"103000100": "• Sprite updated. Old sprite was .\n• Sell value increased from 20 Silver to 25 Silver.\n• Tooltip changed from \"Shows depth\" to \"Displays depth\".",
+			"104000300": "Fixed displaying incorrect height biome when using camera-moving items.",
+			"104050000": "Drop chance from bat enemies reduced from 1/100 (1%) to 1/200 (0.5%).",
+			"104050700": "Drop chance from bat enemies increased from 1/200 (0.5%) to 1/100 (1%)."
+		}
 	},
 	"60": {
 		"added": 101000000,
-		"changed": [102000000, 103000100]
+		"changed": [102000000, 103000100],
+		"notes": {
+			"102000000": "Can also now be crafted with a Platinum Watch instead of a Gold Watch.",
+			"103000100": "• Sprite updated. Old sprite was .\n• Rarity decreased from Light Red to Orange.\n• Now used to craft the PDA."
+		}
 	},
 	"62": {
 		"added": 103000100,
-		"changed": [103010000, 104040000]
+		"changed": [103010000, 104040000],
+		"notes": {
+			"103010000": "Paint Sprayer feature can now be turned off via an icon in the top left of the screen.",
+			"104040000": "Now used to craft the Hand Of Creation."
+		}
 	},
 	"63": {
 		"added": 103010000,
-		"changed": [104010000, 104040000]
+		"changed": [104010000, 104040000],
+		"notes": {
+			"104010000": "Now used to craft the Lavaproof Tackle Bag.",
+			"104040000": "Tooltip now shows how much Fishing Power it grants."
+		}
 	},
 	"64": {
 		"added": 102040000,
-		"changed": [103010000, 104000100, 104040000]
+		"changed": [103010000, 104000100, 104040000],
+		"notes": {
+			"103010000": "Now used to craft the Angler Tackle Bag.",
+			"104000100": "The Angler will no longer give you duplicate fishing accessories, unless you already have all of them.",
+			"104040000": "• Tooltip now shows how much Fishing Power it grants.\n• Now used to craft the Tackle Box via Shimmer.\n• The Angler no longer checks fishing and informational accessories separately to duplicate items."
+		}
 	},
 	"65": {
 		"added": 102000000,
-		"changed": [103000100, 104000100, 104010000, 104040000, 104040600, 104040800, 104050700]
+		"changed": [103000100, 104000100, 104010000, 104040000, 104040600, 104040800, 104050700],
+		"notes": {
+			"103000100": "• Lava immunity timer now appears over the player's head.\n• Sprite updated. Old sprite was .",
+			"104000100": "• No longer found in Chests in the upper portion of the Caverns, instead now only found in the lower portion where lava pools can naturally spawn.\n• Now used to craft the Molten Charm.\n• Can now be found in Obsidian and Hellstone Crates.",
+			"104010000": "Doubled spawn rate from 1/40 (2.5%) to 1/20 (5%).",
+			"104040000": "• Now used to craft the Molten Skull Rose and Magma Skull.\n• Can now be obtained by throwing a Magma Stone into Shimmer.",
+			"104040600": "Now used to craft the Magma Stone via Shimmer.",
+			"104040800": "Now has a vanity appearance.",
+			"104050700": "Fixed Lava Charm not regenerating when the player is in lava with the immunity granted from the Ash Wood armor + Obsidian Rose combo."
+		}
 	},
 	"66": {
 		"added": 100000000,
-		"changed": [100060000, 101000000, 102000000, 103010000, 104000100]
+		"changed": [100060000, 101000000, 102000000, 103010000, 104000100],
+		"notes": {
+			"100060000": "Armor bonus reduced from 2 to 1.",
+			"101000000": "Now used to craft the Obsidian Horseshoe and Obsidian Shield.",
+			"102000000": "Now used to craft the Obsidian Water Walking Boots.",
+			"103010000": "Inventory sprite updated.",
+			"104000100": "• Now used to craft the Magma Skull, Molten Charm and Obsidian Skull Rose."
+		}
 	},
 	"67": {
 		"added": 102000000,
-		"changed": [103000100, 103020000, 104000100, 104040000]
+		"changed": [103000100, 103020000, 104000100, 104040000],
+		"notes": {
+			"103000100": "Inventory sprite updated.",
+			"103020000": "Equipped sprite updated. Old sprite was .",
+			"104000100": "Crimslimes now drop Blindfolds.",
+			"104040000": "• Can now be converted into a Pocket Mirror and back via Shimmer.\n• No longer used to craft the Ankh Charm.\n• Now used to craft the Reflective Shades."
+		}
 	},
 	"68": {
 		"added": 102000000,
-		"changed": [103000100, 104040000]
+		"changed": [103000100, 104040000],
+		"notes": {
+			"103000100": "Sprite updated. Old sprite was: .",
+			"104040000": "Can now be converted into a Bezoar and back via Shimmer, making it obtainable in pre-Hardmode."
+		}
 	},
 	"69": {
 		"added": 100050000,
-		"changed": [102000000, 103000100, 104000100, 104040000, 104050700]
+		"changed": [102000000, 103000100, 104000100, 104040000, 104050700],
+		"notes": {
+			"102000000": "It can now be crafted with two other items to create the Lightning Boots.",
+			"103000100": "It can now be obtained from Wooden Crates.",
+			"104000100": "Now has a chance of being found in Pearlwood Crates, the new Hardmode equivalent of Wooden Crates.",
+			"104040000": "Now sold by the Skeleton Merchant during a New Moon.",
+			"104050700": "Drop rates of all primary surface Chest loot reduced from 1/10 (10%) to 1/11 (9.09%) (1/100 (1%) to 1/120 (0.83%) for Wooden or Pearlwood Crate) due to the addition of the Poison Barb."
+		}
 	},
 	"70": {
 		"added": 103000100,
-		"changed": [104010000, 104040000]
+		"changed": [104010000, 104040000],
+		"notes": {
+			"104010000": "• The base damage of the Bees generated increased from 7 to 13, 18 with the Hive Pack.\n  ◦ This damage is multiplied by 1.5× in Expert mode, and 2× in Master mode.\n• The player now receives the Honey buff after being hit.",
+			"104040000": "Now grants +0.05 luck (from Lucky Horseshoe)."
+		}
 	},
 	"71": {
 		"added": 104000100,
-		"changed": [104020000, 104040000]
+		"changed": [104020000, 104040000],
+		"notes": {
+			"104020000": "No longer stacks with the Frog Leg or its variants.",
+			"104040000": "• Players can now stack any Frog Leg-derived tinker to gain additive benefits.\n• Reduced jump speed bonus from 2.4 to 1.6.\n• Reduced the maximum safe falling distance increase from 15 to 10 tiles."
+		}
 	},
 	"72": {
 		"added": 104000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Now used to craft the Hand Of Creation."
+		}
 	},
 	"73": {
 		"added": 100000000,
-		"changed": [102000000, 103000100, 104000100, 104050700]
+		"changed": [102000000, 103000100, 104000100, 104050700],
+		"notes": {
+			"102000000": "Now used to craft the Lightning Boots.",
+			"103000100": "Can be obtained from Jungle Crates.",
+			"104000100": "Now has a chance of being found in Bramble Crates, the new Hardmode equivalent of Jungle Crates.",
+			"104050700": "Chance of being found in Ivy Chests changed from 21.72% to 22.17% due to the Seaweed becoming a secondary item."
+		}
 	},
 	"74": {
 		"added": 103040000,
-		"changed": [103040200, 104040000]
+		"changed": [103040200, 104040000],
+		"notes": {
+			"103040200": "Tooltip now reads \"Increases minion damage\" instead of \"Increases sentry damage\".",
+			"104040000": "Now dropped by Dark Mages instead of Ogres."
+		}
 	},
 	"75": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "• Now grants 5% magic damage and 5% magic critical strike chance (partly inherited from the Putrid Scent).\n• The mana cost reduction no longer stacks with the Mana Flower or the Mana Flower's other upgrades."
+		}
 	},
 	"76": {
 		"added": 102010200,
-		"changed": [103020000, 104010000]
+		"changed": [103020000, 104010000],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104010000": "• Increased the breath capacity bonus by 50%.\n• Now lets off an extremely faint glow when out of water.\n• Dramatically increased the brightness when in water."
+		}
 	},
 	"77": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"78": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"79": {
 		"added": 102000000,
-		"changed": [103000100]
+		"changed": [103000100],
+		"notes": {
+			"103000100": "Sprite updated. Old sprite was ."
+		}
 	},
 	"80": {
 		"added": 102000000,
-		"changed": [103000100, 104040000]
+		"changed": [103000100, 104040000],
+		"notes": {
+			"103000100": "Sprite updated. Old sprite was .",
+			"104040000": "Can now be converted into Vitamins and back via Shimmer."
+		}
 	},
 	"81": {
 		"added": 103000100,
-		"changed": [104040000, 104050000]
+		"changed": [104040000, 104050000],
+		"notes": {
+			"104040000": "Now used to craft the Shiny Red Balloon via Shimmer.",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"82": {
 		"added": 100000000,
-		"changed": [100060000, 102000000, 103000100, 103020000, 104000100, 104010000, 104050700]
+		"changed": [100060000, 102000000, 103000100, 103020000, 104000100, 104010000, 104050700],
+		"notes": {
+			"100060000": "• The functionality was changed from a mana regenerative ability to +20 max mana.\n• Inventory sprite updated.",
+			"102000000": "Now used to craft the Mana Regeneration Band.",
+			"103000100": "Inventory sprite updated. Old sprite was .",
+			"103020000": "Equipped sprite updated.",
+			"104000100": "Aligned sell value with all other Shadow Orb/Crimson Heart loot, increasing it from 1 Gold to 1 Gold 50 Silver.",
+			"104010000": "• Can now be crafted.\n• Now used to craft the Panic Necklace.",
+			"104050700": "• Increased maximum mana benefit from 20 to 40.\n• Now used to craft the Magic Cuffs."
+		}
 	},
 	"83": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"84": {
 		"added": 102000000,
-		"changed": [104000100, 104010000, 104010200]
+		"changed": [104000100, 104010000, 104010200],
+		"notes": {
+			"104000100": "Projectile ID changed from 92 to 724.",
+			"104010000": "• Stars now deal 75 damage and have 25 armor penetration.\n  ◦ This damage is multiplied by 2 in Expert Mode, and 3 in Master Mode (the armor penetration remains unchanged).\n• Now uses local invincibility frames, will not interfere with other piercing projectiles.\n• The base damage of the Bees generated has been increased from 7 to 13, 18 with the Hive Pack.\n  ◦ This damage is multiplied by 1.5 in Expert Mode, and 2 in Master Mode.\n• The player now receives the Honey buff after being hit.",
+			"104010200": "Now only creates stars when taking damage from enemies."
+		}
 	},
 	"85": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 104000100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104000100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104000100": "• Sprites updated for Fairy Wings, Harpy Wings, Leaf Wings, Bee Wings, and Beetle Wings. The item sprite for the Jetpack was also updated.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"86": {
 		"added": 102030000,
-		"changed": [102030100, 102040100, 104000100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104000100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104000100": "• Sprites updated for Fairy Wings, Harpy Wings, Leaf Wings, Bee Wings, and Beetle Wings. The item sprite for the Jetpack was also updated.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"87": {
 		"added": 104000100,
-		"changed": [104010000]
+		"changed": [104010000],
+		"notes": {
+			"104010000": "• Defense increased from 7 to 8.\n• Now also increases the size of melee weapons by 10%."
+		}
 	},
 	"88": {
 		"added": 103040000,
-		"changed": [103040300, 104010000, 104050700]
+		"changed": [103040300, 104010000, 104050700],
+		"notes": {
+			"103040300": "Fixed bug where Betsy's Wings emitted faint amounts of light when descending, which was never intended.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"89": {
 		"added": 102000000,
-		"changed": [102000300, 102030000, 103000100, 104040000, 104050000]
+		"changed": [102000300, 102030000, 103000100, 104040000, 104050000],
+		"notes": {
+			"102000300": "Now dropped by Moss Hornets.",
+			"102030000": "Fixed a typo causing Bezoars to drop from the Steampunker (178) instead of Moss Hornet (176).",
+			"103000100": "Sprite updated. Old sprite was .",
+			"104040000": "Can now be converted into an Adhesive Bandage and back via Shimmer.",
+			"104050000": "Improved tooltip."
+		}
 	},
 	"90": {
 		"added": 102000000,
-		"changed": [104000100, 104010000, 104040000, 104050700]
+		"changed": [104000100, 104010000, 104040000, 104050700],
+		"notes": {
+			"104000100": "• Drop rate in Expert Mode increased from 1/8 (12.5%) to 23/144 (15.97%).\n• Sprite updated.",
+			"104010000": "Fixed an issue where dodged attacks could still result in debuffs on the player.",
+			"104040000": "\"Instant kill\" attacks will no longer be avoided by dodges.",
+			"104050700": "Now used to craft the Mystic Arts Sash."
+		}
 	},
 	"91": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Can no longer be equipped in a social accessory slot.",
+			"104050000": "• Now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Damage increased from 80% of yoyo damage to 100%.\n• Velocity increased by 100%.\n• Counterweights will now override the visuals of the Yoyo Bag if placed in a vanity slot."
+		}
 	},
 	"92": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"93": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"94": {
 		"added": 102000000,
-		"changed": [104040000, 104050000]
+		"changed": [104040000, 104050000],
+		"notes": {
+			"104040000": "Now used to craft the Bundle of Horseshoe Balloons.",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"95": {
 		"added": 102000000,
-		"changed": [102040000, 104000100, 104040000]
+		"changed": [102040000, 104000100, 104040000],
+		"notes": {
+			"102040000": "The fake Blizzard in a Bottle's item ID (858) has been changed to the Boreal Wood Sofa, effectively removing the fake item from the game files.",
+			"104000100": "Now obtainable from Frozen Crates and Boreal Crates.",
+			"104040000": "Can now be crafted using a Cloud in a Bottle and a Frost Core at a Crystal Ball."
+		}
 	},
 	"96": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Can no longer be equipped in a social accessory slot.",
+			"104050000": "• Now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Damage increased from 80% of yoyo damage to 100%.\n• Velocity increased by 100%.\n• Counterweights will now override the visuals of the Yoyo Bag if placed in a vanity slot."
+		}
 	},
 	"97": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"98": {
 		"added": 102000000,
-		"changed": [104040000, 104050000]
+		"changed": [104040000, 104050000],
+		"notes": {
+			"104040000": "Now grants +0.05 luck (from Lucky Horseshoe).",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"99": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"100": {
 		"added": 103000100,
-		"changed": [104000100, 104010000]
+		"changed": [104000100, 104010000],
+		"notes": {
+			"104000100": "• Damage type changed from Throwing to Ranged.\n• Increased sell value from 1 Gold to 2 Gold.",
+			"104010000": "• Reworked to be an accessory which throws bones when a weapon is used. Previously, it used to be a ranged weapon which allowed the player to actively throw these bones, consuming one Bone per throw.\n• Now has 25 armor penetration.\n• Now also has vanity visibility in the gloves spot."
+		}
 	},
 	"101": {
 		"added": 104030000,
-		"changed": [104040801]
+		"changed": [104040801],
+		"notes": {
+			"104040801": "Corrected the Bone Helm's offset on the minimap in reverse gravity."
+		}
 	},
 	"102": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"103": {
 		"added": 103000100,
-		"changed": [104000100, 104010000, 104050000]
+		"changed": [104000100, 104010000, 104050000],
+		"notes": {
+			"104000100": "Now grants a chance to dodge an attack. A successful dodge inflicts the player with Cerebral Mindtrick, which provides a 20% bonus to critical strike chance and summon damage for 5 seconds.",
+			"104010000": "• Halved the critical chance and summon damage bonus of Cerebral Mindtrick from 20% to 10%.\n• Reduced the duration of Cerebral Mindtrick from 5 to 4 seconds.\n• Fixed an issue where dodged attacks could still result in debuffs on the player.",
+			"104050000": "• The effect of inflicting Confused debuff to nearby enemies no longer triggers when taking damage from non-enemy hazards.\n• Clarified Brain of Confusion tooltip.\n• Can no longer be removed by the Nurse."
+		}
 	},
 	"104": {
 		"added": 102030000,
-		"changed": [102030100, 103000100]
+		"changed": [102030100, 103000100],
+		"notes": {
+			"102030100": "Fixed bug where Brick Layer and Cement Mixer were not reducing stack quantities when placing items.",
+			"103000100": "Now used to craft Architect Gizmo Pack."
+		}
 	},
 	"105": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"106": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"107": {
 		"added": 104040000,
-		"changed": [104050000]
+		"changed": [104050000],
+		"notes": {
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"108": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"109": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"110": {
 		"added": 102030000,
-		"changed": [103020000, 104010000, 104050700]
+		"changed": [103020000, 104010000, 104050700],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104010000": "Now has the +20 mana bonus that its component accessories granted.",
+			"104050700": "• Maximum mana increased from 20 to 40.\n• Added 2 defense."
+		}
 	},
 	"111": {
 		"added": 102030000,
-		"changed": [103020000, 104000100, 104040000]
+		"changed": [103020000, 104000100, 104040000],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104000100": "Now used to craft the Magnet Flower.",
+			"104040000": "• No longer sold by the Traveling Merchant.\n• Can now be found in Skyware Chests, Sky Crates, and Azure Crates."
+		}
 	},
 	"112": {
 		"added": 104000100,
-		"changed": [104010000, 104010200, 104030000]
+		"changed": [104010000, 104010200, 104030000],
+		"notes": {
+			"104010000": "Fixed an issue where Celestial Starboard would dramatically reduce the distance of dashes used while flying.",
+			"104010200": "Made some adjustments to improve its handling.",
+			"104030000": "Fixed an issue where Celestial Starboard did not draw/make dust properly in reversed gravity."
+		}
 	},
 	"113": {
 		"added": 102010200,
-		"changed": [103000100, 104000100]
+		"changed": [103000100, 104000100],
+		"notes": {
+			"103000100": "Now used to craft the Celestial Shell.",
+			"104000100": "No longer stacks with the Celestial Shell, Moon Stone, and Sun Stone."
+		}
 	},
 	"114": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"115": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"116": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"117": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"118": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"119": {
 		"added": 102000000,
-		"changed": [103000100, 104000100, 104040000, 104050000, 104050700]
+		"changed": [103000100, 104000100, 104040000, 104050000, 104050700],
+		"notes": {
+			"103000100": "• Chance of being found in Chests reduced from 1/8 (12.5%) to 1/11 (9.09%).\n• Now has a 1/225 (0.44%) chance of being found in Wooden Crates.",
+			"104000100": "• Chance of being found in Chests reduced from 1/11 (9.09%) to 1/12 (8.33%).\n• Now has a 1/225 (0.44%) chance of being found in Pearlwood Crates.\n• Sprite updated. Previous one was .",
+			"104040000": "• Chance of being found in Wooden and Pearlwood Crates increased from 1/225 (0.44%) to 1/100 (1%).\n• Chance of being found in Chests increased from 1/12 (8.33%) to 1/10 (10%).\n• Now sold by the Skeleton Merchant.",
+			"104050000": "Can now be converted into Shoe Spikes and back via Shimmer.",
+			"104050700": "Drop rates of all primary surface Chest loot reduced from 1/10 (10%) to 1/11 (9.09%) (1/100 (1%) to 1/120 (0.83%) for Wooden or Pearlwood Crate) due to the addition of the Poison Barb."
+		}
 	},
 	"120": {
 		"added": 101000000,
-		"changed": [102000000, 104040000, 104050000]
+		"changed": [102000000, 104040000, 104050000],
+		"notes": {
+			"102000000": "Now used to craft the Blue Horseshoe Balloon and Bundle of Balloons.",
+			"104040000": "Now used to craft the Bundle of Horseshoe Balloons.",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"121": {
 		"added": 100000000,
-		"changed": [100020000, 100030000, 101000000, 102000300, 103010000, 104000100, 104040000]
+		"changed": [100020000, 100030000, 101000000, 102000300, 103010000, 104000100, 104040000],
+		"notes": {
+			"100020000": "Double jumping right before the player hit the ground will no longer negate damage from falling.",
+			"100030000": "Will now correctly reset fall damage again.",
+			"101000000": "Can now be combined with the Shiny Red Balloon at a Tinkerer's Workshop. Rarity changed to orange from blue.",
+			"102000300": "Can now be combined with the Whoopie Cushion at a Tinkerer's Workshop.",
+			"103010000": "Sprite updated.",
+			"104000100": "Fixed an inconsistency with how Cloud in a Bottle behaved differently with wings than other Jump Bottles.",
+			"104040000": "Can now be used to craft the Blizzard in a Bottle and the Sandstorm in a Bottle."
+		}
 	},
 	"122": {
 		"added": 103000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Now grants +0.05 luck (from Lucky Coin)."
+		}
 	},
 	"123": {
 		"added": 101000000,
-		"changed": [103000100, 104050000, 104050700]
+		"changed": [103000100, 104050000, 104050700],
+		"notes": {
+			"103000100": "• Sprite updated. Old sprite was .\n• No longer drops from Mimics.\n• No longer a Hardmode accessory.\n• Now dropped by Salamanders, Mother Slimes, Piranhas, Snow Flinx, Undead Vikings, and Armored Vikings.\n• Tooltip changed from \"Shows horizontal position\" to \"Displays horizontal position\".",
+			"104050000": "Drop chance from Mother Slimes, Snow Flinx, Undead Vikings, and Armored Vikings reduced from 1/50 (2%) to 1/100 (1%).",
+			"104050700": "Drop chance from Mother Slimes, Snow Flinx, Undead Vikings, and Armored Vikings increased from 1/100 (1%) to 1/50 (2%)."
+		}
 	},
 	"124": {
 		"added": 100000000,
-		"changed": [101000000, 103010000, 104050000, 104050400]
+		"changed": [101000000, 103010000, 104050000, 104050400],
+		"notes": {
+			"101000000": "Now used to craft Timers and the GPS.",
+			"103010000": "Sprites of all watches updated.",
+			"104050000": "• Now craftable at Work Benches rather than chairs with tables.\n• Now have a chance to break when the player has negative luck.",
+			"104050400": "No longer have a chance to break if the player has negative luck. Previously, there was a chance of 1 in 300 * (-1/luck) per tick (e.g. 1/3000 (0.03%) with -0.1 luck) for a watch to break, causing the displayed time to get stuck and stop updating. This effect used to clear with a 1/18,000 (0.0056%) chance per tick, or immediately upon reaching a luck value above zero."
+		}
 	},
 	"125": {
 		"added": 102000000,
-		"changed": [103000100, 104040000]
+		"changed": [103000100, 104040000],
+		"notes": {
+			"103000100": "Sprite updated. Old sprite was .",
+			"104040000": "It is now obtainable in pre-Hardmode as the player can now acquire all of its ingredients via Shimmer."
+		}
 	},
 	"126": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"127": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"128": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"129": {
 		"added": 101000000,
-		"changed": [102000000, 102030100, 102040100, 104010000, 104050700]
+		"changed": [102000000, 102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102000000": "• Angel and Demon Wings' flight time increased from 1.5 s to 1.67 s, horizontal speed increased from 15 mph to 32 mph.",
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"130": {
 		"added": 102000000,
-		"changed": [103000100, 104000500, 104020300, 104040000, 104050000]
+		"changed": [103000100, 104000500, 104020300, 104040000, 104050000],
+		"notes": {
+			"103000100": "• Now used to craft the Greedy Ring.\n• Sprite updated.",
+			"104000500": "Fixed a bug that allowed the player to swap out the Discount Card when shopping but keep the same prices.",
+			"104020300": "Can now be purchased from the Princess in Celebrationmk10 worlds.",
+			"104040000": "• Drop rates doubled. The increased drop rate from Pirate Captains has also been doubled.\n• Flying Dutchman now has a substantially increased chance of dropping this item, with a 1/15 chance.",
+			"104050000": "• Now applies to the Nurse's healing service and the Stylist's hairstyle shop.\n• Improved tooltip."
+		}
 	},
 	"131": {
 		"added": 101000000,
-		"changed": [102010200, 103010000, 104010000]
+		"changed": [102010200, 103010000, 104010000],
+		"notes": {
+			"102010200": "Can now be combined with the Jellyfish Necklace to make Jellyfish Diving Gear.",
+			"103010000": "Sprite updated.",
+			"104010000": "Increased the breath capacity bonus by 50%."
+		}
 	},
 	"132": {
 		"added": 103000100,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"133": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"134": {
 		"added": 104000100,
-		"changed": [104000200]
+		"changed": [104000200],
+		"notes": {
+			"104000200": "Can now be combined with Rocket Boots at a Tinkerer's Workshop to create Spectre Boots."
+		}
 	},
 	"135": {
 		"added": 104000100,
-		"changed": [104010000, 104050700]
+		"changed": [104010000, 104050700],
+		"notes": {
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"136": {
 		"added": 102030000,
-		"changed": [102030100, 103000100, 104000100]
+		"changed": [102030100, 103000100, 104000100],
+		"notes": {
+			"102030100": "Fixed a bug where Extendo Grip let you open chests that would instantly close again.",
+			"103000100": "Now used to craft Architect Gizmo Pack.",
+			"104000100": "Tooltip changed from \"Increases tile reach\" to \"Increases block placement & tool range by 3\"."
+		}
 	},
 	"137": {
 		"added": 102000000,
-		"changed": [104000100, 104050700]
+		"changed": [104000100, 104050700],
+		"notes": {
+			"104000100": "• Sprite updated.\n• Drop rate increased from 1/8 (12.5%) to 1/7 (14.29%), due to the Picksaw now dropping separately.",
+			"104050700": "Now used to craft the Templar's Sling."
+		}
 	},
 	"138": {
 		"added": 104000100,
-		"changed": [104040300]
+		"changed": [104040300],
+		"notes": {
+			"104040300": "Sell value decreased from 10 Gold to 8 Gold."
+		}
 	},
 	"139": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 104000100, 104010000, 104030300, 104050700]
+		"changed": [102030100, 102040100, 104000100, 104010000, 104030300, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104000100": "• Sprites updated for Fairy Wings, Harpy Wings, Leaf Wings, Bee Wings, and Beetle Wings. The item sprite for the Jetpack was also updated.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104030300": "Fairy Wings only requires 99 Pixie Dust to craft instead of 100 (as 99 is the max stack for Pixie Dust).",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"140": {
 		"added": 102010200,
-		"changed": [103000100, 104050000]
+		"changed": [103000100, 104050000],
+		"notes": {
+			"103000100": "Now used to craft the Green Horseshoe Balloon.",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"141": {
 		"added": 102000300,
-		"changed": [102010200, 103000100, 104020300]
+		"changed": [102010200, 103000100, 104020300],
+		"notes": {
+			"102010200": "Now used to craft the Fart in a Balloon.",
+			"103000100": "Now uses the Whoopie Cushion sound effect.",
+			"104020300": "Can now be dropped by Jungle Mimics."
+		}
 	},
 	"142": {
 		"added": 102000000,
-		"changed": [103000100, 104040000]
+		"changed": [103000100, 104040000],
+		"notes": {
+			"103000100": "Sprite updated. Old sprite was .",
+			"104040000": "Can now be converted into a Trifold Map and back via Shimmer."
+		}
 	},
 	"143": {
 		"added": 102020000,
-		"changed": [102030100, 102040100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"144": {
 		"added": 102040000,
-		"changed": [102040100, 104010000, 104050700]
+		"changed": [102040100, 104010000, 104050700],
+		"notes": {
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"145": {
 		"added": 103000100,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"146": {
 		"added": 103000100,
-		"changed": [104000100, 104000500, 104040000]
+		"changed": [104000100, 104000500, 104040000],
+		"notes": {
+			"104000100": "• Angler quest reward chance increased.\n• The Angler will no longer give you duplicate informational accessories, unless you already have all of them.",
+			"104000500": "Fixed a bug where RNG would make the Fishing Power display vary wildly.",
+			"104040000": "• Now used to craft the Sextant via Shimmer.\n• The Angler no longer checks fishing and informational accessories separately to duplicate items."
+		}
 	},
 	"147": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"148": {
 		"added": 102000000,
-		"changed": [102010200, 102030100, 102040100, 104010000, 104050700]
+		"changed": [102010200, 102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102010200": "• Flame and Frozen Wings now fade when the player is stealthed from Shroomite armor.",
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"149": {
 		"added": 103000100,
-		"changed": [104000100, 104010000, 104050000]
+		"changed": [104000100, 104010000, 104050000],
+		"notes": {
+			"104000100": "Now used to craft the Berserker's Glove and Hero Shield.",
+			"104010000": "Increased defense from 7 to 8.",
+			"104050000": "Can now be converted into a Putrid Scent and vice-versa via Shimmer."
+		}
 	},
 	"150": {
 		"added": 100000000,
-		"changed": [101000000, 102000000, 103000100, 103010000, 103020000, 104000100, 104040000]
+		"changed": [101000000, 102000000, 103000100, 103010000, 103020000, 104000100, 104040000],
+		"notes": {
+			"101000000": "Can now be combined with the Diving Helmet to make Diving Gear.",
+			"102000000": "Inventory sprite updated. Previous sprite was",
+			"103000100": "Chance of being contained in Water Chests increased from 7/30 (23.33%) to 14/45 (31.11%).",
+			"103010000": "Inventory sprite updated.",
+			"103020000": "Equipped sprite updated.",
+			"104000100": "• Now used to craft the Frog Flipper and Frog Gear.\n• Chance of being contained in Water Chests reduced from 14/45 (31.11%) to 81/400 (20.25%).",
+			"104040000": "Chance of being contained in Water Chests and found in Ocean/Seaside Crates increased from 81/400 (20.25%) to 9/40 (22.5%)."
+		}
 	},
 	"151": {
 		"added": 103000100,
-		"changed": [103020000, 104000100, 104050700]
+		"changed": [103020000, 104000100, 104050700],
+		"notes": {
+			"103020000": "Sprites updated.",
+			"104000100": "• Drastically reduced the chance of critters spawning from destroyed plants when wearing Flower Boots.\n• Flower Boots are now included in the Jungle Crate's loot pool.",
+			"104050700": "Chance of being found in Ivy Chests changed from 4.57% to 4.67% due to the Seaweed becoming a secondary item."
+		}
 	},
 	"152": {
 		"added": 102000000,
-		"changed": [103020000, 104000100]
+		"changed": [103020000, 104000100],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104000100": "Now obtainable from Frozen and Boreal Crates."
+		}
 	},
 	"153": {
 		"added": 102000000,
-		"changed": [102040000, 102040100, 104000100, 104040000, 104040600]
+		"changed": [102040000, 102040100, 104000100, 104040000, 104040600],
+		"notes": {
+			"102040000": "Fixed bug where the Flying Carpet could not be dyed.",
+			"102040100": "Fixed a crash when using Team Dye with a Flying Carpet.",
+			"104000100": "Item and equipped sprites updated.",
+			"104040000": "Can be obtained via throwing a Pharaoh's Robe into Shimmer.",
+			"104040600": "Now used to craft the Pharaoh's Robe via Shimmer."
+		}
 	},
 	"154": {
 		"added": 104040000,
-		"changed": [104050000]
+		"changed": [104050000],
+		"notes": {
+			"104050000": "Now also centers the screen on the Wall Racer Car."
+		}
 	},
 	"155": {
 		"added": 104000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "• Players can now stack any Frog Leg-derived tinker to gain additive benefits.\n• Reduced jump speed bonus from 2.4 to 1.6.\n• Reduced the maximum safe falling distance increase from 15 to 10 tiles."
+		}
 	},
 	"156": {
 		"added": 104000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "• Players can now stack any Frog Leg-derived tinker to gain additive benefits.\n• Reduced jump speed bonus from 2.4 to 1.6.\n• Reduced the maximum safe falling distance increase from 15 to 10 tiles."
+		}
 	},
 	"157": {
 		"added": 104000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "• Players can now stack any Frog Leg-derived tinker to gain additive benefits.\n• Reduced jump speed bonus from 2.4 to 1.6.\n• Reduced the maximum safe falling distance increase from 15 to 10 tiles."
+		}
 	},
 	"158": {
 		"added": 104000100,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"159": {
 		"added": 102000000,
-		"changed": [102010200, 102030100, 102040100, 104010000, 104050700]
+		"changed": [102010200, 102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102010200": "• Flame and Frozen Wings now fade when the player is stealthed from Shroomite armor.",
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"160": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"161": {
 		"added": 103000100,
-		"changed": [104050000]
+		"changed": [104050000],
+		"notes": {
+			"104050000": "Can now be used in social slots."
+		}
 	},
 	"162": {
 		"added": 103000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "• Drop rates doubled outright. The increased drop rate from Pirate Captains has also been doubled.\n• Flying Dutchman now has a substantially increased chance of dropping this item, with a 1/15 chance."
+		}
 	},
 	"163": {
 		"added": 100000000,
-		"changed": [101000000, 103010000, 104050000, 104050400]
+		"changed": [101000000, 103010000, 104050000, 104050400],
+		"notes": {
+			"101000000": "Now used to craft Timers and the GPS.",
+			"103010000": "Sprites of all watches updated.",
+			"104050000": "• Now craftable at Work Benches rather than chairs with tables.\n• Now have a chance to break when the player has negative luck.",
+			"104050400": "No longer have a chance to break if the player has negative luck. Previously, there was a chance of 1 in 300 * (-1/luck) per tick (e.g. 1/3000 (0.03%) with -0.1 luck) for a watch to break, causing the displayed time to get stuck and stop updating. This effect used to clear with a 1/18,000 (0.0056%) chance per tick, or immediately upon reaching a luck value above zero."
+		}
 	},
 	"164": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"165": {
 		"added": 102000000,
-		"changed": [103000100, 104000100]
+		"changed": [103000100, 104000100],
+		"notes": {
+			"103000100": "• Now drops from the Moon Lord in Expert Mode.\n• Changed rarity from Yellow to Rainbow.",
+			"104000100": "Gravity Globe can now reverse gravity mid-air."
+		}
 	},
 	"166": {
 		"added": 103000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Now grants +0.05 luck (from Lucky Coin)."
+		}
 	},
 	"167": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Can no longer be equipped in a social accessory slot.",
+			"104050000": "• Now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Damage increased from 80% of yoyo damage to 100%.\n• Velocity increased by 100%.\n• Counterweights will now override the visuals of the Yoyo Bag if placed in a vanity slot."
+		}
 	},
 	"168": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"169": {
 		"added": 103000100,
-		"changed": [104040000, 104050000]
+		"changed": [104040000, 104050000],
+		"notes": {
+			"104040000": "Now grants +0.05 luck (from Lucky Horseshoe).",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"170": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"171": {
 		"added": 103000100,
-		"changed": [104040000, 104050700]
+		"changed": [104040000, 104050700],
+		"notes": {
+			"104040000": "• Sprite updated.\n• Now sold by the Skeleton Merchant.",
+			"104050700": "Drop rates of all primary surface Chest loot reduced from 1/10 (10%) to 1/11 (9.09%) (1/100 (1%) to 1/120 (0.83%) for Wooden or Pearlwood Crate) due to the addition of the Poison Barb."
+		}
 	},
 	"172": {
 		"added": 104040000,
-		"changed": [104040600]
+		"changed": [104040600],
+		"notes": {
+			"104040600": "Rarity changed from Blue to Light Purple."
+		}
 	},
 	"173": {
 		"added": 102020000,
-		"changed": [102030000, 103020000]
+		"changed": [102030000, 103020000],
+		"notes": {
+			"102030000": "Sell price reduced from 2 Gold to 1 Gold.",
+			"103020000": "Sprite updated."
+		}
 	},
 	"174": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"175": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 104000100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104000100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104000100": "• Sprites updated for Fairy Wings, Harpy Wings, Leaf Wings, Bee Wings, and Beetle Wings. The item sprite for the Jetpack was also updated.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"176": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"177": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"178": {
 		"added": 104000100,
-		"changed": [104010000, 104040000, 104040300]
+		"changed": [104010000, 104040000, 104040300],
+		"notes": {
+			"104010000": "Now gives the lava damage reduction from the Obsidian Rose.",
+			"104040000": "• Is no longer crafted by combining Flame Waker Boots and Lava Waders. Instead, is crafted from Flame Waker Boots and Spectre Boots.\n• Loses its Lava Wading and lava damage reduction benefits, but now has Hermes Running and Rocket Booting.\n• Generates fire sparks on running and uses the classic flame Rocket Boot trail.",
+			"104040300": "Sell value decreased from 12 GC to 4 GC."
+		}
 	},
 	"179": {
 		"added": 102000000,
-		"changed": [102010200, 104000100, 104040000]
+		"changed": [102010200, 104000100, 104040000],
+		"notes": {
+			"102010200": "Now used to craft the Papyrus Scarab.",
+			"104000100": "Can now be purchased without the Pygmy Staff being in the player's inventory.",
+			"104040000": "Tooltips of summon-related items now say \"summon damage\" instead of \"minion damage\"."
+		}
 	},
 	"180": {
 		"added": 104000100,
-		"changed": [104010000, 104010200]
+		"changed": [104010000, 104010200],
+		"notes": {
+			"104010000": "Increased defense from 7 to 10.",
+			"104010200": "Now actually has an effect on aggro."
+		}
 	},
 	"181": {
 		"added": 102040000,
-		"changed": [102040100, 103000100, 103010000, 104000100, 104040000]
+		"changed": [102040100, 103000100, 103010000, 104000100, 104040000],
+		"notes": {
+			"102040100": "A bug which caused the line to still snap when having the High Test Fishing Line equipped has been fixed.",
+			"103000100": "Sprite updated. Old sprite was: .",
+			"103010000": "Now used to craft the Angler Tackle Bag.",
+			"104000100": "The Angler will no longer give the player duplicate fishing accessories, unless they already have all of them.",
+			"104040000": "• Now used to craft the Angler Earring via Shimmer.\n• The Angler no longer checks fishing and informational accessories separately to duplicate items."
+		}
 	},
 	"182": {
 		"added": 103000100,
-		"changed": [104000100, 104040000, 104050700]
+		"changed": [104000100, 104040000, 104050700],
+		"notes": {
+			"104000100": "Sprite updated. Previous sprite was: .",
+			"104040000": "• Now increases the firing rate of Hornet Staff minions by about 30%.\n• Now increases the damage and armor penetration of the Wasp Gun by 5.",
+			"104050700": "Giant Bees (which can only be spawned by the Hive Pack) now inflict static invincibility frames. Previously, these were global.\n• This means that the Hive Pack no longer has a potentially negative effect on the performance of the Beekeeper and Hive Five."
+		}
 	},
 	"183": {
 		"added": 102000000,
-		"changed": [102020000, 103000100, 103020000, 104010000]
+		"changed": [102020000, 103000100, 103020000, 104010000],
+		"notes": {
+			"102020000": "Can now be crafted.",
+			"103000100": "Now used to craft the Amber Horseshoe Balloon.",
+			"103020000": "Equipped sprite updated.",
+			"104010000": "• The base damage of the Bees generated has been increased from 7 to 13, 18 with the Hive Pack.\n  ◦ This damage is multiplied by 1.5x in Expert Mode, and 2x in Master Mode.\n• The player now receives the Honey buff after being hit."
+		}
 	},
 	"184": {
 		"added": 102000000,
-		"changed": [102020000, 103000100, 104000100, 104010000, 104050000, 104050700]
+		"changed": [102020000, 103000100, 104000100, 104010000, 104050000, 104050700],
+		"notes": {
+			"102020000": "Now used to craft the Honey Balloon.",
+			"103000100": "Now drops separately, with a drop chance of 1/3 (33.33%).",
+			"104000100": "Now used to craft the Stinger Necklace.",
+			"104010000": "• The base damage of the Bees generated has been increased from 7 to 13, 18 with the Hive Pack.\n  ◦ This damage is multiplied by 1.5× in Expert Mode, and 2× in Master Mode.\n• The player now receives the Honey buff after being hit.",
+			"104050000": "Now only triggers from enemies and fall damage.",
+			"104050700": "Now used to craft the Sweet Barb."
+		}
 	},
 	"185": {
 		"added": 102010200,
-		"changed": [102030000, 102040000, 104000100]
+		"changed": [102030000, 102040000, 104000100],
+		"notes": {
+			"102030000": "• Made Hoverboard not appear on a mount.\n• Fixed Hoverboard bug where one could walk on air while in reversed gravity.",
+			"102040000": "Fixed the exploit where one could have infinite Hoverboard hovering time. This was done by hovering between two double-jumps provided by other accessories (such as the Bundle of Balloons).",
+			"104000100": "Sprites updated."
+		}
 	},
 	"186": {
 		"added": 103040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"187": {
 		"added": 102000000,
-		"changed": [102010200, 103020000, 104000100]
+		"changed": [102010200, 103020000, 104000100],
+		"notes": {
+			"102010200": "Now used to craft the Arctic Diving Gear and Frostspark Boots.",
+			"103020000": "Sprite updated.",
+			"104000100": "Now has a 1 in 6 chance of being dropped by a Frozen Crate or Boreal Crate."
+		}
 	},
 	"188": {
 		"added": 104000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Drop rate in Water Chests and Crates increased from 81/400 (20.25%) to 9/40 (22.5%)."
+		}
 	},
 	"189": {
 		"added": 102010200,
-		"changed": [103020000, 104010000]
+		"changed": [103020000, 104010000],
+		"notes": {
+			"103020000": "Sprite updated.",
+			"104010000": "• Increased the breath capacity bonus by 50%.\n• Now lets off an extremely faint glow when out of water.\n• Dramatically increased the brightness when in water."
+		}
 	},
 	"190": {
 		"added": 102000000,
-		"changed": [102010200, 104000100, 104010000, 104010200]
+		"changed": [102010200, 104000100, 104010000, 104010200],
+		"notes": {
+			"102010200": "Now used to craft the Jellyfish Diving Gear.",
+			"104000100": "Item sprite updated.",
+			"104010000": "• Now lets off an extremely faint glow when out of water.\n• Dramatically increased the brightness when in water.",
+			"104010200": "Fixed a typo in the tooltip (changed \"suble\" to \"subtle\")."
+		}
 	},
 	"191": {
 		"added": 102000000,
-		"changed": [104000100]
+		"changed": [104000100],
+		"notes": {
+			"104000100": "Sprite updated. Old sprite was ."
+		}
 	},
 	"192": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"193": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"194": {
 		"added": 104000100,
-		"changed": [104010000]
+		"changed": [104010000],
+		"notes": {
+			"104010000": "Now used to craft the Lavaproof Tackle Bag."
+		}
 	},
 	"195": {
 		"added": 104010000,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Tooltip now shows how much Fishing Power it grants."
+		}
 	},
 	"196": {
 		"added": 103000100,
 		"changed": [
 			103000300, 103000400, 103000500, 103030000, 103040200, 104000100, 104010000, 104040000,
 			104050000
-		]
+		],
+		"notes": {
+			"103000300": "Fixed Nymph not having rarity.",
+			"103000400": "Fixed Pinky not appearing on Lifeform Analyzer.",
+			"103000500": "Can now detect Martian Probe.",
+			"103030000": "Can now detect Sand Elemental.",
+			"103040200": "Can now detect Sleeping Angler and Unconscious Man.",
+			"104000100": "Can now detect Prismatic Lacewing, Sea Snail, and Squid.",
+			"104010000": "Increased the rarity of Lac, Cyan, and Cochineal Beetles from 1 to 2.",
+			"104040000": "• Can now detect Voodoo Demon, Old Shaking Chest, Clumsy Balloon Slime, and Mystic Frog.\n• Gold critters will now appear in gold.\n• Changed the rarity levels of several entities to give proper priority based on entities which they co-exist with:\n  ◦ Rune Wizard: 2 → 4\n  ◦ Lost Girl and Nymph: 1 → 2\n  ◦ Cochineal, Cyan, and Lac Beetles: 2 → 1\n  ◦ Sea Snail: 1 → 2\n  ◦ Paladin: 1 → 2\n  ◦ Skeleton Sniper, Tactical Skeleton, and Skeleton Commando: 2 → 1\n  ◦ Tortured Soul: 1 → 2",
+			"104050000": "Can now be used in social slots."
+		}
 	},
 	"197": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"198": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"199": {
 		"added": 102000000,
-		"changed": [102000300, 103000100, 104020300, 104040000]
+		"changed": [102000300, 103000100, 104020300, 104040000],
+		"notes": {
+			"102000300": "Lucky Coin no longer drops coins from statue-spawned enemies.",
+			"103000100": "• Sprite updated. Old sprite was .\n• Now drops from Flying Dutchman.\n• Now used to craft the Coin Ring.",
+			"104020300": "Can now be purchased from the Princess in Celebrationmk10 worlds after defeating a Pirate Invasion.",
+			"104040000": "• Drop rates doubled outright. The increased drop rate from Pirate Captains has also been doubled.\n• Flying Dutchman now has a substantially increased chance of dropping this item, with a 1/15 chance.\n• Now grants +0.05 luck."
+		}
 	},
 	"200": {
 		"added": 104050000,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"201": {
 		"added": 102000000,
-		"changed": [102030000, 103020000, 104000300, 104050700]
+		"changed": [102030000, 103020000, 104000300, 104050700],
+		"notes": {
+			"102030000": "Now used to craft the Celestial Cuffs.",
+			"103020000": "Item and equipped sprites updated.",
+			"104000300": "Item sprite updated.",
+			"104050700": "• Ingredient changed from Mana Regeneration Band to Band of Starpower.\n• Maximum mana increased from 20 to 40, thanks to Band of Starpower's change.\n• Added 2 defense."
+		}
 	},
 	"202": {
 		"added": 104050000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"203": {
 		"added": 104050000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"204": {
 		"added": 104030000,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "• Reduced the acceleration bonus factor from ×2 (0.6 tiles/second²) to ×1.75 (0.525 tiles/second²).\n• Reduced the maximum movement speed bonus factor from ×1.2 to ×1.15."
+		}
 	},
 	"205": {
 		"added": 104000100,
-		"changed": [104010000, 104040000, 104050000]
+		"changed": [104010000, 104040000, 104050000],
+		"notes": {
+			"104010000": "Now inflicts Hellfire, a variant of On Fire! that does 15 DPS instead of 4.",
+			"104040000": "• Recipe now takes a Lava Charm instead of a Magma Stone.\n• Now gives temporary Lava Immunity, instead of adding Hellfire to attacks.",
+			"104050000": "Sell price increased from 2 Gold 50 Silver to 7 Gold 50 Silver to match the Molten Charm."
+		}
 	},
 	"206": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Mana cost reduction from Mana Flower and its upgrades can no longer stack."
+		}
 	},
 	"207": {
 		"added": 104000100,
-		"changed": [104000500, 104010000, 104010200, 104050700]
+		"changed": [104000500, 104010000, 104010200, 104050700],
+		"notes": {
+			"104000500": "Fixed the Encumbering Stone not allowing the player to pick up the Mana Cloak's stars.",
+			"104010000": "• Stars now deal 75 damage and have 25 armor penetration.\n• This damage is multiplied by 2× in Expert Mode, and 3× in Master Mode (the armor penetration remains unchanged).\n• Now uses local invincibility frames, will not interfere with other piercing projectiles.",
+			"104010200": "Now only creates stars when taking damage from enemies.",
+			"104050700": "• Mana cost reduction from Mana Flower and its upgrades can no longer stack.\n• Reworked to summon a falling mana star on magic hits. Picking it up gives Mana Surge.\n• The falling mana star now breaks when it passes the player's elevation, even on platforms, making it easy to grab."
+		}
 	},
 	"208": {
 		"added": 101000000,
-		"changed": [101010000, 103000100, 104000100, 104050700]
+		"changed": [101010000, 103000100, 104000100, 104050700],
+		"notes": {
+			"101010000": "Sell value increased from 3 Silver to 1 Gold.",
+			"103000100": "Sprite updated. Old sprite was .",
+			"104000100": "Now used to craft the Arcane Flower, Magnet Flower, and Mana Cloak.",
+			"104050700": "Mana Flower's different upgrades no longer stack their mana cost reduction. The cost reduction still stacks with Nature's Gift."
+		}
 	},
 	"209": {
 		"added": 102000000,
-		"changed": [103000100, 103020000, 104050700, 104050800]
+		"changed": [103000100, 103020000, 104050700, 104050800],
+		"notes": {
+			"103000100": "Inventory sprite updated. Old sprite was .",
+			"103020000": "Equipped sprite updated.",
+			"104050700": "• Mana regeneration per second increased from 12.5 to 30.\n• Now inherits Band of Regeneration's life regeneration (which also affects all upgrades).\n• No longer used to craft the Magic Cuffs.\n• Now used to craft the Restoration Shield and Mystic Arts Sash.",
+			"104050800": "Fixed Mana Regeneration Band stacking causing the player to regenerate mana at 100% speed even when using weapons."
+		}
 	},
 	"210": {
 		"added": 103010000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"211": {
 		"added": 103000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Now used to craft the Grand Design."
+		}
 	},
 	"212": {
 		"added": 102000000,
-		"changed": [103000100, 104040000]
+		"changed": [103000100, 104040000],
+		"notes": {
+			"103000100": "Sprite updated. Old sprite was .",
+			"104040000": "It is now obtainable in pre-Hardmode as the player can now acquire all of its ingredients via Shimmer."
+		}
 	},
 	"213": {
 		"added": 102000000,
-		"changed": [102010000, 103000100, 104040000]
+		"changed": [102010000, 103000100, 104040000],
+		"notes": {
+			"102010000": "Can now be dropped from Green Jellyfish.",
+			"103000100": "Sprite updated. Old sprite was .",
+			"104040000": "Can now be converted into a Nazar and back via Shimmer, making it obtainable in pre-Hardmode."
+		}
 	},
 	"214": {
 		"added": 103000100,
-		"changed": [104000100, 104040000, 104050000]
+		"changed": [104000100, 104040000, 104050000],
+		"notes": {
+			"104000100": "• Desert Fossils, Trapped Chests, and Strange Plants are now detected.\n• Increased the value of Meteorite from 300 to 400.\n• Reduced the value of Demonite and Crimtane Ore from 310/320 to 300/310.\n• Reduced the value of Gold and Platinum Ore from 400/410 to 260/270.\n• Reduced the value of Sturdy Fossils from 350 to 150.",
+			"104040000": "• Gelatin Crystals are now detected.\n• Reduced the value of Life Crystals from 800 to 550.",
+			"104050000": "Digtoises and Huge Dragon Eggs are now detected."
+		}
 	},
 	"215": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"216": {
 		"added": 104000100,
-		"changed": [104040800]
+		"changed": [104040800],
+		"notes": {
+			"104040800": "Now has a vanity appearance."
+		}
 	},
 	"217": {
 		"added": 104000100,
-		"changed": [104010000, 104050700]
+		"changed": [104010000, 104050700],
+		"notes": {
+			"104010000": "Wooden Arrows converted to Flaming Arrows by the Molten Quiver now properly gain the +2 damage that Flaming Arrows have.",
+			"104050700": "Now used to craft the Phoenix Quiver."
+		}
 	},
 	"218": {
 		"added": 104000100,
-		"changed": [104010000, 104040000, 104050000]
+		"changed": [104010000, 104040000, 104050000],
+		"notes": {
+			"104010000": "Now inflicts Hellfire, a variant of On Fire! that does 15 DPS instead of 4.",
+			"104040000": "• Recipe now takes a Lava Charm instead of a Magma Stone.\n• Now gives temporary Lava Immunity instead of adding Hellfire to attacks.\n• Now used to craft the Lava Waders.",
+			"104050000": "Sell price increased from 5 GC to 9 GC."
+		}
 	},
 	"219": {
 		"added": 103040000,
-		"changed": [103040200]
+		"changed": [103040200],
+		"notes": {
+			"103040200": "Fixed tooltip saying \"sentry damage\" instead of \"minion damage\"."
+		}
 	},
 	"220": {
 		"added": 101000000,
-		"changed": [102000000, 102030000, 103000100, 103000600, 104000100]
+		"changed": [102000000, 102030000, 103000100, 103000600, 104000100],
+		"notes": {
+			"102000000": "• Overall boost to effects, also triggers every night instead of just full moons.\n• Now used to craft the Moon Shell.",
+			"102030000": "Fixed issue where Merfolk / Werewolf transformations were visible when the player was invisible.",
+			"103000100": "Sprite updated.",
+			"103000600": "Can now hide the Moon Charm's werewolf transformation, or equip the charm to a Vanity slot for purely aesthetic transformations.",
+			"104000100": "Effect no longer stacks with Celestial Shell and its derivative accessories."
+		}
 	},
 	"221": {
 		"added": 102000000,
-		"changed": [103000100, 103000600]
+		"changed": [103000100, 103000600],
+		"notes": {
+			"103000100": "• Now used to craft the Celestial Shell.\n• Sprite updated. Old sprite was .",
+			"103000600": "Can now hide the Moon Shell's werewolf and merfolk transformation."
+		}
 	},
 	"222": {
 		"added": 102000000,
-		"changed": [102010200, 103000100, 103020000, 104000100]
+		"changed": [102010200, 103000100, 103020000, 104000100],
+		"notes": {
+			"102010200": "Now used to craft the Celestial Stone.",
+			"103000100": "Inventory sprite updated. Old sprite was .",
+			"103020000": "Equipped sprite updated.",
+			"104000100": "No longer stacks with the Celestial Shell, Celestial Stone, and Sun Stone."
+		}
 	},
 	"223": {
 		"added": 103000100,
-		"changed": [103000400, 104010000, 104050700]
+		"changed": [103000400, 104010000, 104050700],
+		"notes": {
+			"103000400": "• Mothron Wings are now obtainable, dropped by Mothron, after Plantera has been defeated.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"224": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"225": {
 		"added": 100000000,
-		"changed": [100060000, 101000000, 102030000, 103010000, 104000100, 104040000, 104050700]
+		"changed": [100060000, 101000000, 102030000, 103010000, 104000100, 104040000, 104050700],
+		"notes": {
+			"100060000": "Functionality was changed from respawning with maximum health and mana to reducing mana cost. It also no longer appears in Jungle Shrine Ivy Chests.",
+			"101000000": "Now used to craft the Mana Flower.",
+			"102030000": "Slightly more common now.",
+			"103010000": "Sprite updated.",
+			"104000100": "Slightly more common now.",
+			"104040000": "The social display visual now draws over helmets/face accessories, to allow combining.",
+			"104050700": "Now used to craft the Mystic Bloom."
+		}
 	},
 	"226": {
 		"added": 102000000,
-		"changed": [102030000, 103000100, 104000100, 104040000]
+		"changed": [102030000, 103000100, 104000100, 104040000],
+		"notes": {
+			"102030000": "Fixed a bug where Crimson Axes would not drop the Nazar.",
+			"103000100": "Sprite updated. Old sprite was .",
+			"104000100": "Can now drop from Giant Cursed Skulls.",
+			"104040000": "Can now be converted into a Megaphone and back via Shimmer."
+		}
 	},
 	"227": {
 		"added": 103000100,
-		"changed": [103010000, 104010000, 104050700]
+		"changed": [103010000, 104010000, 104050700],
+		"notes": {
+			"103010000": "Now Stardust Wings has the same stats as Solar Wings, and Nebula Mantle has the same stats as Vortex Booster.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"228": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"229": {
 		"added": 101000000,
-		"changed": [102000000, 103000100, 103000600, 104000100]
+		"changed": [102000000, 103000100, 103000600, 104000100],
+		"notes": {
+			"102000000": "Now used in the crafting of the Moon Shell.",
+			"103000100": "• Sprite updated. Old sprite was .\n• No longer craftable, now dropped by Creature from the Deep.",
+			"103000600": "Can now hide the Neptune's Shell Merfolk transformation.",
+			"104000100": "Wearing a Fish Bowl will now activate the Merfolk appearance and its effect."
+		}
 	},
 	"230": {
 		"added": 101000000,
-		"changed": [103010000, 104040000]
+		"changed": [103010000, 104040000],
+		"notes": {
+			"103010000": "Sprite updated.",
+			"104040000": "Now grants +0.05 luck (from Lucky Horseshoe)."
+		}
 	},
 	"231": {
 		"added": 102000000,
-		"changed": [104000100, 104010000, 104040000]
+		"changed": [104000100, 104010000, 104040000],
+		"notes": {
+			"104000100": "• Inventory sprite updated.\n• Now used to craft the Molten Skull Rose and Obsidian Skull Rose.",
+			"104010000": "• Now used to craft the Lava Waders.\n• Lava damage reduction increased from 30 to 45.",
+			"104040000": "Drop rate increased from 1/50 to 1/20."
+		}
 	},
 	"232": {
 		"added": 104000100,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"233": {
 		"added": 102000000,
-		"changed": [103020000]
+		"changed": [103020000],
+		"notes": {
+			"103020000": "Sprite updated."
+		}
 	},
 	"234": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"235": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"236": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"237": {
 		"added": 102030000,
-		"changed": [102040100, 103000100, 103010000]
+		"changed": [102040100, 103000100, 103010000],
+		"notes": {
+			"102040100": "Using Paint Sprayer with Brick Layer or Cement Mixer now places at the proper speed.",
+			"103000100": "Now used to craft Architect Gizmo Pack.",
+			"103010000": "• Sprite updated.\n• No longer needs to be equipped in order to function."
+		}
 	},
 	"238": {
 		"added": 102000000,
-		"changed": [103000100, 104000100, 104010000, 104050700]
+		"changed": [103000100, 104000100, 104010000, 104050700],
+		"notes": {
+			"103000100": "Now has a 1/6 (16.67%) chance to be dropped by Crimson Crates.",
+			"104000100": "• Can now also be obtained from Hematic Crates, the Hardmode equivalent of Crimson Crates.\n• Aligned sell value with all other Crimson Heart/Shadow Orb loot, increasing it from 1 Gold to 1 Gold 50 Silver.\n• Sprite updated. Previous sprite was .",
+			"104010000": "• Can now be crafted.\n• Now used to craft the Band of Starpower.\n• Panic! duration increased from 5 to 8 seconds.",
+			"104050700": "Now used to craft the Crossed Heart Necklace."
+		}
 	},
 	"239": {
 		"added": 103000100,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"240": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"241": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"242": {
 		"added": 103000100,
-		"changed": [104040000, 104050000]
+		"changed": [104040000, 104050000],
+		"notes": {
+			"104040000": "Now grants +0.05 luck (from Lucky Horseshoe).",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"243": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"244": {
 		"added": 102000000,
-		"changed": [103010000, 104050000, 104050400]
+		"changed": [103010000, 104050000, 104050400],
+		"notes": {
+			"103010000": "Sprites of all watches updated.",
+			"104050000": "• Now craftable at Work Benches rather than chairs with tables.\n• Now have a chance to break when the player has negative luck.",
+			"104050400": "No longer have a chance to break if the player has negative luck. Previously, there was a chance of 1 in 300 * (-1/luck) per tick (e.g. 1/3000 (0.03%) with -0.1 luck) for a watch to break, causing the displayed time to get stuck and stop updating. This effect used to clear with a 1/18,000 (0.0056%) chance per tick, or immediately upon reaching a luck value above zero."
+		}
 	},
 	"245": {
 		"added": 103030000,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "• Drop rate increased from 1/100 (1%) / 199/10000 (1.99%) to 1/40 (2.5%) / 1/20 (5%).\n• Can now be converted into a Blindfold and back via Shimmer.\n• Now used to craft the Reflective Shades."
+		}
 	},
 	"246": {
 		"added": 104050700,
-		"changed": [104050800]
+		"changed": [104050800],
+		"notes": {
+			"104050800": "Fixed bug where the Poison Barb would affect the Guide's arrows."
+		}
 	},
 	"247": {
 		"added": 102030000,
-		"changed": [102030100, 103000100]
+		"changed": [102030100, 103000100],
+		"notes": {
+			"102030100": "Fixed bug where Brick Layer and Cement Mixer were not reducing stack quantities when placing items.",
+			"103000100": "Now used to craft Architect Gizmo Pack."
+		}
 	},
 	"248": {
 		"added": 103010000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"249": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Can no longer be equipped in a social accessory slot.",
+			"104050000": "• Now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Damage increased from 80% of yoyo damage to 100%.\n• Velocity increased by 100%.\n• Counterweights will now override the visuals of the Yoyo Bag if placed in a vanity slot."
+		}
 	},
 	"250": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"251": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"252": {
 		"added": 103000100,
-		"changed": [104000100, 104050000, 104050700]
+		"changed": [104000100, 104050000, 104050700],
+		"notes": {
+			"104000100": "Now used to craft Arcane Flower, Recon Scope, and Stalker's Quiver.",
+			"104050000": "Can now be converted into Flesh Knuckles and vice-versa via Shimmer.",
+			"104050700": "Now used to craft the Scout's Sling."
+		}
 	},
 	"253": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"254": {
 		"added": 103000100,
-		"changed": [104050000]
+		"changed": [104050000],
+		"notes": {
+			"104050000": "Can now be used in social slots."
+		}
 	},
 	"255": {
 		"added": 103000100,
-		"changed": [104000100, 104040000, 104050000, 104050700]
+		"changed": [104000100, 104040000, 104050000, 104050700],
+		"notes": {
+			"104000100": "Can now be obtained from Pearlwood Crates, the Hardmode equivalent of the Wooden Crate.",
+			"104040000": "Now sold by the Skeleton Merchant.",
+			"104050000": "Can now be used in social slots.",
+			"104050700": "Drop rates of all primary surface Chest loot reduced from 1/10 (10%) to 1/11 (9.09%) (1/100 (1%) to 1/120 (0.83%) for Wooden or Pearlwood Crate) due to the addition of the Poison Barb."
+		}
 	},
 	"256": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"257": {
 		"added": 104050000,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Fixed Ram Rune's ground pound not being accurate on the Stopwatch accessory."
+		}
 	},
 	"258": {
 		"added": 104000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Now compatible with the Clentaminator."
+		}
 	},
 	"259": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Can no longer be equipped in a social accessory slot.",
+			"104050000": "• Now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Damage increased from 80% of yoyo damage to 100%.\n• Velocity increased by 100%.\n• Counterweights will now override the visuals of the Yoyo Bag if placed in a vanity slot."
+		}
 	},
 	"260": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"261": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"262": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"263": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"264": {
 		"added": 102000000,
-		"changed": [102010200, 104000100, 104040000]
+		"changed": [102010200, 104000100, 104040000],
+		"notes": {
+			"102010200": "• Now used to craft the Sniper Scope.\n• Now works with Candy Corn Rifle and Stake Launcher.\n• No longer zooms when moused over interactable objects.",
+			"104000100": "Sprite updated.",
+			"104040000": "Now compatible with the Clentaminator."
+		}
 	},
 	"265": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"266": {
 		"added": 103000100,
-		"changed": [103020000, 104000100]
+		"changed": [103020000, 104000100],
+		"notes": {
+			"103020000": "Equipped sprite updated.",
+			"104000100": "Now used to craft the Amphibian Boots."
+		}
 	},
 	"267": {
 		"added": 102000000,
-		"changed": [104040000, 104050000]
+		"changed": [104040000, 104050000],
+		"notes": {
+			"104040000": "Now used to craft the Bundle of Horseshoe Balloons.",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater.\nImproved tooltip."
+		}
 	},
 	"268": {
 		"added": 102000000,
-		"changed": [103010000, 104020300, 104040000, 104040600]
+		"changed": [103010000, 104020300, 104040000, 104040600],
+		"notes": {
+			"103010000": "Sprite updated.",
+			"104020300": "Can now be purchased from the Princess in the Desert in Celebrationmk10 worlds.",
+			"104040000": "Can now be obtained by combining a Forbidden Fragment with a Cloud in a Bottle at a Crystal Ball, by throwing a Pharaoh's Mask into Shimmer, or found in Oasis/Mirage Crates.",
+			"104040600": "Now used to craft the Pharaoh's Mask via Shimmer."
+		}
 	},
 	"269": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"270": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"271": {
 		"added": 103000100,
-		"changed": [104000100, 104040000]
+		"changed": [104000100, 104040000],
+		"notes": {
+			"104000100": "• Angler quest reward chance increased.\n• The Angler will no longer give duplicate informational accessories, unless the player already has all of them.",
+			"104040000": "• Now used to craft the Weather Radio via Shimmer.\n• The Angler no longer checks fishing and informational accessories separately to duplicate items."
+		}
 	},
 	"272": {
 		"added": 100000000,
-		"changed": [101000000, 102000000, 103010000, 103020000, 104050000]
+		"changed": [101000000, 102000000, 103010000, 103020000, 104050000],
+		"notes": {
+			"101000000": "Can now be found with prefixes.",
+			"102000000": "Now used to craft the Magic Cuffs.",
+			"103010000": "Inventory sprite updated.",
+			"103020000": "Equipped sprite updated.",
+			"104050000": "Now used to craft The Beheaded's Cuirass."
+		}
 	},
 	"273": {
 		"added": 103000100,
-		"changed": [104050000]
+		"changed": [104050000],
+		"notes": {
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"274": {
 		"added": 100000000,
-		"changed": [101000000, 102000000, 102010200, 102020000, 103020000, 104040000, 104050000]
+		"changed": [101000000, 102000000, 102010200, 102020000, 103020000, 104040000, 104050000],
+		"notes": {
+			"101000000": "Now used to craft the Cloud in a Balloon.",
+			"102000000": "Now used to craft the Blizzard in a Balloon and Sandstorm in a Balloon.",
+			"102010200": "Now used to craft the Fart in a Balloon.",
+			"102020000": "Now used to craft the Honey Balloon.",
+			"103020000": "Sprites updated.",
+			"104040000": "Chance of being contained in Skyware Chests and found in Sky/Azure Crates reduced from 1/3 (33.33%) to 1/4 (25%).",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"275": {
 		"added": 103000100,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"276": {
 		"added": 102000000,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Sprite updated.",
+			"104050000": "Can now be converted into Climbing Claws and back via Shimmer."
+		}
 	},
 	"277": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"278": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"279": {
 		"added": 100000000,
-		"changed": [101000000, 103010000, 104050000, 104050400]
+		"changed": [101000000, 103010000, 104050000, 104050400],
+		"notes": {
+			"101000000": "Now used to craft Timers and the GPS.",
+			"103010000": "Sprites of all watches updated.",
+			"104050000": "• Now craftable at Work Benches rather than chairs with tables.\n• Now have a chance to break when the player has negative luck.",
+			"104050400": "No longer have a chance to break if the player has negative luck. Previously, there was a chance of 1 in 300 * (-1/luck) per tick (e.g. 1/3000 (0.03%) with -0.1 luck) for a watch to break, causing the displayed time to get stuck and stop updating. This effect used to clear with a 1/18,000 (0.0056%) chance per tick, or immediately upon reaching a luck value above zero."
+		}
 	},
 	"280": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"281": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"282": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"283": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"284": {
 		"added": 104000100,
-		"changed": [104040000, 104050600]
+		"changed": [104040000, 104050600],
+		"notes": {
+			"104040000": "• Reduced the acceleration bonus factor from ×2 (0.6 tiles/second²) to ×1.75 (0.525 tiles/second²).\n• Reduced jump speed from +2.4 to +1.8.",
+			"104050600": "Now grants infinite flight to the Velociraptor mount."
+		}
 	},
 	"285": {
 		"added": 104000100,
-		"changed": [104010200, 104050000]
+		"changed": [104010200, 104050000],
+		"notes": {
+			"104010200": "No longer override helmets entirely.",
+			"104050000": "• Now also sold by the Mechanic in Graveyards.\n• Can be found in chests on the Coat Everything Echo secret world seed."
+		}
 	},
 	"286": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 103000100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 103000100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"103000100": "• Ghost Wings now require Spectre Bars to craft, instead of Ectoplasm, are now called Spectre Wings, and have increased in rarity.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"287": {
 		"added": 102010000,
-		"changed": [102030100, 102040100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"288": {
 		"added": 103000100,
-		"changed": [104040000, 104050000, 104050700]
+		"changed": [104040000, 104050000, 104050700],
+		"notes": {
+			"104040000": "• Movement speed of the Spore Traps has been dramatically increased.\n• Range at which Spore Traps will begin chasing targets increased by 20%.",
+			"104050000": "Spore Traps now use -1 ticks of static invincibility frames, but cannot inflict them due to being non-piercing projectiles.",
+			"104050700": "• Spore Gas clouds now apply 10 ticks of static invincibility frames on hit, shared between all three cloud types.\n• Spore Traps now use 10 ticks of static invincibility frames, shared between two trap types. However, Spore Traps still cannot inflict them due to being non-piercing projectiles."
+		}
 	},
 	"289": {
 		"added": 103040000,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "Now dropped by Dark Mages instead of Ogres."
+		}
 	},
 	"290": {
 		"added": 104000100,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"291": {
 		"added": 101000000,
 		"changed": [
 			102000000, 103010000, 103020000, 104000100, 104010000, 104010200, 104040000, 104050700
-		]
+		],
+		"notes": {
+			"102000000": "Now used to craft the Star Veil and Bee Cloak.",
+			"103010000": "• Inventory sprite updated.\n• Falling stars are now colored white.",
+			"103020000": "Equipped sprite updated.",
+			"104000100": "• Now used to craft the Mana Cloak.\n• Projectile ID changed from 92 to 726.",
+			"104010000": "• Stars now deal 75 damage and have 25 armor penetration.\n  ◦ This damage is multiplied by 2 in Expert Mode, and 3 in Master Mode (the armor penetration remains unchanged).\n• Now uses local invincibility frames, will not interfere with other piercing projectiles.",
+			"104010200": "Now only creates stars when taking damage from enemies and other players.",
+			"104040000": "Now used to craft the Chromatic Cloak via Shimmer.",
+			"104050700": "Now used to craft the Druidic Serpent Cloak."
+		}
 	},
 	"292": {
 		"added": 103000100,
-		"changed": [104010000, 104050700]
+		"changed": [104010000, 104050700],
+		"notes": {
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"293": {
 		"added": 102000000,
-		"changed": [102030100, 102040100, 103000100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 103000100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"103000100": "• Introduced Solar and Stardust Wings, Nebula Mantle, and Vortex Booster.\n• Introduced Mothron Wings, but unobtainable.\n• All previously unobtainable wings are now obtainable:\n  ◦ Steampunk Wings are now sold by the Steampunker.\n  ◦ Developer wings are now obtained from Treasure Bags.\n• Adjusted all developer wings' stats, and they will not inflict movement penalty when visible.\n• Ghost Wings now require Spectre Bars to craft, instead of Ectoplasm, are now called Spectre Wings, and have increased in rarity.\n• Now the max vertical speed of Fishiron Wings is correctly 2.5×. Previously the player's vertical speed will be reset to 2× each time it exceeds 3×.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"294": {
 		"added": 104000100,
-		"changed": [104000300, 104040000, 104050000, 104050700]
+		"changed": [104000300, 104040000, 104050000, 104050700],
+		"notes": {
+			"104000300": "Fixed a bug where the Step Stool could only be used when the player was grappled.",
+			"104040000": "• Can now be found in Wooden and Pearlwood Crates.\n• Now sold by the Skeleton Merchant.\n• Now used to craft the Hand Of Creation.",
+			"104050000": "Improved the Step Stool animation.",
+			"104050700": "• Fixed a camera glitch involving the Step Stool and the Frog Leg."
+		}
 	},
 	"295": {
 		"added": 104000100,
-		"changed": [104010000]
+		"changed": [104010000],
+		"notes": {
+			"104010000": "• The base damage of the Bees generated has been increased from 7 to 13, 18 with the Hive Pack.\n  ◦ This damage is multiplied by 1.5× in Expert Mode, and 2× in Master Mode.\n• The player now receives the Honey buff after being hit."
+		}
 	},
 	"296": {
 		"added": 103000100,
-		"changed": [103030100, 104050700]
+		"changed": [103030100, 104050700],
+		"notes": {
+			"103030100": "Fixed not showing proper speed while in liquids.",
+			"104050700": "Fixed Pogo Stick and Ram Rune's dash not being accurate on the Stopwatch accessory."
+		}
 	},
 	"297": {
 		"added": 104050000,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Stress Ball now works when game screen focus is lost."
+		}
 	},
 	"298": {
 		"added": 104050000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"299": {
 		"added": 102000000,
-		"changed": [102010200, 103000100, 103020000, 104000100]
+		"changed": [102010200, 103000100, 103020000, 104000100],
+		"notes": {
+			"102010200": "Now used to craft the Celestial Stone.",
+			"103000100": "Inventory sprite updated. Old sprite was .",
+			"103020000": "Equipped sprite updated.",
+			"104000100": "• Drop rate increased from 1/8 (12.5%) to 1/7 (14.29%), due to the Picksaw now dropping separately.\n• No longer stacks with the Celestial Shell, Celestial Stone, and Moon Stone."
+		}
 	},
 	"300": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"301": {
 		"added": 102000000,
-		"changed": [103000100, 104000300, 104010000]
+		"changed": [103000100, 104000300, 104010000],
+		"notes": {
+			"103000100": "Sell value decreased from 4 Gold to 2 Gold.",
+			"104000300": "Item sprite updated.",
+			"104010000": "• Panic! duration increased from 5 to 8 seconds.\n• The player now receives the Honey buff after being hit.\n• The base damage of the Bees generated has been increased from 7 to 13, 18 with the Hive Pack.\n  ◦ This damage is multiplied by 1.5× in Expert mode, and 2× in Master mode."
+		}
 	},
 	"302": {
 		"added": 102000000,
-		"changed": [102010200, 103000100, 104000100]
+		"changed": [102010200, 103000100, 104000100],
+		"notes": {
+			"102010200": "Now bring the player to full speed instead of stopping.",
+			"103000100": "Dash is now longer, but requires more time to recharge.",
+			"104000100": "Sprite updated."
+		}
 	},
 	"303": {
 		"added": 102040000,
-		"changed": [103010000, 104000100, 104040000]
+		"changed": [103010000, 104000100, 104040000],
+		"notes": {
+			"103010000": "Now used to craft the Angler Tackle Bag.",
+			"104000100": "The Angler will no longer give you duplicate fishing accessories, unless you already have all of them.",
+			"104040000": "• Now used to craft the High Test Fishing Line via Shimmer.\n• The Angler no longer checks fishing and informational accessories separately to duplicate items."
+		}
 	},
 	"304": {
 		"added": 103000100,
-		"changed": [104050000]
+		"changed": [104050000],
+		"notes": {
+			"104050000": "Can now be used in social slots."
+		}
 	},
 	"305": {
 		"added": 102010000,
-		"changed": [102030100, 102040100, 104010000, 104050700]
+		"changed": [102030100, 102040100, 104010000, 104050700],
+		"notes": {
+			"102030100": "The player can now only equip one pair of wings at once.",
+			"102040100": "Fixed bug where wing time would go into infinity if the player held the ↷ Jump button while standing and having Rocket Boots equipped.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"306": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"307": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"308": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"309": {
 		"added": 102000000,
-		"changed": [103000100]
+		"changed": [103000100],
+		"notes": {
+			"103000100": "Sprite updated. Old sprite was ."
+		}
 	},
 	"310": {
 		"added": 102000000,
-		"changed": [103010000, 104050000, 104050400]
+		"changed": [103010000, 104050000, 104050400],
+		"notes": {
+			"103010000": "Sprites of all watches updated.",
+			"104050000": "• Now craftable at Work Benches rather than chairs with tables.\n• Now have a chance to break when the player has negative luck.",
+			"104050400": "No longer have a chance to break if the player has negative luck. Previously, there was a chance of 1 in 300 * (-1/luck) per tick (e.g. 1/3000 (0.03%) with -0.1 luck) for a watch to break, causing the displayed time to get stuck and stop updating. This effect used to clear with a 1/18,000 (0.0056%) chance per tick, or immediately upon reaching a luck value above zero."
+		}
 	},
 	"311": {
 		"added": 101000000,
-		"changed": [102000000, 102040000, 103020000, 104000100, 104010000]
+		"changed": [102000000, 102040000, 103020000, 104000100, 104010000],
+		"notes": {
+			"102000000": "Now used to craft the Power Glove.",
+			"102040000": "Now affects only melee knockback correctly.",
+			"103020000": "Sprites updated. Old sprite was: .",
+			"104000100": "Now gives autoswing to all melee weapons and whips.",
+			"104010000": "• No longer gives autoswing to all melee weapons and whips. This feature was added to the Feral Claws instead.\n• Now increases the size of melee weapons."
+		}
 	},
 	"312": {
 		"added": 101000000,
-		"changed": [103010000, 103020000]
+		"changed": [103010000, 103020000],
+		"notes": {
+			"103010000": "Inventory sprite updated.",
+			"103020000": "Equipped sprite updated."
+		}
 	},
 	"313": {
 		"added": 102020000,
-		"changed": [102030000]
+		"changed": [102030000],
+		"notes": {
+			"102030000": "Sell value reduced from 2 GC to 1 GC."
+		}
 	},
 	"314": {
 		"added": 104000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "• Instead of being primary loot, is now a 1/5 chance secondary loot in Shadow Chests and Obsidian Lock Boxes.\n• Now used to craft the Hand Of Creation."
+		}
 	},
 	"315": {
 		"added": 102000000,
-		"changed": [103000100, 104040000]
+		"changed": [103000100, 104040000],
+		"notes": {
+			"103000100": "Sprite updated. Old sprite was .",
+			"104040000": "Can now be converted into a Fast Clock and back via Shimmer."
+		}
 	},
 	"316": {
 		"added": 103000100,
-		"changed": [104000100]
+		"changed": [104000100],
+		"notes": {
+			"104000100": "Now has a 1/41 (2.44%) chance of being found in Pearlwood Crates and a 1/25 (4%) chance of being found in Mythril Crates, the new Hardmode equivalents of the Wooden and Iron Crates respectively."
+		}
 	},
 	"317": {
 		"added": 102000000,
-		"changed": [103010000, 104050000, 104050400]
+		"changed": [103010000, 104050000, 104050400],
+		"notes": {
+			"103010000": "Sprites of all watches updated.",
+			"104050000": "• Now craftable at Work Benches rather than chairs with tables.\n• Now have a chance to break when the player has negative luck.",
+			"104050400": "No longer have a chance to break if the player has negative luck. Previously, there was a chance of 1 in 300 * (-1/luck) per tick (e.g. 1/3000 (0.03%) with -0.1 luck) for a watch to break, causing the displayed time to get stuck and stop updating. This effect used to clear with a 1/18,000 (0.0056%) chance per tick, or immediately upon reaching a luck value above zero."
+		}
 	},
 	"318": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"319": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"320": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"321": {
 		"added": 102000000,
-		"changed": [102010000, 103000100, 104040000]
+		"changed": [102010000, 103000100, 104040000],
+		"notes": {
+			"102010000": "Can now drop from Floaty Gross.",
+			"103000100": "Sprite updated. Old sprite was .",
+			"104040000": "Can now be converted into Armor Polish and back via Shimmer."
+		}
 	},
 	"322": {
 		"added": 104000100,
-		"changed": [104040000]
+		"changed": [104040000],
+		"notes": {
+			"104040000": "• Projectiles now fire farther and with a flatter arc.\n• Fire rate increased from every 50 ticks to every 40 ticks."
+		}
 	},
 	"323": {
 		"added": 103000100,
-		"changed": [103010000, 104010000, 104050700]
+		"changed": [103010000, 104010000, 104050700],
+		"notes": {
+			"103010000": "Now Stardust Wings has the same stats as Solar Wings, and Nebula Mantle has the same stats as Vortex Booster.",
+			"104010000": "Fledgling Wings can now be found in Skyware Chests, Sky Crates, and Azure Crates instead of Lucky Horseshoes.",
+			"104050700": "Fixed a bug where fall damage immunity granted by wings would take effect even if the wings were equipped in slots disabled due to Difficulty change."
+		}
 	},
 	"324": {
 		"added": 103000100,
-		"changed": [104000100, 104040000]
+		"changed": [104000100, 104040000],
+		"notes": {
+			"104000100": "• Angler quest reward chance increased.\n• The Angler will no longer give you duplicate informational accessories, unless you already have all of them.",
+			"104040000": "• When a Sandstorm is active, the Weather Radio info accessory will display it, alternating between it and the standard weather display."
+		}
 	},
 	"325": {
 		"added": 102000000,
-		"changed": [104040000, 104050000]
+		"changed": [104040000, 104050000],
+		"notes": {
+			"104040000": "Now grants +0.05 luck (from Lucky Horseshoe).",
+			"104050000": "Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"326": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag."
+		}
 	},
 	"327": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"328": {
 		"added": 104050700,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"329": {
 		"added": 104040000,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	},
 	"330": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Can no longer be equipped in a social accessory slot.",
+			"104050000": "• Now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Damage increased from 80% of yoyo damage to 100%.\n• Velocity increased by 100%.\n• Counterweights will now override the visuals of the Yoyo Bag if placed in a vanity slot."
+		}
 	},
 	"331": {
 		"added": 104000100,
-		"changed": [104050700]
+		"changed": [104050700],
+		"notes": {
+			"104050700": "Can now be removed manually by pressing the ⚷ Open / Activate button on them."
+		}
 	},
 	"332": {
 		"added": 102000000,
-		"changed": [104040000, 104050000]
+		"changed": [104040000, 104050000],
+		"notes": {
+			"104040000": "• Now used to craft Bundle of Horseshoe Balloons.\n• Now grants +0.05 luck (from Lucky Horseshoe).",
+			"104050000": "• Improved tooltip.\n• Fixed a bug that balloons decreased the player's jump height when underwater."
+		}
 	},
 	"333": {
 		"added": 103000100,
-		"changed": [104000100, 104050000]
+		"changed": [104000100, 104050000],
+		"notes": {
+			"104000100": "Colored strings are now crafted at a Dye Vat instead of By Hand.",
+			"104050000": "• White String is now used to craft the Strung Counterweight instead of the Yoyo Bag.\n• Now increases the maximum spin duration of yoyos by 50%."
+		}
 	},
 	"334": {
 		"added": 103000100,
-		"changed": [104050000]
+		"changed": [104050000],
+		"notes": {
+			"104050000": "• Now crafted from a Strung Counterweight and a Yoyo Glove, instead of from White String, any counterweight, and a Yoyo Glove.\n• Now used to craft the Magic Yoyo Bag."
+		}
 	},
 	"335": {
 		"added": 103000100,
-		"changed": []
+		"changed": [],
+		"notes": {}
 	}
 }
