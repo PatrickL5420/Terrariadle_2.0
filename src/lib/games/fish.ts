@@ -23,6 +23,8 @@ export const fishGame: GameConfig<Fish> = {
 	allowLookalikes: true,
 	clueLabel: "Angler's quest",
 	clueByWord: true,
+	detailLabel: 'Quote',
+	detailExpandable: true,
 	attributes: [],
 	hints: [
 		{ label: 'Height', reveal: (f) => ({ text: f.height }) },
