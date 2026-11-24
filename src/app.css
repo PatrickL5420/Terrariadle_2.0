@@ -207,6 +207,9 @@ img {
 
 /* The title tab on a panel's top edge, like "Select Player". */
 .ui-heading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 	position: absolute;
 	top: 0;
 	left: 50%;

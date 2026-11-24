@@ -1,5 +1,6 @@
 import { dayNumber } from '$lib/engine/daily';
 import type { GuessRecord, Hint } from '$lib/engine/types';
+import { scoreFor } from '$lib/gauntlet';
 
 /**
  * Player progress lives in the browser only (like Wordle): no accounts, no server sessions.
@@ -44,15 +45,26 @@ export function saveProgress(slug: string, p: Progress) {
 	} catch {
 		/* ignore */
 	}
-	completion[slug] = p.finished;
+	track(slug, p);
 }
 
 /** Which games are finished today, for the header and home page. */
 export const completion: Record<string, boolean> = $state({});
 
-export function refreshCompletion(slugs: string[], day = dayNumber()) {
-	for (const slug of slugs) completion[slug] = loadProgress(slug, day).finished;
+/** Each game's coins today (see $lib/gauntlet), for the coin counter and home page. */
+export const scores: Record<string, number> = $state({});
+
+function track(slug: string, p: Progress | undefined) {
+	completion[slug] = p?.finished ?? false;
+	scores[slug] = scoreFor(slug, p);
 }
+
+export function refreshCompletion(slugs: string[], day = dayNumber()) {
+	for (const slug of slugs) track(slug, loadProgress(slug, day));
+}
+
+/** Today's coins across every game. */
+export const dayTotal = () => Object.values(scores).reduce((sum, s) => sum + s, 0);
 
 export function clearProgress(slug: string) {
 	try {
@@ -60,7 +72,7 @@ export function clearProgress(slug: string) {
 	} catch {
 		/* ignore */
 	}
-	completion[slug] = false;
+	track(slug, undefined);
 }
 
 /** Anonymous id so a player is only counted once per puzzle. */

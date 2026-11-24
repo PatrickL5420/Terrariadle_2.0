@@ -5,6 +5,7 @@
 	import { games } from '$lib/games';
 	import { imageUrl } from '$lib/images';
 	import { completion } from '$lib/progress.svelte';
+	import CoinCounter from '$lib/components/CoinCounter.svelte';
 
 	// Like the game's hotbar: the selected slot's name shows above the bar, and the number keys
 	// switch between games.
@@ -22,7 +23,10 @@
 <svelte:window onkeydown={onKey} />
 
 <header>
-	<a class="logo" href={resolve('/')}>Terrariadle</a>
+	<div class="top">
+		<a class="logo" href={resolve('/')}>terraGauntlet</a>
+		<CoinCounter />
+	</div>
 
 	<nav aria-label="Games">
 		<p class="held">{current?.title ?? ''}</p>
@@ -47,7 +51,23 @@
 
 <style>
 	header {
+		position: relative;
 		padding: 14px 16px 4px;
+	}
+
+	/* Logo, with the coin counter on the right like the inventory's coin slots. */
+	.top {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 6px 24px;
+	}
+
+	.top :global(.coins) {
+		position: absolute;
+		top: 16px;
+		right: 16px;
 	}
 
 	.logo {
@@ -110,9 +130,16 @@
 		color: #9dff7a;
 	}
 
+	/* On narrow screens the counter sits under the logo. */
+	@media (max-width: 760px) {
+		.top :global(.coins) {
+			position: static;
+		}
+	}
+
 	@media (max-width: 420px) {
 		.logo {
-			font-size: 32px;
+			font-size: 30px;
 		}
 
 		.hotbar {

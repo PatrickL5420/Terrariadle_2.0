@@ -7,6 +7,8 @@
 	import { imageUrl } from '$lib/images';
 	import { rarityColors } from '$lib/rarity';
 	import { shareText } from '$lib/share';
+	import { coins } from '$lib/money';
+	import CoinText from '$lib/ui/CoinText.svelte';
 	import { scale } from 'svelte/transition';
 
 	/** Shown once solved, styled like the game's "Achievement complete!" popup. */
@@ -18,7 +20,8 @@
 		position,
 		solved,
 		clue,
-		words
+		words,
+		score
 	}: {
 		game: GameConfig<Entry>;
 		answer: Entry;
@@ -30,6 +33,8 @@
 		clue?: { name: string; image: string };
 		/** Words of the clue revealed (`game.clueByWord`), part of the score. */
 		words?: number;
+		/** Coins this game earned today (see $lib/gauntlet). */
+		score: number;
 	} = $props();
 
 	let copied = $state(false);
@@ -42,7 +47,7 @@
 	}
 
 	async function share() {
-		const text = shareText(game, day, guesses, answer.id, words);
+		const text = shareText(game, day, guesses, answer.id, words, score);
 		try {
 			await navigator.clipboard.writeText(text);
 			copied = true;
@@ -67,6 +72,7 @@
 						>{clue ? `${clue.name}: ${answer.name}` : answer.name}</span
 					>
 				</WikiLink>
+				<span class="earned"><CoinText text={score ? `+${coins(score)}` : '+0'} /></span>
 				<span class="dim">
 					Solved in {guesses.length}
 					{guesses.length === 1 ? 'guess' : 'guesses'}
@@ -121,6 +127,10 @@
 		align-items: flex-start;
 		text-align: left;
 		gap: 2px;
+	}
+
+	.earned {
+		font-size: 20px;
 	}
 
 	.name {

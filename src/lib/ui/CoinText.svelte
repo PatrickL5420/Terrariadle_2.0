@@ -2,7 +2,7 @@
 	import Icon, { type UiIconName } from './Icon.svelte';
 
 	/** Text with coin amounts like "7s 50c" drawn as the game's coin icons. */
-	let { text }: { text: string } = $props();
+	let { text, scale = 1 }: { text: string; scale?: number } = $props();
 
 	const COIN: Record<string, UiIconName> = {
 		p: 'platinum',
@@ -16,7 +16,7 @@
 </script>
 
 {#each parts as part, i (i)}{#if i % 3 === 0}{part}{:else if i % 3 === 1}<span class="coin"
-			>{part}<Icon name={COIN[parts[i + 1]]} alt={parts[i + 1]} /></span
+			>{part}<Icon name={COIN[parts[i + 1]]} alt={parts[i + 1]} {scale} /></span
 		>{/if}{/each}
 
 <style>

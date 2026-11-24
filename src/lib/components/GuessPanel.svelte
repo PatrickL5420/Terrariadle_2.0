@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { play } from '$lib/sound.svelte';
 	import Dropdown, { type DropdownListItem } from './Dropdown.svelte';
 	import { slide } from 'svelte/transition';
 	import { HINT_UNLOCKS, type Entry, type GameConfig, type Hint } from '$lib/engine/types';
@@ -40,6 +41,7 @@
 		if (!unlocked(i)) return;
 		if (!hints[i]) await onHint(i + 1);
 		open[i] = !open[i];
+		play(open[i] ? 'open' : 'close');
 	}
 </script>
 

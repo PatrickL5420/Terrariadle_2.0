@@ -10,8 +10,10 @@
 		loadProgress,
 		playerId,
 		refreshCompletion,
-		saveProgress
+		saveProgress,
+		scores
 	} from '$lib/progress.svelte';
+	import { dropCoins } from '$lib/purse.svelte';
 	import { onMount } from 'svelte';
 	import { secondsSinceMidnight } from '$lib/engine/daily';
 	import { devFlags } from './flags.svelte';
@@ -143,7 +145,9 @@
 			if (res.correct) {
 				progress.position = (await solve(selected, id, info.day, playerId())).position;
 			}
+			const before = scores[selected] ?? 0;
 			saveProgress(selected, progress);
+			dropCoins((scores[selected] ?? 0) - before, '.result .slot');
 		});
 
 	/** 75600 -> "21:00" */

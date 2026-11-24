@@ -14,6 +14,11 @@
 
 		<p>Hints unlock after 4, 7 and 12 guesses. Resets at midnight Sydney time.</p>
 
+		<p>
+			Each game pays coins, more for harder tiers; wrong guesses cost some. Hints are free. A
+			perfect day is 1 platinum.
+		</p>
+
 		<h2>Credits</h2>
 		<p>
 			Built on

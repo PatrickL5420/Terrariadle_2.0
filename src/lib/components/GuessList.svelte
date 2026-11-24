@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { play } from '$lib/sound.svelte';
 	import type { CompareResult, Entry, GameConfig, GuessRecord } from '$lib/engine/types';
 	import { getEntry } from '$lib/games';
 	import { imageUrl } from '$lib/images';
@@ -103,8 +104,10 @@
 						class:open={expanded[guess.id]}
 						aria-expanded={expanded[guess.id] ?? false}
 						style="--i: 1"
-						onclick={() => (expanded[guess.id] = !expanded[guess.id])}
-						><span class="quote-text">{guess.detail ?? ''}</span></button
+						onclick={() => {
+							expanded[guess.id] = !expanded[guess.id];
+							play(expanded[guess.id] ? 'open' : 'close');
+						}}><span class="quote-text">{guess.detail ?? ''}</span></button
 					>
 				{:else if game.detailLabel}
 					<div class="slot tile detail {right ? 'match' : 'miss'}" role="cell" style="--i: 1">
