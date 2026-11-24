@@ -71,7 +71,7 @@ export class GameSession {
 			const res = await checkGuess(this.game.slug, id, day);
 			p.guesses = [{ id, checks: res.checks, detail: res.detail }, ...p.guesses];
 			if (!res.correct) {
-				play('hit', 0.35);
+				play('select', 0.4);
 				return;
 			}
 			p.finished = true;
@@ -97,7 +97,7 @@ export class GameSession {
 			bonus.guesses = [{ id, checks: res.checks }, ...bonus.guesses];
 			bonus.finished = res.correct;
 			bonus.note = res.note;
-			play(res.correct ? 'research' : 'hit', res.correct ? 0.5 : 0.35);
+			play(res.correct ? 'research' : 'select', res.correct ? 0.5 : 0.4);
 			if (res.correct) this.#save(BONUS_FROM);
 		});
 	}
