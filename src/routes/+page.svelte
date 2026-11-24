@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { getGame } from '$lib/games';
-	import { imageUrl } from '$lib/images';
 	import { TIERS, prize } from '$lib/gauntlet';
 	import { coins } from '$lib/money';
 	import { completion, scores } from '$lib/progress.svelte';
 	import Panel from '$lib/ui/Panel.svelte';
 	import Button from '$lib/ui/Button.svelte';
+	import GameIcon from '$lib/ui/GameIcon.svelte';
 	import CoinText from '$lib/ui/CoinText.svelte';
 	import type { UiIconName } from '$lib/ui/Icon.svelte';
 </script>
@@ -25,12 +25,12 @@
 				<Button
 					variant="option"
 					size="lg"
-					image={imageUrl(game.icon)}
 					selected={completion[slug]}
 					href={resolve('/[mode=mode]', { mode: slug })}
 				>
 					<span class="game">
-						{game.title}
+						<GameIcon src={game.icon} />
+						<span class="name">{game.title}</span>
 						<span class="pay" class:dim={!completion[slug]}>
 							<CoinText
 								text={coins(completion[slug] ? (scores[slug] ?? 0) : prize(slug))}
@@ -65,10 +65,14 @@
 	.game {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: flex-start;
 		gap: 8px;
 		padding-left: 6px;
 		text-align: left;
+	}
+
+	.name {
+		flex: 1;
 	}
 
 	.pay {

@@ -15,7 +15,7 @@ export const tooltipGame: GameConfig<TooltipItem> = {
 	slug: 'tooltip',
 	title: 'Tooltipdle',
 	noun: 'item',
-	icon: (data as TooltipItem[]).find((i) => i.name === 'Magic Mirror')?.image ?? '',
+	icon: '/ui/games/tooltip.png',
 	entries: data as TooltipItem[],
 	firstColumn: 'Item',
 	theme: () => 'Blue',

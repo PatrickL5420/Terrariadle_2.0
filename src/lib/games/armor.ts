@@ -26,7 +26,7 @@ export const armorGame: GameConfig<ArmorSet> = {
 	title: 'Armordle',
 	noun: 'armor set',
 	// Follows the data file, so it becomes a local image after `npm run fetch-images`.
-	icon: (data as ArmorSet[]).find((a) => a.name === 'Mining armor')?.image ?? '',
+	icon: '/ui/games/armor.png',
 	entries: data as ArmorSet[],
 	firstColumn: 'Armor',
 	// Class variants like "Chlorophyte armor (Summon)" link to the set's page.

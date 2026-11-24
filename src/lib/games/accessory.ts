@@ -27,7 +27,7 @@ export const accessoryGame: GameConfig<Accessory> = {
 	title: 'Accessorydle',
 	noun: 'accessory',
 	// Follows the data file, so it becomes a local image after `npm run fetch-images`.
-	icon: (data as Accessory[]).find((a) => a.name === 'Hermes Boots')?.image ?? '',
+	icon: '/ui/games/accessory.png',
 	entries: (data as Accessory[]).filter((a) => !a.exclude),
 	firstColumn: 'Accessory',
 	// Many accessories differ only in details the columns don't cover (e.g. wing flight time).

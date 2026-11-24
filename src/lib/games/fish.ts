@@ -15,7 +15,7 @@ export const fishGame: GameConfig<Fish> = {
 	slug: 'fish',
 	title: 'Fishdle',
 	noun: 'quest fish',
-	icon: (data as Fish[]).find((f) => f.name === 'Batfish')?.image ?? '',
+	icon: '/ui/games/fish.gif',
 	entries: data as Fish[],
 	firstColumn: 'Fish',
 	theme: () => 'Blue',

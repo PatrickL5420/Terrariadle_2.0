@@ -3,9 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { games } from '$lib/games';
-	import { imageUrl } from '$lib/images';
 	import { completion } from '$lib/progress.svelte';
 	import CoinCounter from '$lib/components/CoinCounter.svelte';
+	import GameIcon from '$lib/ui/GameIcon.svelte';
 
 	// Like the game's hotbar: the selected slot's name shows above the bar, and the number keys
 	// switch between games.
@@ -43,7 +43,7 @@
 						aria-current={current?.slug === game.slug ? 'page' : undefined}
 					>
 						<span class="num">{(i + 1) % 10}</span>
-						<img src={imageUrl(game.icon)} alt={game.title} />
+						<GameIcon src={game.icon} alt={game.title} />
 						{#if completion[game.slug]}<span class="done">✓</span>{/if}
 					</a>
 				{/each}
@@ -115,6 +115,12 @@
 		height: 48px;
 		text-decoration: none;
 		transition: transform 0.1s;
+	}
+
+	/* GameIcon sizes the icon itself (whole-number scaling); don't squeeze it to 70%. */
+	.hotbar :global(.game-icon) {
+		max-width: none;
+		max-height: none;
 	}
 
 	.hotbar .slot:hover {

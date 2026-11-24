@@ -27,7 +27,7 @@ export const enemyGame: GameConfig<Enemy> = {
 	slug: 'enemy',
 	title: 'Enemydle',
 	noun: 'enemy',
-	icon: (data as Enemy[]).find((e) => e.name === 'Zombie')?.image ?? '',
+	icon: '/ui/games/enemy.gif',
 	entries: data as Enemy[],
 	firstColumn: 'Enemy',
 	theme: (e) => (e.hardmode ? 'Pink' : 'Green'),

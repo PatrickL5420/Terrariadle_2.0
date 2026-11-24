@@ -141,7 +141,7 @@ export const modifierGame: GameConfig<Modifier> = {
 	slug: 'modifier',
 	title: 'Modifierdle',
 	noun: 'weapon modifier',
-	icon: '/items/Iron Anvil.png',
+	icon: '/ui/games/modifier.png',
 	entries: weaponMods,
 	// Strong and Forceful share every stat; the name tile shows which guess is right.
 	allowLookalikes: true,
@@ -162,7 +162,7 @@ export const accessoryModifierGame: GameConfig<Modifier> = {
 	slug: 'accessory-modifier',
 	title: 'Accessory Modifierdle',
 	noun: 'accessory modifier',
-	icon: "/items/Tinkerer's Workshop.png",
+	icon: '/ui/games/accessory-modifier.gif',
 	entries: accessoryMods,
 	attributes: [column.value, column.damage, column.crit, column.effects]
 };
