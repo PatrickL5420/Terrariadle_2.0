@@ -160,7 +160,7 @@
 	.step {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 16px;
 		font-size: 20px;
 	}
 
