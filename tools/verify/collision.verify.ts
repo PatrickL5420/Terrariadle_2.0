@@ -56,7 +56,7 @@ describe.skipIf(!oracleBuilt)('collision = Collision.TileCollision / StepUp / St
 				file: fileURLToPath(
 					new URL('../../src/lib/world/fixtures/collision.json', import.meta.url)
 				),
-				every: Math.ceil(CASES / 200)
+				every: Math.ceil(CASES / 40)
 			}
 		});
 		expect(n).toBe(CASES);

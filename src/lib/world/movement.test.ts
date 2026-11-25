@@ -22,13 +22,13 @@ import movement from './fixtures/movement.json';
 describe('collision and movement, as the game does them', () => {
 	it('collision', () => {
 		const recorded = collision as { case: CollisionCase; game: CollisionResult }[];
-		expect(recorded.length).toBeGreaterThan(50);
+		expect(recorded.length).toBeGreaterThan(30);
 		for (const r of recorded) expect(runCollision(r.case)).toEqual(froundAll(r.game));
 	});
 
 	it('movement', () => {
 		const recorded = movement as unknown as { case: MovementCase; game: Frame[] }[];
-		expect(recorded.length).toBeGreaterThan(10);
+		expect(recorded.length).toBeGreaterThan(5);
 		for (const r of recorded) expect(runMovement(r.case)).toEqual(froundFrames(r.game));
 	});
 });

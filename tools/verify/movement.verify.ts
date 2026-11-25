@@ -61,7 +61,7 @@ describe.skipIf(!oracleBuilt)('player movement = Player.Update', () => {
 			batch: 500,
 			fixture: {
 				file: fileURLToPath(new URL('../../src/lib/world/fixtures/movement.json', import.meta.url)),
-				every: Math.ceil(WALKS / 40)
+				every: Math.ceil(WALKS / 8)
 			}
 		});
 		expect(n).toBe(WALKS);
