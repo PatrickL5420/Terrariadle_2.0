@@ -32,7 +32,7 @@ export function oracle<C, R>(feature: string, cases: C[], batch = 20_000): R[] {
 			const reply = JSON.parse(line) as Reply<R>;
 			if (reply.error || reply.stubs)
 				throw new Error(
-					`oracle: case ${start + k} ${reply.error ? `errored: ${reply.error}` : `reached stubs: ${reply.stubs!.join(', ')}`}\n${JSON.stringify(chunk[k])}`
+					`oracle: case ${start + k} ${reply.error ? `errored: ${reply.error}` : `reached stubs: ${reply.stubs!.join(', ')}`}\n${JSON.stringify(chunk[k]).slice(0, 2000)}`
 				);
 			out.push(reply.result!);
 		});

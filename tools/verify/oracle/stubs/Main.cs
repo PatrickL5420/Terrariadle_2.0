@@ -15,4 +15,7 @@ public partial class Main
 		Initialize_TileAndNPCData1();
 		Initialize_TileAndNPCData2();
 	}
+
+	/// Nothing held on the cursor, nothing being crafted.
+	public static bool LocalPlayerHasPendingInventoryActions() => false;
 }

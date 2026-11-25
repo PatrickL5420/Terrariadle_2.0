@@ -15,6 +15,12 @@ public struct Color
 		A = (byte)Math.Clamp(a, 0, 255);
 	}
 
+	public Color(uint packed) : this((int)(packed & 0xFF), (int)((packed >> 8) & 0xFF), (int)((packed >> 16) & 0xFF), (int)(packed >> 24)) { }
+
+	public Color(Vector3 v) : this(v.X, v.Y, v.Z) { }
+
+	public Color(Vector4 v) : this(v.X, v.Y, v.Z, v.W) { }
+
 	public Color(float r, float g, float b, float a = 1f)
 		: this((int)(r * 255f), (int)(g * 255f), (int)(b * 255f), (int)(a * 255f)) { }
 
@@ -29,6 +35,11 @@ public struct Color
 	public static Color Black => new(0, 0, 0);
 	public static Color Red => new(255, 0, 0);
 	public static Color LimeGreen => new(50, 205, 50);
+	public static Color Green => new(0, 128, 0);
+	public static Color Yellow => new(255, 255, 0);
+	public static Color Cyan => new(0, 255, 255);
+	public static Color HotPink => new(255, 105, 180);
+	public static Color Gold => new(255, 215, 0);
 
 	public static Color Lerp(Color a, Color b, float t) =>
 		new((int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t), (int)(a.A + (b.A - a.A) * t));
@@ -122,6 +133,12 @@ public struct Point
 		X = x;
 		Y = y;
 	}
+
+	public static Point Zero => new(0, 0);
+	public static bool operator ==(Point a, Point b) => a.X == b.X && a.Y == b.Y;
+	public static bool operator !=(Point a, Point b) => !(a == b);
+	public override bool Equals(object o) => o is Point p && p == this;
+	public override int GetHashCode() => System.HashCode.Combine(X, Y);
 }
 
 public struct Rectangle
@@ -151,6 +168,7 @@ public struct Rectangle
 		Y += y;
 	}
 
+	public Point Center => new(X + Width / 2, Y + Height / 2);
 	public int Left => X;
 	public int Right => X + Width;
 	public int Top => Y;

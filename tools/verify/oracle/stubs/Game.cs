@@ -7,12 +7,24 @@ namespace Terraria
 
 	public static class NetMessage
 	{
-		public static void SendData(int msgType, int remoteClient = -1, int ignoreClient = -1, object text = null, int number = 0, float number2 = 0f, float number3 = 0f, float number4 = 0f, int number5 = 0, int number6 = 0, int number7 = 0) =>
-			Stub.Hit("NetMessage.SendData");
+		// Multiplayer messages: single player here, nothing is sent.
+		public static void SendObjectPlacement(int whoAmi, int x, int y, int type, int style, int alternative, int random, int direction) { }
+		public static void SendTileSquare(int whoAmi, int tileX, int tileY, int xSize, int ySize, TileChangeType changeType = TileChangeType.None) { }
+		public static void SendTileSquare(int whoAmi, int tileX, int tileY, int size = 1, TileChangeType changeType = TileChangeType.None) { }
+		public static void TrySendData(int msgType, int remoteClient = -1, int ignoreClient = -1, NetworkText text = null, int number = 0, float number2 = 0f, float number3 = 0f, float number4 = 0f, int number5 = 0, int number6 = 0, int number7 = 0) { }
+
+		// Single player: the game's own first check (Main.netMode == 0) returns.
+		public static void SendData(int msgType, int remoteClient = -1, int ignoreClient = -1, object text = null, int number = 0, float number2 = 0f, float number3 = 0f, float number4 = 0f, int number5 = 0, int number6 = 0, int number7 = 0)
+		{
+			if (Main.netMode != 0) Stub.Hit("NetMessage.SendData");
+		}
 	}
 
 	public static class Framing
 	{
+		// Walls aren't compared (only blocks): reframing them does nothing here.
+		public static void WallFrame(int i, int j, bool resetFrame = false) { }
+
 		public static Tile GetTileSafely(int i, int j)
 		{
 			if (!WorldGen.InWorld(i, j)) return new Tile();
@@ -90,6 +102,16 @@ namespace Terraria.ID
 		public static class Sets
 		{
 			public static int[] BlendType = new int[Count];
+
+			/// Only read when placing plants: refuses the case.
+			public static bool[] AllowsPlantsToGrow
+			{
+				get
+				{
+					Oracle.Stub.Hit("WallID.Sets.AllowsPlantsToGrow");
+					return new bool[Count];
+				}
+			}
 		}
 	}
 
@@ -101,6 +123,18 @@ namespace Terraria.ID
 	public static class ProjectileID
 	{
 		public static readonly short Count = 1136;
+
+		/// Projectile flags. The items a case holds shoot nothing (shoot 0), and projectile 0
+		/// is none: false for it is the game's own value.
+		public static class Sets
+		{
+			public static bool[] TurretFeature = new bool[Count];
+			public static bool[] MinionTargetingFeature = new bool[Count];
+			public static bool[] IsAWhip = new bool[Count];
+			public static bool[] IsADD2Turret = new bool[Count];
+			public static bool[] IsAPhaseblade = new bool[Count];
+			public static bool[] LightPet = new bool[Count];
+		}
 	}
 
 	public static class BuffID

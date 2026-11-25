@@ -8,7 +8,8 @@ public static class WorldSetup
 {
 	/**
 	 * {"w", "h", "cells": [[i, j, type, variant], ...]} (the rest empty), or "type" / "variant"
-	 * arrays (row-major, -1 for none). Sets Main.maxTilesX/Y, bottomWorld and rightWorld.
+	 * arrays (row-major, -1 for none); "walls": [[i, j], ...] puts a dirt wall (2) behind those.
+	 * Sets Main.maxTilesX/Y, bottomWorld and rightWorld.
 	 */
 	public static void Load(JsonElement c)
 	{
@@ -44,5 +45,8 @@ public static class WorldSetup
 				for (int i = 0; i < w; i++)
 					Set(i, j, type[j * w + i].GetInt32(), variant[j * w + i].GetInt32());
 		}
+		if (c.TryGetProperty("walls", out var walls))
+			foreach (var wall in walls.EnumerateArray())
+				Main.tile[wall[0].GetInt32(), wall[1].GetInt32()].wall = 2;
 	}
 }

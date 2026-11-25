@@ -2,11 +2,12 @@
  * A tiny Terraria 1.4.5 world: a few columns of grass, dirt and stone with one player who wanders
  * about, digs with a Copper Pickaxe and builds with what it digs up.
  *
- * Mining is the game's: Player.PickTile (the pickaxe's damage per block, HitTile's cracks and
- * the "miner's wobble"), WorldGen.KillTile (the dig or tink sound, tile dust, grass knocked back
- * to dirt, the block's item dropped). Placing is WorldGen.PlaceTile. Dropped blocks fall and are
- * pulled in and picked up like any item. Only the player's choices are made up: a little script
- * stands in for the person at the keyboard.
+ * Using the pickaxe and the blocks is the game's own Player.ItemCheck, ported and checked
+ * against the game frame by frame (./item-check): the swing, the pickaxe's damage per block
+ * (HitTile's cracks and the "miner's wobble"), WorldGen.KillTile (the dig or tink sound, tile
+ * dust, grass knocked back to dirt, the block's item dropped) and WorldGen.PlaceTile. Dropped
+ * blocks fall and are pulled in and picked up like any item. Only the player's choices are made
+ * up: a little script stands in for the person at the keyboard and mouse.
  */
 import {
 	fallItem,
@@ -20,46 +21,23 @@ import {
 } from '$lib/game/items';
 import { tileCollision } from './collision';
 import { AIR, DIRT, GRASS, isSolid, STONE } from './framing';
+import {
+	canPlaceAt,
+	inRange,
+	overlapsPlayer,
+	stats,
+	type DropCall,
+	type Item,
+	type ItemWorld,
+	type SoundCall
+} from './item-check';
 import { LightMap, type RGB } from './light';
-import { Player, type HeldItem } from './player';
+import { Player } from './player';
 import { MARGIN, Tiles } from './tiles';
 
 export type Sound = 'dig' | 'tink' | 'swing' | 'grab';
 
-/** An item the player uses: Item.SetDefaults' useAnimation, useTime and tileBoost. */
-interface Usable extends HeldItem {
-	useAnimation: number;
-	useTime: number;
-	tileBoost: number;
-}
-/** The Copper Pickaxe (item 3509), pick power 35. */
-const PICKAXE: Usable = {
-	item: 3509,
-	width: 32,
-	scale: 0.9,
-	useTurn: true,
-	useAnimation: 23,
-	useTime: 15,
-	tileBoost: -1
-};
-const PICK_POWER = 35;
-/** Dirt and Stone Blocks (items 2 and 3). */
-const block = (item: number): Usable => ({
-	item,
-	width: 16,
-	scale: 1,
-	useTurn: true,
-	useAnimation: 15,
-	useTime: 10,
-	tileBoost: 0
-});
-/** Player.tileRangeX / tileRangeY. */
-const RANGE_X = 5;
-const RANGE_Y = 4;
-
-/** The item a block drops (KillTile_GetItemDrops), and which block an item places. */
-export const ITEM_OF: Record<number, number> = { [DIRT]: 2, [GRASS]: 2, [STONE]: 3 };
-const TILE_OF: Record<number, number> = { 2: DIRT, 3: STONE };
+const PICKAXE = 3509;
 
 export interface Drop extends Moving {
 	item: number;
@@ -79,38 +57,29 @@ export interface Dust {
 	frame: number;
 }
 
-/** HitTile.HitTileObject: a block being mined. */
-export interface Hit {
-	i: number;
-	j: number;
-	damage: number;
-	timeToLive: number;
-	crackStyle: number;
-	/** Frames since the last hit (animationTimeElapsed), for the miner's wobble. */
-	sinceHit: number;
-}
-
 type Goal =
 	| { kind: 'idle'; frames: number }
 	| { kind: 'walk'; x: number }
 	| { kind: 'mine' | 'place'; i: number; j: number };
 
-export class World {
+export class World implements ItemWorld {
 	tiles: Tiles;
 	light: LightMap;
 	readonly player: Player;
 	drops: Drop[] = [];
 	dust: Dust[] = [];
-	hits: Hit[] = [];
-	/** What the player has picked up: item type -> count. */
-	inventory: Record<number, number> = { 2: 0, 3: 0 };
+	/** The player's inventory: the pickaxe, and the blocks it's picked up. */
+	inventory: Item[] = [
+		{ type: PICKAXE, stack: 1 },
+		{ type: 2, stack: 0 },
+		{ type: 3, stack: 0 }
+	];
 	/** The ground's height when the world was made, per column: the player keeps it roughly so. */
 	surface: number[];
 
-	#itemTime = 0;
 	#goal: Goal = { kind: 'idle', frames: 60 };
 	#stuck = 0;
-	#lastCrack = -1;
+	#sound: (s: Sound, at: { x: number; y: number }) => void = () => {};
 
 	/** The whole world, in tiles: what's shown plus MARGIN (see ./tiles). */
 	readonly width: number;
@@ -129,6 +98,7 @@ export class World {
 		this.surface = this.#generate();
 		const i = MARGIN + Math.trunc(cols / 2);
 		this.player = new Player(i * 16 + 8 - 10, this.surface[i] * 16 - 42);
+		this.player.releaseJump = true;
 	}
 
 	/** How many rows are shown. */
@@ -182,125 +152,50 @@ export class World {
 		this.light = new LightMap(this.width, height);
 		this.height = height;
 		this.surface = this.surface.map((j) => j + d);
-		this.player.y += d * 16;
+		const p = this.player;
+		p.y += d * 16;
+		p.itemLocation.y += d * 16;
+		p.tileTargetY += d;
+		for (const h of p.hitTile.data) if (h.type) h.y += d;
 		for (const e of [...this.drops, ...this.dust]) e.y += d * 16;
-		this.hits = this.hits.filter((h) => (h.j += d) >= 0);
 		const g = this.#goal;
 		if (g.kind === 'mine' || g.kind === 'place') g.j += d;
 	}
 
 	/** One game frame. `sky` is the sky's colour (Main.ColorOfTheSkies); `sound` plays a sound. */
 	update(sky: RGB, sound: (s: Sound, at: { x: number; y: number }) => void) {
-		const p = this.player;
-		this.#think(sound);
-		p.update(this.tiles);
-		if (this.#itemTime > 0) this.#itemTime--;
+		this.#sound = sound;
+		this.#think();
+		this.player.update(this.tiles, this);
 		this.#grow();
-		this.#updateDrops(sound);
+		this.#updateDrops();
 		this.#updateDust();
-		for (const h of this.hits) h.sinceHit++;
+		// HitTile.DrawFreshAnimations' clock, for the miner's wobble.
+		for (const h of this.player.hitTile.data) h.animationTimeElapsed++;
 		this.light.update(this.tiles, sky);
 	}
 
-	// ---- The player's hands ----------------------------------------------------------------------
+	// ---- What the player's item does to the world (ItemWorld, for ./item-check) ---------------
 
-	/** Player.IsInTileInteractionRange-style reach for an item's tileBoost. */
-	inRange(i: number, j: number, boost: number) {
-		const p = this.player;
-		return (
-			p.x / 16 - RANGE_X - boost <= i &&
-			(p.x + p.w) / 16 + RANGE_X + boost - 1 >= i &&
-			p.y / 16 - RANGE_Y - boost <= j &&
-			(p.y + p.h) / 16 + RANGE_Y + boost - 2 >= j
-		);
+	/** SquareTileFrame's reset: a new random variant. */
+	variant() {
+		return this.rand(3);
 	}
 
-	/** Holds the use button with `item` on (i, j): swings, and acts each useTime. */
-	#use(
-		item: Usable,
-		i: number,
-		act: () => boolean,
-		sound: (s: Sound, at: { x: number; y: number }) => void
-	) {
-		const p = this.player;
-		if (p.itemAnimation === 0) {
-			// Turning to face the target as the swing starts.
-			p.direction = i * 16 + 8 < p.center.x ? -1 : 1;
-			p.swing(item, item.useAnimation);
-			if (item === PICKAXE) sound('swing', p.center); // UseSound Item1
-		}
-		if (this.#itemTime === 0 && act()) this.#itemTime = item.useTime;
+	/** The game's sounds by type: 0 dig, 21 tink; an item's use sound (Item1) is the swing. */
+	sound(s: SoundCall) {
+		const name: Sound | null =
+			s.type === 0 ? 'dig' : s.type === 21 ? 'tink' : s.type === 2 ? 'swing' : null;
+		if (name) this.#sound(name, { x: s.x, y: s.y });
 	}
 
-	/** Player.PickTile: one pickaxe hit on (i, j). */
-	pick(i: number, j: number, sound: (s: Sound, at: { x: number; y: number }) => void): boolean {
-		const type = this.tiles.at(i, j);
-		if (!isSolid(type)) return false;
-		// GetPickaxeDamage: the pick power, doubled for dirt.
-		const damage = PICK_POWER + (type === DIRT ? PICK_POWER : 0);
-		let hit = this.hits.find((h) => h.i === i && h.j === j);
-		if (!hit) {
-			hit = { i, j, damage: 0, timeToLive: 0, crackStyle: this.#crack(), sinceHit: 0 };
-			this.hits.push(hit);
-		}
-		hit.damage += damage;
-		hit.timeToLive = 60;
-		hit.sinceHit = 0;
-		this.#killTile(i, j, hit.damage < 100, sound);
-		if (hit.damage >= 100) this.hits = this.hits.filter((h) => h !== hit);
-		this.#pruneHits();
-		return true;
-	}
-
-	/** HitTileObject.Clear: a new crack pattern, never the same as the last one. */
-	#crack() {
-		let c = this.rand(4);
-		while (c === this.#lastCrack) c = this.rand(4);
-		this.#lastCrack = c;
-		return c;
-	}
-
-	/** HitTile.Prune: damage on blocks left alone wears off. */
-	#pruneHits() {
-		this.hits = this.hits.filter((h) => {
-			if (h.timeToLive <= 1) return false;
-			h.timeToLive--;
-			if (h.timeToLive < 12) h.damage -= 10;
-			else if (h.timeToLive < 24) h.damage -= 7;
-			else if (h.timeToLive < 36) h.damage -= 5;
-			else if (h.timeToLive < 48) h.damage -= 2;
-			return h.damage >= 0 && isSolid(this.tiles.at(h.i, h.j));
-		});
-	}
-
-	/** WorldGen.KillTile: a hit that `fail`s just chips the block; otherwise it breaks and drops. */
-	#killTile(
-		i: number,
-		j: number,
-		fail: boolean,
-		sound: (s: Sound, at: { x: number; y: number }) => void
-	) {
-		const type = this.tiles.at(i, j);
+	/** Item.NewItem: the item centred on the rectangle, flung a little. */
+	drop(d: DropCall) {
 		const r = this.rand;
-		const at = { x: i * 16 + 8, y: j * 16 + 8 };
-		sound(type === STONE ? 'tink' : 'dig', at);
-		for (let n = 0; n < (fail ? 3 : 10); n++) {
-			// KillTile_MakeTileDust: dirt 0, stone 1, grass 0 or 2.
-			const dust = type === STONE ? 1 : type === GRASS ? (r(2) !== 0 ? 2 : 0) : 0;
-			this.#newDust(i * 16, j * 16, 16, 16, dust);
-		}
-		if (fail) {
-			// The block stays (grass knocked back to dirt), reframed with a new variant.
-			this.tiles.convert(i, j, type === GRASS ? DIRT : type, r(3));
-			return;
-		}
-		this.tiles.kill(i, j);
-		// Item.NewItem at the block's centre.
-		const item = ITEM_OF[type];
 		this.drops.push({
-			item,
-			x: i * 16 + 8 - 6,
-			y: j * 16 + 8 - 6,
+			item: d.type,
+			x: d.x + d.w / 2 - 6,
+			y: d.y + d.h / 2 - 6,
 			w: 12,
 			h: 12,
 			vx: r(-30, 31) * 0.1,
@@ -309,31 +204,24 @@ export class World {
 		});
 	}
 
-	/** WorldGen.PlaceTile for a block item: next to another block, not inside the player. */
-	place(
-		i: number,
-		j: number,
-		item: number,
-		sound: (s: Sound, at: { x: number; y: number }) => void
-	): boolean {
-		if (!this.canPlace(i, j) || !this.inventory[item]) return false;
-		this.tiles.place(i, j, TILE_OF[item], this.rand(3));
-		this.inventory[item]--;
-		sound('dig', { x: i * 16 + 8, y: j * 16 + 8 });
-		return true;
+	/** KillTile_MakeTileDust: dirt 0, stone 1, grass 0 or 2. */
+	tileDust(i: number, j: number, type: number, count: number) {
+		const r = this.rand;
+		for (let n = 0; n < count; n++) {
+			const dust = type === STONE ? 1 : type === GRASS ? (r(2) !== 0 ? 2 : 0) : 0;
+			this.#newDust(i * 16, j * 16, 16, 16, dust);
+		}
 	}
 
+	/** Whether a block could go at (i, j) now: open, shown, built onto, nobody in the way. */
 	canPlace(i: number, j: number) {
 		const t = this.tiles;
-		if (!t.inView(i, j) || t.at(i, j) !== AIR) return false;
-		const touching = [
-			[i - 1, j],
-			[i + 1, j],
-			[i, j - 1],
-			[i, j + 1]
-		].some(([x, y]) => isSolid(t.at(x, y)));
-		const p = this.player;
-		return touching && !intersects({ x: i * 16, y: j * 16, w: 16, h: 16 }, hitbox(p));
+		return (
+			t.inView(i, j) &&
+			t.at(i, j) === AIR &&
+			canPlaceAt(this, i, j) &&
+			!overlapsPlayer(this.player, i, j)
+		);
 	}
 
 	// ---- The world -------------------------------------------------------------------------------
@@ -360,16 +248,22 @@ export class World {
 	}
 
 	/** Player.GrabItems and WorldItem.UpdateItem for the dropped blocks. */
-	#updateDrops(sound: (s: Sound, at: { x: number; y: number }) => void) {
+	#updateDrops() {
 		const p = this.player;
 		const body = hitbox(p);
 		const reach = grabReach(body);
 		for (const d of this.drops) {
 			if (intersects(body, hitbox(d))) {
-				// Player.PickupItem: into the inventory, with the grab sound.
-				this.inventory[d.item] = (this.inventory[d.item] ?? 0) + 1;
+				// Player.PickupItem: onto its stack (or into an empty slot), with the grab sound.
+				const slot =
+					this.inventory.find((it) => it.type === d.item) ??
+					this.inventory.find((it) => it.type === 0);
+				if (slot) {
+					slot.type = d.item;
+					slot.stack++;
+				}
 				d.item = 0;
-				sound('grab', p.center);
+				this.#sound('grab', p.center);
 				continue;
 			}
 			if (intersects(reach, hitbox(d))) {
@@ -419,10 +313,10 @@ export class World {
 
 	// ---- The made-up part: what the player decides to do ------------------------------------------
 
-	#think(sound: (s: Sound, at: { x: number; y: number }) => void) {
+	#think() {
 		const p = this.player;
 		const g = this.#goal;
-		p.controls = { left: false, right: false, jump: false };
+		p.controls = { left: false, right: false, jump: false, use: false };
 
 		if (g.kind === 'idle') {
 			if (--g.frames <= 0) this.#goal = this.#choose();
@@ -434,31 +328,38 @@ export class World {
 			return;
 		}
 
-		// Mining or placing: get within reach (on the ground), then use the item until done.
-		const item = g.kind === 'mine' ? PICKAXE : block(2);
+		// Mining or placing: get within reach (on the ground), then hold the button on it.
 		const done =
 			g.kind === 'mine' ? !isSolid(this.tiles.at(g.i, g.j)) : this.tiles.at(g.i, g.j) !== AIR;
 		if (done) {
 			if (p.itemAnimation === 0) this.#goal = { kind: 'idle', frames: 15 + this.rand(60) };
 			return;
 		}
-		if (g.kind === 'place' && (!this.canPlace(g.i, g.j) || !this.#blockToPlace())) {
-			this.#goal = { kind: 'idle', frames: 30 };
+		const slot = g.kind === 'mine' ? this.inventory[0] : this.#blockToPlace();
+		if (g.kind === 'place' && (!this.canPlace(g.i, g.j) || !slot)) {
+			if (p.itemAnimation === 0) this.#goal = { kind: 'idle', frames: 30 };
 			return;
 		}
-		if (!this.inRange(g.i, g.j, item.tileBoost) || (!p.grounded && p.itemAnimation === 0)) {
+		// Switching items: only between swings.
+		if (p.itemAnimation === 0 && slot) p.item = slot;
+		const boost = stats(p.item.type).tileBoost;
+		if (!inRange(p, g.i, g.j, boost) || (!p.grounded && p.itemAnimation === 0)) {
 			const side = g.i * 16 + 8 < p.center.x ? 1 : -1;
 			if (this.#walkTo(g.i * 16 + 8 + side * 40)) {
 				// Can't get closer: give up on it.
-				if (!this.inRange(g.i, g.j, item.tileBoost)) this.#goal = { kind: 'idle', frames: 30 };
+				if (!inRange(p, g.i, g.j, boost)) this.#goal = { kind: 'idle', frames: 30 };
 			}
 			return;
 		}
-		if (g.kind === 'mine') this.#use(PICKAXE, g.i, () => this.pick(g.i, g.j, sound), sound);
-		else {
-			const type = this.#blockToPlace()!;
-			this.#use(block(type), g.i, () => this.place(g.i, g.j, type, sound), sound);
+		// The cursor on it and the button held; a tap toward it first, to face it.
+		const toward = g.i * 16 + 8 < p.center.x ? -1 : 1;
+		if (p.itemAnimation === 0 && p.direction !== toward) {
+			p.controls.left = toward < 0;
+			p.controls.right = toward > 0;
 		}
+		p.tileTargetX = g.i;
+		p.tileTargetY = g.j;
+		p.controls.use = true;
 	}
 
 	/** Walks toward x, jumping over what's in the way. True once there (or stuck for good). */
@@ -490,10 +391,14 @@ export class World {
 		return false;
 	}
 
-	#blockToPlace(): number | null {
-		if (this.inventory[2] > 0) return 2;
-		if (this.inventory[3] > 0) return 3;
-		return null;
+	/** A stack of blocks to build with (dirt first). */
+	#blockToPlace(): Item | null {
+		return this.inventory.find((it) => (it.type === 2 || it.type === 3) && it.stack > 0) ?? null;
+	}
+
+	/** How many blocks the player has. */
+	get blocks() {
+		return this.inventory.reduce((n, it) => n + (it.type === 2 || it.type === 3 ? it.stack : 0), 0);
 	}
 
 	/** The top block in column i (the height if there's none). */
@@ -515,7 +420,7 @@ export class World {
 		const loose = this.drops.find((d) => Math.abs(d.x - p.x) < 16 * 8);
 		if (loose && r(2) === 0) return { kind: 'walk', x: loose.x + 6 };
 		const roll = r(10);
-		const blocks = (this.inventory[2] ?? 0) + (this.inventory[3] ?? 0);
+		const blocks = this.blocks;
 		if (roll < 4 || (roll < 7 && blocks === 0)) {
 			// Mine an open block that's no deeper than 3 below where the ground was.
 			const options: [number, number][] = [];

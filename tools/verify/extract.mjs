@@ -10,7 +10,7 @@
  * Every overload of a named method is taken. The decompiler's artefacts are rewritten into
  * plain C# (see FIXUPS). Usage: TERRARIA_SRC=/path/to/decompiled/src node tools/verify/extract.mjs
  */
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,6 +30,8 @@ const FIXUPS = [
 	[/\(\((\w[\w.]*)\)\(ref (\w+)\)\)\._002Ector\(([^;]*)\);/g, '$2 = new $1($3);'],
 	// ((Vector2)(ref val)).Length()  ->  val.Length()
 	[/\(\((\w[\w.]*)\)\(ref ([\w.[\]]+)\)\)/g, '$2'],
+	// JSON (de)serialisation attributes (Newtonsoft's): metadata only.
+	[/^\t*\[Json\w*(\(.*\))?\]\n/gm, ''],
 	// An empty `catch { }` would hide a case going wrong: report what it caught instead.
 	[
 		/catch\n(\t+)\{\n\t+\}/g,
@@ -51,12 +53,20 @@ export function members(lines, name) {
 		let start = k;
 		while (start > 0 && /^\t\[/.test(lines[start - 1])) start--;
 		// A one-line member (field), or a block to the matching closing brace at one tab.
-		if (/;\s*$/.test(lines[k]) && !/\{/.test(lines[k])) {
+		const opens = lines[k].split('{').length - 1;
+		const closes = lines[k].split('}').length - 1;
+		// (A one-liner: a field, or braces that close on the same line, like { get; set; }.)
+		if ((/;\s*$/.test(lines[k]) && !opens) || (opens && opens === closes)) {
 			out.push(lines.slice(start, k + 1).join('\n'));
 			continue;
 		}
 		let end = k;
-		while (end < lines.length && lines[end] !== '\t}' && !/^\t[^\t].*\};?$/.test(lines[end])) end++;
+		while (
+			end < lines.length &&
+			!/^\t\};?$/.test(lines[end]) &&
+			!/^\t[^\t{}].*\};$/.test(lines[end])
+		)
+			end++;
 		// Expression-bodied members end with ';' on their own lines.
 		out.push(lines.slice(start, end + 1).join('\n'));
 		k = end;
@@ -98,6 +108,33 @@ export function slice(lines, s) {
 }
 const count = (line, ch) => line.split(ch).length - 1;
 
+/**
+ * A stand-in for each overload of `name`, with the game's own signature: `refuse` ones refuse
+ * the case if they're ever called (Stub.Hit), `noop` ones just return (for code reviewed to be
+ * visual only). Out parameters get their defaults; anything returned is the type's default.
+ */
+export function standIns(lines, name, cls, refuse) {
+	return members(lines, name).map((code) => {
+		const all = code.split('\n');
+		let k = all.findIndex((l) => /^\t[^\t[]/.test(l));
+		let header = all[k];
+		while (!header.includes(')') && k + 1 < all.length) header += ' ' + all[++k].trim();
+		header = header.replace(/\s*=>.*$/, '').replace(/\s*\{\s*$/, '');
+		const params = header.slice(header.indexOf('(') + 1, header.lastIndexOf(')'));
+		const outs = [...params.matchAll(/\bout\s+[\w<>,.[\]?]+\s+(\w+)/g)].map(
+			(m) => `\t\t${m[1]} = default;`
+		);
+		const returns =
+			!/\bvoid\s+\w+\s*(<[^>]*>)?\s*\(/.test(header) && !/\b(event|class|struct)\b/.test(header);
+		const body = [
+			...outs,
+			refuse ? `\t\tOracle.Stub.Hit("${cls}.${name}");` : '',
+			returns ? '\t\treturn default;' : ''
+		].filter(Boolean);
+		return `${header.replace(/\babstract\s+/, '')}\n\t{\n${body.join('\n')}\n\t}`;
+	});
+}
+
 /** Writes oracle/game/ from oracle/sources.json (members listed, plus the build's `auto` ones). */
 export function extract(src) {
 	const config = JSON.parse(readFileSync(SOURCES, 'utf8'));
@@ -112,10 +149,10 @@ export function extract(src) {
 		const name = s.out ?? `${s.class ?? s.file.replace(/[/.]/g, '_')}.cs`;
 		if (!s.members) {
 			const all = text.split('\n');
-			writeFileSync(
-				join(OUT, name),
-				fix([usingsOf(all), ...all.filter((l) => !/^using /.test(l))].join('\n'))
-			);
+			// #define lines must come first in a file: keep them ahead of the usings.
+			const defines = all.filter((l) => /^#(define|undef) /.test(l));
+			const rest = all.filter((l) => !/^using /.test(l) && !/^#(define|undef) /.test(l));
+			writeFileSync(join(OUT, name), fix([...defines, usingsOf(all), ...rest].join('\n')));
 			count++;
 			continue;
 		}
@@ -124,13 +161,17 @@ export function extract(src) {
 		const ns = lines.find((l) => /^namespace /.test(l)) ?? '';
 		const kind = s.kind ?? 'class';
 		const body = [...s.members, ...(s.auto ?? [])]
-			.filter((m) => !(s.stubbed ?? []).includes(m))
+			.filter((m) => ![...(s.stubbed ?? []), ...(s.refuse ?? []), ...(s.noop ?? [])].includes(m))
 			.flatMap((m) => {
 				const found = members(lines, m);
 				if (!found.length) throw new Error(`${s.file}: member not found: ${m}`);
 				return found;
 			})
 			.concat((s.slices ?? []).map((sl) => slice(lines, sl)))
+			.concat((s.refuse ?? []).flatMap((m) => standIns(lines, m, s.class, true)))
+			.concat((s.noop ?? []).flatMap((m) => standIns(lines, m, s.class, false)))
+			// One declaration can name several members (int a, b;): take it once.
+			.filter((code, k, all) => all.indexOf(code) === k)
 			.join('\n\n');
 		writeFileSync(
 			join(OUT, name),
@@ -138,6 +179,25 @@ export function extract(src) {
 		);
 		count++;
 	}
+	// Every namespace the oracle has, for its own stubs and features (global usings).
+	const declared = new Set(['System', 'System.Collections.Generic', 'System.Linq', 'System.IO']);
+	for (const dir of [OUT, join(here, 'oracle/stubs')])
+		for (const file of readdirSync(dir))
+			for (const m of readFileSync(join(dir, file), 'utf8').matchAll(/^\s*namespace ([\w.]+)/gm))
+				declared.add(m[1]);
+	const exists = (ns) => declared.has(ns) || ns.startsWith('System');
+	// A using of a namespace the oracle doesn't have (its types are placeholders) goes.
+	for (const file of readdirSync(OUT)) {
+		const path = join(OUT, file);
+		const text = readFileSync(path, 'utf8');
+		const pruned = text.replace(/^using ([\w.]+);\n/gm, (line, ns) => (exists(ns) ? line : ''));
+		if (pruned !== text) writeFileSync(path, pruned);
+	}
+	const globals = keep.filter(exists);
+	writeFileSync(
+		join(OUT, 'GlobalUsings.cs'),
+		globals.map((ns) => `global using ${ns};`).join('\n') + '\n'
+	);
 	return count;
 }
 

@@ -73,22 +73,41 @@ node tools/verify/port/frame-tables.mjs
 
 ## What's verified
 
-| Port                                           | Against                                                      | How                                                                                                                    |
-| ---------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/world/framing.ts` + `frame-tables.ts` | `WorldGen.TileFrame`, `TileFrameCosmetic`, `SquareTileFrame` | all 589,824 3x3 neighbourhoods; random worlds framed, then edited (place, break, grass knocked to dirt)                |
-| `TILE_DATA` in `framing.ts`                    | `Main.tile*`, `TileID.Sets.*` after the game's own setup     | `data.verify.ts`, via the `lookup` feature                                                                             |
-| `src/lib/world/collision.ts`                   | `Collision.TileCollision`, `StepUp`, `StepDown`              | 200,000 random bodies (player- and item-sized, on grid edges and off) near random ground                               |
-| `src/lib/world/player.ts`                      | `Player.Update` for a plain player (see below)               | 5,000 random walks of up to 300 frames, every frame's position, velocity, jump state, step glide and body / leg frames |
+| Port                                           | Against                                                      | How                                                                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/world/framing.ts` + `frame-tables.ts` | `WorldGen.TileFrame`, `TileFrameCosmetic`, `SquareTileFrame` | all 589,824 3x3 neighbourhoods; random worlds framed, then edited (place, break, grass knocked to dirt)                                      |
+| `TILE_DATA` in `framing.ts`                    | `Main.tile*`, `TileID.Sets.*` after the game's own setup     | `data.verify.ts`, via the `lookup` feature                                                                                                   |
+| `src/lib/world/collision.ts`                   | `Collision.TileCollision`, `StepUp`, `StepDown`              | 200,000 random bodies (player- and item-sized, on grid edges and off) near random ground                                                     |
+| `src/lib/world/player.ts`                      | `Player.Update` for a plain player (see below)               | 5,000 random walks of up to 300 frames, every frame's position, velocity, jump state, step glide and body / leg frames                       |
+| `src/lib/world/item-check.ts` + `hit-tile.ts`  | `Player.ItemCheck` with the Copper Pickaxe, dirt and stone   | 3,000 random uses of up to 360 frames, every frame: the swing, item position and turn, mining damage, tile changes, drops, sounds, the stack |
 
 Each random suite also checks that its cases really cover what they should (landing, walls,
 ceilings and steps for collision; steps up and down, ceiling bumps, full speed, turning, jumps,
-landings and stops for movement), so a pass can't come from cases that never get there.
+landings and stops for movement; swings, auto-reuse, blocks broken and placed, grass knocked to
+dirt, stacks used up and damage wearing off for item use), so a pass can't come from cases that
+never get there. `the items are the game's` checks the item stats the port assumes.
 
 Things the comparisons turned up that reading the code had missed: dirt reframes a stone
 neighbour before asking whether it blends; a block's frame change reframes its neighbours; the
 fall speed is 10.01, not 10; a run settles around 3 by overshooting and braking; the head bump
 reads `Collision.up` after `SlopingCollision` has reset it; and `StepConveyorBelt`, run every
-frame, moves the player 5 px down and back up, which in floats can shift it by a hair.
+frame, moves the player 5 px down and back up, which in floats can shift it by a hair. For item
+use: holding the button swings again a frame early (auto-reuse ends a 23-frame swing at 22); the
+reach is 3 tiles up and down, not 4; a block's damage only wears off when something else is hit
+(HitTile prunes after a hit, not every frame), and the spare slot holds a block at 0 damage;
+turning mirrors the item held; dirt takes twice the pick power; and using up a stack cuts the
+use time short.
+
+### The item use oracle
+
+`oracle/features/ItemUse.cs` holds one item (the Copper Pickaxe, or a stack of dirt or stone)
+and runs, per frame, the movement slices and then the game's own `Player.ItemCheck` and
+`PlayerFrame`, with the tile under the cursor set directly (as `Update` works it out from the
+mouse). It reports what changed: the swing's state, the tiles that changed, `Player.hitTile`,
+and the drops and sounds the game asked for (recorded, not run). The many uses `ItemCheck` checks
+for (weapons, wands, buckets, wiring, pets...) each start by checking for their own items; the
+ones that run every frame are stubbed to do nothing for the items reviewed and to refuse any other
+(`oracle/stubs/ItemUse.cs`).
 
 ### The movement oracle
 
@@ -131,6 +150,11 @@ The game computes in single-precision floats, so the ports round every float ope
 oracle's answers come back as JSON text and are rounded back to singles before comparing.
 
 ## Equivalences relied on
+
+- A block placed, or hit without breaking, gets a new random variant (`SquareTileFrame`'s
+  `genRand.Next(3)`). The item use port takes it from the game's answer (the variant the block
+  ended that frame with), as `verify()` hands the port the game's answer for this. Every other
+  random draw on that path is for looks (dust, the miner's wobble, crack patterns).
 
 - The oracle can't feed the game's random numbers (`Main.rand` isn't virtual). Framing's only
   random draw is the centre block's new variant when `SquareTileFrame` resets it, so the cases

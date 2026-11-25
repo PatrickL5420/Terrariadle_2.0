@@ -26,6 +26,10 @@ public partial class Player : Entity
 		grappling[0] = -1;
 		mount = new Mount();
 		selectedItemState = new SelectedItemState(this);
+		lastVisualizedSelectedItem = new Item();
+		hitTile = new HitTile();
+		hitReplace = new HitTile();
+		IntentionGuesser = new PlayerIntentionGuesser();
 	}
 
 	// Visual only: these spawn dust, gore and sounds or set visual fields (wing and rocket
@@ -129,6 +133,13 @@ public struct PlayerSittingHelper
 	public bool isSitting;
 
 	public void SitUp(Player player, bool multiplayerBroadcast = true) => Stub.Hit("PlayerSittingHelper.SitUp");
+
+	public void GetSittingOffsetInfo(Player player, out Vector2 posOffset, out float seatAdjustment)
+	{
+		posOffset = default;
+		seatAdjustment = 0f;
+		Stub.Hit("PlayerSittingHelper.GetSittingOffsetInfo");
+	}
 }
 
 public struct PlayerSleepingHelper
@@ -136,4 +147,17 @@ public struct PlayerSleepingHelper
 	public bool isSleeping;
 
 	public void StopSleeping(Player player, bool multiplayerBroadcast = true) => Stub.Hit("PlayerSleepingHelper.StopSleeping");
+
+	public void GetSleepingOffsetInfo(Player player, out Vector2 posOffset)
+	{
+		posOffset = default;
+		Stub.Hit("PlayerSleepingHelper.GetSleepingOffsetInfo");
+	}
+}
+
+/// Not petting a town pet.
+public struct PlayerPettingInfo
+{
+	public bool isPetting;
+	public bool isPetSmall;
 }

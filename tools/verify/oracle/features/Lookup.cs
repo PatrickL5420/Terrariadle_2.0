@@ -42,7 +42,7 @@ public class LookupFeature : IFeature
 				var t = type;
 				for (int k = n; k < parts.Length; k++)
 				{
-					const BindingFlags all = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+					const System.Reflection.BindingFlags all = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
 					var field = t.GetField(parts[k], all);
 					var prop = field == null ? t.GetProperty(parts[k], all) : null;
 					if (field == null && prop == null) { t = null; break; }

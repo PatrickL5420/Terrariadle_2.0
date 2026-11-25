@@ -25,7 +25,9 @@ public static class Program
 		["framing"] = new FramingFeature(),
 		["lookup"] = new LookupFeature(),
 		["collision"] = new CollisionFeature(),
-		["movement"] = new MovementFeature()
+		["movement"] = new MovementFeature(),
+		["item"] = new ItemDefaultsFeature(),
+		["itemuse"] = new ItemUseFeature()
 	};
 
 	public static int Main(string[] args)

@@ -14,3 +14,16 @@ public static class Stub
 	/** An exception the game's code caught and ignored: the case is refused. */
 	public static void Caught(System.Exception e) => Hits.Add($"caught: {e.GetType().Name}: {e.Message} {e.StackTrace?.Split('\n')[0]}");
 }
+
+/** What the game did that a case observes rather than runs (dropped items, sounds). */
+public static class Recorder
+{
+	public static readonly List<object> Drops = new();
+	public static readonly List<object> Sounds = new();
+
+	public static void Clear()
+	{
+		Drops.Clear();
+		Sounds.Clear();
+	}
+}

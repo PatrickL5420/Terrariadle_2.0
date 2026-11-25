@@ -1,5 +1,5 @@
 /**
- * A Terraria 1.4.5 player with no items held, armour, accessories, mount or buffs, moving about
+ * A Terraria 1.4.5 player with no armour, accessories, mount or buffs, moving about
  * on full blocks. Ported line by line from the game's Player.Update, the parts that run for such
  * a player, in the game's order:
  *
@@ -11,7 +11,7 @@
  *   Collision.StepDown / StepUp
  *   Player.DryCollision         Collision.TileCollision, then moving; bumping a ceiling
  *   Collision.StepConveyorBelt  (its float rounding: see #dryCollision)
- *   (ItemCheck: the swing; not yet compared with the game, see below)
+ *   Player.ItemCheck            using the item held: swinging, mining, placing (./item-check)
  *   Player.PlayerFrame          body and leg animation
  *
  * The game does this in single-precision floats, so every float operation is rounded to one
@@ -22,6 +22,8 @@
  */
 import { PLAYER_SIZE } from '$lib/game/items';
 import { f, stepDown, stepUp, tileCollision, type TileMap } from './collision';
+import { HitTile } from './hit-tile';
+import { itemCheck, stats, type Item, type ItemWorld } from './item-check';
 
 /** Player.defaultGravity, and Update's other per-frame values for a plain player. */
 const GRAVITY = f(0.4);
@@ -37,15 +39,8 @@ export interface Controls {
 	left: boolean;
 	right: boolean;
 	jump: boolean;
-}
-
-/** What the player is swinging: the item type, its texture's width (heldItemFrame), Item.scale. */
-export interface HeldItem {
-	item: number;
-	width: number;
-	scale: number;
-	/** Item.useTurn: the player can turn while swinging it. */
-	useTurn?: boolean;
+	/** The use button (controlUseItem). */
+	use?: boolean;
 }
 
 export class Player {
@@ -64,12 +59,24 @@ export class Player {
 	gfxOffY = 0;
 	stepSpeed = 1;
 
+	/** The item held (inventory[selectedItem]), and the one the swing shows (lastVisualizedSelectedItem). */
+	item: Item = { type: 0, stack: 0 };
+	lastVisualized: Item = { type: 0, stack: 0 };
+	/** The tile under the cursor (Player.tileTargetX / Y). */
+	tileTargetX = 0;
+	tileTargetY = 0;
 	/** The swing: frames left of it (itemAnimation) and its length (itemAnimationMax). */
 	itemAnimation = 0;
 	itemAnimationMax = 0;
+	/** Frames until the item acts again (itemTime), and the tool's copy of it (toolTime). */
+	itemTime = 0;
+	itemTimeMax = 0;
+	toolTime = 0;
+	releaseUseItem = false;
 	itemRotation = 0;
 	itemLocation = { x: 0, y: 0 };
-	held: HeldItem | null = null;
+	/** The damage done to blocks being mined (Player.hitTile). */
+	hitTile: HitTile;
 
 	/** Sprite frames (index into the 20-frame sheets) and their counters (doubles, like the game). */
 	bodyFrame = 0;
@@ -82,6 +89,7 @@ export class Player {
 	constructor(x: number, y: number) {
 		this.x = f(x);
 		this.y = f(y);
+		this.hitTile = new HitTile();
 	}
 
 	get grounded() {
@@ -92,16 +100,8 @@ export class Player {
 		return { x: this.x + this.w / 2, y: this.y + this.h / 2 };
 	}
 
-	/** Starts swinging `item` for `frames` (useAnimation), unless already swinging. */
-	swing(item: HeldItem, frames: number): boolean {
-		if (this.itemAnimation > 0) return false;
-		this.held = item;
-		this.itemAnimation = this.itemAnimationMax = frames;
-		return true;
-	}
-
-	/** One frame of Player.Update. */
-	update(m: TileMap) {
+	/** One frame of Player.Update, in `m`; `w` is what items are used on. */
+	update(m: TileMap, w?: ItemWorld) {
 		this.#time++;
 		this.#horizontalMovement();
 		this.#jumpMovement();
@@ -113,7 +113,7 @@ export class Player {
 		if (this.vy === GRAVITY) stepDown(m, this, this);
 		if (this.vy >= GRAVITY) stepUp(m, this, this);
 		this.#dryCollision(m);
-		this.#updateSwing();
+		itemCheck(this, w);
 		this.#frame();
 	}
 
@@ -122,8 +122,8 @@ export class Player {
 		const c = this.controls;
 		const turn = (c.right ? 1 : 0) - (c.left ? 1 : 0);
 		// ChangeDir: while swinging, only an item with useTurn lets the player turn.
-		if (turn !== 0 && (this.itemAnimation === 0 || this.held?.useTurn))
-			this.direction = turn as 1 | -1;
+		if (turn !== 0 && (this.itemAnimation === 0 || stats(this.item.type).useTurn))
+			this.#changeDir(turn as 1 | -1);
 		const vx = this.vx;
 		if (c.left && vx > -MAX_RUN_SPEED) {
 			if (this.vx > RUN_SLOWDOWN) this.vx = f(this.vx - RUN_SLOWDOWN);
@@ -154,6 +154,15 @@ export class Player {
 			else if (this.vx < -RUN_SLOWDOWN * 0.5) this.vx = f(this.vx + half);
 			else this.vx = 0;
 		}
+	}
+
+	/** Player.ChangeDir: turning mirrors the item held about the player's middle. */
+	#changeDir(dir: 1 | -1) {
+		if (dir === this.direction) return;
+		this.direction = dir;
+		this.itemRotation = f(this.itemRotation * -1);
+		const mid = f(this.x + Math.trunc(this.w / 2)); // MountedCenter.X
+		this.itemLocation.x = f(mid + f(mid - this.itemLocation.x));
 	}
 
 	/** Player.JumpMovement. */
@@ -211,22 +220,6 @@ export class Player {
 		}
 	}
 
-	/** ItemCheck for useStyle 1 (a swing): the swing counts down, and places and turns the item. */
-	#updateSwing() {
-		if (this.itemAnimation <= 0 || !this.held) return;
-		const W = this.held.width;
-		const t = this.itemAnimation / this.itemAnimationMax;
-		const d = this.direction;
-		const x = this.x + this.w * 0.5;
-		// ItemCheck_ApplyUseStyle for useStyle 1, items up to 32 px.
-		if (t < 0.333) this.itemLocation = { x: x + (W * 0.5 - 10) * d, y: this.y + 24 };
-		else if (t < 0.666) this.itemLocation = { x: x + (W * 0.5 - 10) * d, y: this.y + 10 };
-		else this.itemLocation = { x: x - (W * 0.5 - 6) * d, y: this.y + 10 };
-		this.itemRotation = (t - 0.5) * -d * 3.5 - d * 0.3;
-		this.itemAnimation--;
-		if (this.itemAnimation === 0) this.held = null;
-	}
-
 	/** Player.PlayerFrame for a plain player: the legs, then the body. */
 	#frame() {
 		if (this.vy !== 0) {
@@ -245,8 +238,8 @@ export class Player {
 			this.legFrame = 0;
 		}
 
-		if (this.itemAnimation > 0 && this.held) {
-			// A swing (useStyle 1): three poses by how far through it is.
+		if (this.itemAnimation > 0) {
+			// A swing (useStyle 1, or an empty hand): three poses by how far through it is.
 			const t = this.itemAnimation;
 			const max = this.itemAnimationMax;
 			this.bodyFrame = t < max * 0.333 ? 3 : t < max * 0.666 ? 2 : 1;

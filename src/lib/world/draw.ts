@@ -6,6 +6,7 @@
  * colour each for everything else. Textures are the game's (static/world).
  */
 import { DIRT, GRASS, isSolid, STONE } from './framing';
+import { stats } from './item-check';
 import type { RGB } from './light';
 import type { World } from './sim';
 
@@ -198,27 +199,28 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 		const stage = damage >= 80 ? 3 : damage >= 60 ? 2 : damage >= 40 ? 1 : 0;
 		return [style * 18, stage * 18, 16, 16];
 	};
-	for (const h of world.hits) {
-		if (h.damage < 20 || !isSolid(tiles.at(h.i, h.j))) continue;
-		sprite(ctx, t.cracks, crackRect(h.damage, h.crackStyle), h.i * 16, h.j * 16);
+	const hits = [...world.player.hitTile.blocks()];
+	for (const h of hits) {
+		if (h.damage < 20 || !isSolid(tiles.at(h.x, h.y))) continue;
+		sprite(ctx, t.cracks, crackRect(h.damage, h.crackStyle), h.x * 16, h.y * 16);
 	}
 	// The miner's wobble: a block just hit swells and settles over 10 frames.
-	for (const h of world.hits) {
-		const type = tiles.at(h.i, h.j);
-		if (h.damage < 20 || h.sinceHit >= 10 || !isSolid(type)) continue;
-		const time = h.sinceHit / 10;
+	for (const h of hits) {
+		const type = tiles.at(h.x, h.y);
+		if (h.damage < 20 || h.animationTimeElapsed >= 10 || !isSolid(type)) continue;
+		const time = h.animationTimeElapsed / 10;
 		let wave = (time % 0.5) * 2;
 		if (Math.trunc(time / 0.5) % 2 === 1) wave = 1 - wave;
 		const scale = wave * 0.2 + 1;
-		const k = h.j * tiles.width + h.i;
+		const k = h.y * tiles.width + h.x;
 		const [cx, cy, cw, ch] = crackRect(h.damage, h.crackStyle);
 		ctx.globalAlpha = 0.8;
 		sprite(
 			ctx,
 			t.tiles[type],
 			[tiles.frameX[k], tiles.frameY[k], 16, 16],
-			h.i * 16 + 8,
-			h.j * 16 + 8,
+			h.x * 16 + 8,
+			h.y * 16 + 8,
 			[8, 8],
 			0,
 			scale
@@ -228,8 +230,8 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 			ctx,
 			t.cracks,
 			[cx + 2, cy + 2, cw - 4, ch - 4],
-			h.i * 16 + 8,
-			h.j * 16 + 8,
+			h.x * 16 + 8,
+			h.y * 16 + 8,
 			[8, 8],
 			0,
 			scale
@@ -326,8 +328,9 @@ function drawPlayer(ctx: CanvasRenderingContext2D, world: World, t: Textures) {
 	sprite(ctx, t.hair, [0, hairY, 40, 54], x, y, [0, 0], 0, 1, flip);
 
 	// 6. The item being swung.
-	if (p.itemAnimation > 0 && p.held) {
-		const img = t.items[p.held.item];
+	const shown = p.lastVisualized.type;
+	if (p.itemAnimation > 0 && t.items[shown]) {
+		const img = t.items[shown];
 		const w = img.width;
 		const h = img.height;
 		sprite(
@@ -338,7 +341,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, world: World, t: Textures) {
 			Math.trunc(p.itemLocation.y + p.gfxOffY),
 			[w * 0.5 - w * 0.5 * p.direction, h],
 			p.itemRotation,
-			p.held.scale,
+			stats(shown).scale,
 			flip
 		);
 	}

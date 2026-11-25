@@ -14,8 +14,11 @@ export interface Run<C, R> {
 	/** The oracle feature. */
 	feature: string;
 	cases: Iterable<C>;
-	/** Runs a case on the port. */
-	port: (c: C) => R;
+	/**
+	 * Runs a case on the port. It's also given the game's answer, for the few random draws a
+	 * port takes from it (see README: "Equivalences relied on").
+	 */
+	port: (c: C, game: R) => R;
 	/** Adjusts the game's answer before comparing (e.g. floats arrive as JSON text: `fround` them). */
 	game?: (r: R) => R;
 	batch?: number;
@@ -33,7 +36,11 @@ export function verify<C, R>(run: Run<C, R>): number {
 		if (!chunk.length) return;
 		const raw = oracle<C, R>(run.feature, chunk);
 		const game = run.game ? raw.map(run.game) : raw;
-		const bad = mismatches(chunk, chunk.map(run.port), game);
+		const bad = mismatches(
+			chunk,
+			chunk.map((c, k) => run.port(c, game[k])),
+			game
+		);
 		bad.forEach((m) => (m.index += total));
 		expect(bad.length, report(run.name, total + chunk.length, bad)).toBe(0);
 		if (run.fixture)

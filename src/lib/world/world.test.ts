@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { stepUp, tileCollision } from './collision';
 import { DIRT, GRASS, isSolid, STONE } from './framing';
+import { pickTile, type ItemWorld } from './item-check';
 import { LightMap, tileColor } from './light';
 import { Player } from './player';
-import { World, type Sound } from './sim';
+import { World } from './sim';
 import { MARGIN, Tiles } from './tiles';
 
 /**
@@ -110,21 +111,32 @@ describe('the player (Player.Update)', () => {
 });
 
 describe('mining (Player.PickTile with a Copper Pickaxe)', () => {
+	/** A world with one block of `type` to mine, and what mining it does. */
 	const worldWith = (type: number) => {
 		const w = new World(10, 20, () => 0);
 		const j = w.top(X + 2);
 		w.tiles.place(X + 2, j, type, 0);
-		return { w, j };
+		const sounds: string[] = [];
+		const drops: number[] = [];
+		let dust = 0;
+		const hands: ItemWorld = {
+			tiles: w.tiles,
+			variant: () => 0,
+			sound: (s) => sounds.push(s.type === 21 ? 'tink' : 'dig'),
+			drop: (d) => drops.push(d.type),
+			tileDust: (_i, _j, _type, n) => (dust += n)
+		};
+		const hit = () => pickTile(w.player, hands, X + 2, j, 35);
+		return { w, j, sounds, drops, hit, dust: () => dust };
 	};
 	const hitsToBreak = (type: number) => {
-		const { w, j } = worldWith(type);
-		const sounds: Sound[] = [];
+		const m = worldWith(type);
 		let n = 0;
-		while (isSolid(w.tiles.at(X + 2, j)) && n < 10) {
-			w.pick(X + 2, j, (s) => sounds.push(s));
+		while (isSolid(m.w.tiles.at(X + 2, m.j)) && n < 10) {
+			m.hit();
 			n++;
 		}
-		return { n, w, sounds };
+		return { ...m, n };
 	};
 
 	it('breaks dirt in 2 hits, stone in 3, grass in 2 (knocked back to dirt first)', () => {
@@ -136,18 +148,18 @@ describe('mining (Player.PickTile with a Copper Pickaxe)', () => {
 	it('tinks on stone, digs on dirt, and drops the block', () => {
 		const stone = hitsToBreak(STONE);
 		expect(stone.sounds).toEqual(['tink', 'tink', 'tink']);
-		expect(stone.w.drops.map((d) => d.item)).toEqual([3]);
+		expect(stone.drops).toEqual([3]);
 		const grass = hitsToBreak(GRASS);
 		expect(grass.sounds).toEqual(['dig', 'dig']);
-		expect(grass.w.drops.map((d) => d.item)).toEqual([2]);
+		expect(grass.drops).toEqual([2]);
 	});
 
 	it('turns grass to dirt on the first hit, with dust', () => {
-		const { w, j } = worldWith(GRASS);
-		w.pick(X + 2, j, quiet);
-		expect(w.tiles.at(X + 2, j)).toBe(DIRT);
-		expect(w.dust.length).toBe(3);
-		expect(w.hits[0].damage).toBe(35);
+		const m = worldWith(GRASS);
+		m.hit();
+		expect(m.w.tiles.at(X + 2, m.j)).toBe(DIRT);
+		expect(m.dust()).toBe(3);
+		expect([...m.w.player.hitTile.blocks()].map((h) => h.damage)).toEqual([35]);
 	});
 });
 

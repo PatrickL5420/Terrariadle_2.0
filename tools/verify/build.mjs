@@ -6,13 +6,14 @@
  * again. What's left is printed: stub it in oracle/stubs/ (or list it in `members` if it's real
  * logic the feature needs).
  *
+ * Types in sources.json's `neverReal` keep their placeholder (e.g. Windows-only code).
  * A source can list `"inherits": ["Entity"]`: names it can't find in its own class are looked
  * for in those classes' sources too.
  *
  * Usage: TERRARIA_SRC=/path/to/decompiled/src node tools/verify/build.mjs
  */
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extract, members, SOURCES } from './extract.mjs';
@@ -125,6 +126,61 @@ function writeAutoStubs(config) {
 	writeFileSync(AUTOSTUBS, out.join('\n') + '\n');
 }
 
+/**
+ * Small files of the game that define a type (enums, ID tables, data structs): a placeholder for
+ * one of these is swapped for the real file, which is more faithful and nearly free.
+ */
+const SMALL_FILE_LINES = 150;
+let typeIndex = null;
+function smallTypeFile(type) {
+	if (!typeIndex) {
+		typeIndex = new Map();
+		for (const dir of readdirSync(src)) {
+			if (!statSync(join(src, dir)).isDirectory()) continue;
+			for (const file of readdirSync(join(src, dir))) {
+				if (!file.endsWith('.cs')) continue;
+				const text = readFileSync(join(src, dir, file), 'utf8');
+				const lines = text.split('\n').length;
+				for (const m of text.matchAll(
+					/^(?:public |internal )?(?:(?:static|sealed|abstract|readonly|partial) )*(?:class|struct|enum|interface) (\w+)/gm
+				))
+					if (!typeIndex.has(m[1]))
+						typeIndex.set(m[1], {
+							file: `${dir}/${file}`,
+							lines,
+							ns: text.match(/^namespace ([\w.]+);/m)?.[1]
+						});
+			}
+		}
+	}
+	const hit = typeIndex.get(type);
+	return hit && hit.lines <= SMALL_FILE_LINES ? hit : null;
+}
+
+/** Only plain data is swapped in this way (sources.json's realNamespaces: IDs, enums, structs). */
+function swappable(config, real) {
+	return (config.realNamespaces ?? []).includes(real.file.split('/')[0]);
+}
+
+/** Swaps placeholders for small real files where there is one. True if any were swapped. */
+function useRealSmallTypes(config) {
+	let changed = false;
+	for (const type of Object.keys(config.autostubs ?? {})) {
+		if (type.includes('.')) continue;
+		if ((config.neverReal ?? []).includes(type)) continue; // e.g. Windows-only code
+		const real = smallTypeFile(type);
+		if (!real || !swappable(config, real) || config.sources.some((s) => s.file === real.file))
+			continue;
+		config.sources.push({ file: real.file, class: type });
+		if (real.ns && !config.usings.includes(real.ns)) config.usings.push(real.ns);
+		for (const k of Object.keys(config.autostubs))
+			if (k === type || k.startsWith(`${type}.`)) delete config.autostubs[k];
+		console.log(`  using the game's ${real.file} for ${type}`);
+		changed = true;
+	}
+	return changed;
+}
+
 /** For an error at file(line,col) about `name`: is it called there? */
 function calledAt(line, name) {
 	const m = line.match(/^(.*?\.cs)\((\d+),(\d+)\)/);
@@ -145,6 +201,11 @@ function missing(line) {
 }
 
 for (let round = 1; ; round++) {
+	{
+		const config = JSON.parse(readFileSync(SOURCES, 'utf8'));
+		if (useRealSmallTypes(config))
+			writeFileSync(SOURCES, JSON.stringify(config, null, '\t') + '\n');
+	}
 	extract(src);
 	writeAutoStubs(JSON.parse(readFileSync(SOURCES, 'utf8')));
 	const errors = build();
@@ -186,6 +247,19 @@ for (let round = 1; ; round++) {
 			);
 			continue;
 		}
+		// Set in an object initializer: an instance member, not a static one.
+		t = line.match(
+			/error CS1914: Static field or property '([\w.]+)\.(\w+)' cannot be assigned in an object initializer/
+		);
+		if (t && auto[t[1]]) {
+			const list = auto[t[1]];
+			const k = list.findIndex((m) => m.split(':')[0] === t[2]);
+			if (k >= 0 && list[k].includes(':static')) {
+				list[k] = list[k].replace(':static', ':');
+				added++;
+			}
+			continue;
+		}
 		t = line.match(/error CS1729: '([\w.]+)' does not contain a constructor/);
 		if (t && auto[t[1]]) {
 			addAuto(t[1], 'ctor:ctor');
@@ -207,7 +281,15 @@ for (let round = 1; ; round++) {
 			...(own.inherits ?? []).map((c) => config.sources.find((s) => s.class === c))
 		];
 		if (
-			chain.some((s) => [...s.members, ...(s.auto ?? []), ...(s.stubbed ?? [])].includes(miss.name))
+			chain.some((s) =>
+				[
+					...s.members,
+					...(s.auto ?? []),
+					...(s.stubbed ?? []),
+					...(s.refuse ?? []),
+					...(s.noop ?? [])
+				].includes(miss.name)
+			)
 		)
 			continue;
 		let source = own;
