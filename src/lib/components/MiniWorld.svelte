@@ -21,11 +21,9 @@
 	let canvas: HTMLCanvasElement;
 	let wide = $state(false);
 
-	/** Fullscreen: the page goes fullscreen (where it can) and the world fills it. */
+	/** Fullscreen: the world fills the window (not the browser's fullscreen). */
 	function toggleWide() {
 		wide = !wide;
-		if (wide) document.documentElement.requestFullscreen?.().catch(() => {});
-		else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 	}
 
 	// The rest of the page hides behind it (see +layout.svelte), leaving the sky.
@@ -208,21 +206,16 @@
 			observer.observe(box);
 		});
 
-		// Leaving fullscreen (Esc) leaves the wide view too.
-		const onFullscreen = () => {
-			if (!document.fullscreenElement) wide = false;
-		};
+		// Esc goes back to the column.
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape' && wide && !document.fullscreenElement) wide = false;
+			if (e.key === 'Escape' && wide) wide = false;
 		};
-		document.addEventListener('fullscreenchange', onFullscreen);
 		addEventListener('keydown', onKey);
 
 		return () => {
 			stopped = true;
 			cancelAnimationFrame(raf);
 			observer.disconnect();
-			document.removeEventListener('fullscreenchange', onFullscreen);
 			removeEventListener('keydown', onKey);
 		};
 	});
