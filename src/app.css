@@ -10,6 +10,8 @@
 }
 
 :root {
+	/* From the page's centre to the side columns (the little world, the coin counter). */
+	--column-gap: 340px;
 	/* A thin dark edge for small swatches. */
 	--slot-outer: #101021;
 

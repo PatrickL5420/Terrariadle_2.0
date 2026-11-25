@@ -9,6 +9,20 @@
  * second); the page draws it at 2x.
  */
 import type { Coin } from '$lib/money';
+import {
+	fallItem,
+	grabReach,
+	hitbox,
+	intersects,
+	PLAYER_SIZE,
+	pullCommon,
+	pullPickup,
+	random,
+	type Box,
+	type Rand
+} from '$lib/game/items';
+
+export { PLAYER_SIZE, random, type Box, type Rand };
 
 /** Item types 71-74. */
 export const COIN_ORDER: Coin[] = ['copper', 'silver', 'gold', 'platinum'];
@@ -21,20 +35,8 @@ export const HITBOX: Record<Coin, [number, number]> = {
 	platinum: [12, 14]
 };
 
-/** The player's hitbox (Player.width / height) and item grab range (defaultItemGrabRange). */
-export const PLAYER_SIZE: [number, number] = [20, 42];
-const GRAB_RANGE = 42;
-const GRAB_SPEED = 0.45; // Player.itemGrabSpeed
-const GRAB_SPEED_MAX = 4; // Player.itemGrabSpeedMax
 /** The biggest stack a drop is split into. */
 const STACK_SIZE = 5;
-
-/** UnifiedRandom.Next(max) / Next(min, max). */
-export type Rand = (min: number, max?: number) => number;
-export const random: Rand = (min, max) =>
-	max === undefined
-		? Math.floor(Math.random() * min)
-		: min + Math.floor(Math.random() * (max - min));
 
 /** NPC.NPCLoot_DropMoney for an exact value: the coin stacks an enemy worth it drops. */
 export function moneyStacks(value: number, rand: Rand = random): { coin: Coin; count: number }[] {
@@ -118,22 +120,6 @@ export interface Popup {
 	lifeTime: number;
 	color: [number, number, number];
 }
-
-export interface Box {
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-}
-
-const intersects = (a: Box, b: Box) =>
-	a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-const hitbox = (c: WorldCoin): Box => ({
-	x: Math.trunc(c.x),
-	y: Math.trunc(c.y),
-	w: c.w,
-	h: c.h
-});
 
 /** PopupText.ValueToName: "1 platinum 2 gold 5 copper". */
 export function valueToName(value: number): string {
@@ -252,15 +238,10 @@ export class CoinWorld {
 				this.#popup(c, c.stack, player!.x, player!.y);
 				continue;
 			}
-			const reach = body && {
-				x: Math.trunc(body.x) - GRAB_RANGE,
-				y: Math.trunc(body.y) - GRAB_RANGE,
-				w: body.w + GRAB_RANGE * 2,
-				h: body.h + GRAB_RANGE * 2
-			};
+			const reach = body && grabReach(body);
 			if (reach && intersects(reach, hitbox(c))) {
 				c.grabbed = true;
-				pullCommon(c, body!, player!, 0.75);
+				pullCommon(c, body!, player!.vx, 0.75);
 				continue;
 			}
 			// Not in the game: a coin left lying flies to the counter by itself after a while.
@@ -284,15 +265,11 @@ export class CoinWorld {
 				c.y += c.vy;
 				continue;
 			}
-			c.vy = Math.min(7, c.vy + 0.1);
-			c.vx *= 0.95;
-			if (c.vx < 0.1 && c.vx > -0.1) c.vx = 0;
 			// Collision.TileCollision with the ground and the sides of the screen: it stops dead.
-			if (c.y + c.h + c.vy > this.height) c.vy = Math.max(0, this.height - c.h - c.y);
-			if (c.x + c.vx < 0) c.vx = -c.x;
-			if (c.x + c.w + c.vx > this.width) c.vx = this.width - c.w - c.x;
-			c.x += c.vx;
-			c.y += c.vy;
+			fallItem(c, ({ x, y, w, h, vx, vy }) => ({
+				vx: x + vx < 0 ? -x : x + w + vx > this.width ? this.width - w - x : vx,
+				vy: y + h + vy > this.height ? Math.max(0, this.height - h - y) : vy
+			}));
 		}
 		this.coins = this.coins.filter((c) => c.stack > 0);
 
@@ -417,35 +394,4 @@ export class CoinWorld {
 		});
 		this.popups = this.popups.filter((p) => p.lifeTime > 0 || p.scale >= 0.1);
 	}
-}
-
-/** Player.PullItem_Common: speeds up toward the player, braking hard when heading away. */
-function pullCommon(c: WorldCoin, body: Box, player: Player, brake: number) {
-	const cx = c.x + c.w * 0.5;
-	const cy = c.y + c.h * 0.5;
-	if (body.x + body.w * 0.5 > cx) {
-		if (c.vx < GRAB_SPEED_MAX + player.vx) c.vx += GRAB_SPEED;
-		if (c.vx < 0) c.vx += GRAB_SPEED * brake;
-	} else {
-		if (c.vx > -GRAB_SPEED_MAX + player.vx) c.vx -= GRAB_SPEED;
-		if (c.vx > 0) c.vx -= GRAB_SPEED * brake;
-	}
-	if (body.y + body.h * 0.5 > cy) {
-		if (c.vy < GRAB_SPEED_MAX) c.vy += GRAB_SPEED;
-		if (c.vy < 0) c.vy += GRAB_SPEED * brake;
-	} else {
-		if (c.vy > -GRAB_SPEED_MAX) c.vy -= GRAB_SPEED;
-		if (c.vy > 0) c.vy -= GRAB_SPEED * brake;
-	}
-}
-
-/** Player.PullItem_Pickup: homes in at `speed`, turning over `acc` frames. */
-function pullPickup(c: WorldCoin, target: Box, speed: number, acc: number) {
-	let dx = target.x + target.w / 2 - (c.x + Math.trunc(c.w / 2));
-	let dy = target.y + target.h / 2 - (c.y + Math.trunc(c.h / 2));
-	const k = speed / Math.sqrt(dx * dx + dy * dy);
-	dx *= k;
-	dy *= k;
-	c.vx = (c.vx * (acc - 1) + dx) / acc;
-	c.vy = (c.vy * (acc - 1) + dy) / acc;
 }

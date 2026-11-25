@@ -16,8 +16,12 @@ const SOUNDS = {
 	/** Opening / closing something: hints, quotes. */
 	open: ['/sounds/menu-open.wav'],
 	close: ['/sounds/menu-close.wav'],
-	/** Revealing a clue word. */
-	grab: ['/sounds/grab.wav']
+	/** Revealing a clue word; picking up an item. */
+	grab: ['/sounds/grab.wav'],
+	/** The little world: digging or placing dirt (Dig), hitting stone (Tink), swinging (Item_1). */
+	dig: [0, 1, 2].map((i) => `/sounds/dig-${i}.wav`),
+	tink: [0, 1, 2].map((i) => `/sounds/tink-${i}.wav`),
+	swing: ['/sounds/swing.wav']
 } satisfies Record<string, string[]>;
 
 export type SoundName = keyof typeof SOUNDS;

@@ -139,6 +139,17 @@
 		color: #9dff7a;
 	}
 
+	/* On wide screens it's a column right of the game, like the inventory's coin slots, matching
+	   the little world on the left (+layout.svelte). */
+	@media (min-width: 1150px) {
+		.top :global(.coins) {
+			top: 14px;
+			right: auto;
+			left: calc(50% + var(--column-gap));
+			flex-direction: column;
+		}
+	}
+
 	/* On narrow screens the counter sits under the logo. */
 	@media (max-width: 760px) {
 		.top :global(.coins) {

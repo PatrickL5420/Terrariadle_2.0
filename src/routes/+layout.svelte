@@ -3,6 +3,8 @@
 	import Footer from './Footer.svelte';
 	import Sky from '$lib/sky/Sky.svelte';
 	import CoinDrop from '$lib/components/CoinDrop.svelte';
+	import MiniWorld from '$lib/components/MiniWorld.svelte';
+	import Cursor from '$lib/components/Cursor.svelte';
 	import { play } from '$lib/sound.svelte';
 	import '../app.css';
 	import { page } from '$app/state';
@@ -70,13 +72,21 @@
 
 <Sky />
 <CoinDrop />
+<Cursor />
 
 <div class="app">
-	<Header />
+	<div class="stage">
+		<!-- A little world to watch, beside the game (wide screens only). -->
+		<aside class="world-column">
+			<MiniWorld />
+		</aside>
 
-	<main>
-		{@render children()}
-	</main>
+		<Header />
+
+		<main>
+			{@render children()}
+		</main>
+	</div>
 
 	<Footer />
 </div>
@@ -92,6 +102,40 @@
 		position: absolute;
 		width: 0;
 		height: 0;
+	}
+
+	.stage {
+		position: relative;
+	}
+
+	/*
+	 * Left of the game, as tall as the header and game together; the coin counter makes the
+	 * matching column on the right (Header.svelte). 13 blocks wide, in a panel's border.
+	 */
+	.world-column {
+		display: none;
+		position: absolute;
+		top: 14px;
+		bottom: 0;
+		right: calc(50% + var(--column-gap));
+		width: calc(13 * 16px);
+		padding: 2px;
+		box-sizing: content-box;
+	}
+
+	.world-column::after {
+		content: '';
+		position: absolute;
+		inset: -10px;
+		pointer-events: none;
+		border: 12px solid transparent;
+		border-image: url('/ui/game/border-black.png') 12 / 12px;
+	}
+
+	@media (min-width: 1150px) {
+		.world-column {
+			display: block;
+		}
 	}
 
 	main {

@@ -11,6 +11,7 @@
 		type GameTime
 	} from './clock';
 	import { SpriteRenderer } from './gl';
+	import { skyLight } from './light';
 	import { loadTextures, SkyScene, type Moment } from './scene';
 
 	/**
@@ -82,7 +83,7 @@
 		if (!gl) {
 			// No WebGL2: the sky's colour (the sky texture's middle, tinted) is enough.
 			const paint = () => {
-				const [r, g, b] = skyColors(moment().time, moonPhase()).sky;
+				const [r, g, b] = (skyLight.color = skyColors(moment().time, moonPhase()).sky);
 				canvas.style.background = `rgb(${(r * 100) >> 8}, ${(g * 135) >> 8}, ${(b * 248) >> 8})`;
 			};
 			redraw = paint;
@@ -147,6 +148,7 @@
 				scene.resize(Math.max(1, Math.round((w / h) * GAME_HEIGHT)), GAME_HEIGHT);
 				const m = moment();
 				scene.loadStyle(m.forest)?.then(() => redraw());
+				skyLight.color = skyColors(m.time, m.moonPhase).sky;
 				return m;
 			};
 
