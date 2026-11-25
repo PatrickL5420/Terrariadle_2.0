@@ -121,6 +121,8 @@
 		width: calc(13 * 16px);
 		padding: 2px;
 		box-sizing: content-box;
+		/* Above the header's empty sides, so its fullscreen button can be pressed. */
+		z-index: 1;
 	}
 
 	.world-column::after {
@@ -136,6 +138,19 @@
 		.world-column {
 			display: block;
 		}
+	}
+
+	/* The little world fullscreen (MiniWorld's button): only it and the sky show. */
+	:global(body.world-wide) .app {
+		visibility: hidden;
+	}
+
+	:global(body.world-wide) .world-column {
+		visibility: visible;
+	}
+
+	:global(body.world-wide) .world-column::after {
+		display: none;
 	}
 
 	main {

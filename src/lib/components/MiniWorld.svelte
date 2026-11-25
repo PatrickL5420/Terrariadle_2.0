@@ -10,7 +10,8 @@
 	/**
 	 * A little Terraria world beside the game, just to watch (see $lib/world): a player digs and
 	 * builds in a few columns of ground, lit by the page's sky. Drawn at the game's 1x, one game
-	 * pixel per CSS pixel, filling the column it's in.
+	 * pixel per CSS pixel, filling the column it's in, or the whole screen (a bigger world) with
+	 * the fullscreen button.
 	 */
 	const STEP_MS = 1000 / 60;
 	/** Sounds from the little world are quieter than the page's own. */
@@ -18,6 +19,20 @@
 
 	let box: HTMLDivElement;
 	let canvas: HTMLCanvasElement;
+	let wide = $state(false);
+
+	/** Fullscreen: the page goes fullscreen (where it can) and the world fills it. */
+	function toggleWide() {
+		wide = !wide;
+		if (wide) document.documentElement.requestFullscreen?.().catch(() => {});
+		else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+	}
+
+	// The rest of the page hides behind it (see +layout.svelte), leaving the sky.
+	$effect(() => {
+		document.body.classList.toggle('world-wide', wide);
+		return () => document.body.classList.remove('world-wide');
+	});
 
 	onMount(() => {
 		const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -161,16 +176,43 @@
 			observer.observe(box);
 		});
 
+		// Leaving fullscreen (Esc) leaves the wide view too.
+		const onFullscreen = () => {
+			if (!document.fullscreenElement) wide = false;
+		};
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape' && wide && !document.fullscreenElement) wide = false;
+		};
+		document.addEventListener('fullscreenchange', onFullscreen);
+		addEventListener('keydown', onKey);
+
 		return () => {
 			stopped = true;
 			cancelAnimationFrame(raf);
 			observer.disconnect();
+			document.removeEventListener('fullscreenchange', onFullscreen);
+			removeEventListener('keydown', onKey);
 		};
 	});
 </script>
 
-<div class="world" bind:this={box} aria-hidden="true">
-	<canvas bind:this={canvas}></canvas>
+<div class="world" class:wide bind:this={box}>
+	<canvas bind:this={canvas} aria-hidden="true"></canvas>
+	<button
+		class="fullscreen"
+		aria-label={wide ? 'Exit fullscreen' : 'Fullscreen'}
+		aria-pressed={wide}
+		title={wide ? 'Exit fullscreen' : 'Fullscreen'}
+		onclick={toggleWide}
+	>
+		<svg viewBox="0 0 9 9" width="18" height="18" aria-hidden="true">
+			{#if wide}
+				<path d="M3 0h1v4H0V3h3zM5 0h1v3h3v1H5zM0 5h4v4H3V6H0zM5 5h4v1H6v3H5z" />
+			{:else}
+				<path d="M0 0h4v1H1v3H0zM5 0h4v4H8V1H5zM0 5h1v3h3v1H0zM8 5h1v4H5V8h3z" />
+			{/if}
+		</svg>
+	</button>
 </div>
 
 <style>
@@ -181,11 +223,48 @@
 		overflow: hidden;
 	}
 
+	/* Over the whole screen, the page's sky behind it. */
+	.world.wide {
+		position: fixed;
+		inset: 0;
+		z-index: 100;
+	}
+
 	/* The ground sits at the bottom of the column. */
 	canvas {
 		position: absolute;
 		left: 0;
 		bottom: 0;
 		image-rendering: pixelated;
+	}
+
+	.wide canvas {
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.fullscreen {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		display: flex;
+		padding: 5px;
+		background: rgb(0 0 0 / 0.35);
+		border: none;
+		border-radius: 4px;
+		color: #fff;
+		cursor: pointer;
+		opacity: 0.6;
+	}
+
+	.fullscreen:hover,
+	.fullscreen:focus-visible {
+		opacity: 1;
+	}
+
+	.fullscreen svg {
+		display: block;
+		fill: currentColor;
+		shape-rendering: crispEdges;
 	}
 </style>
