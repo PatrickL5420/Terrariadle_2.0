@@ -171,13 +171,25 @@ export interface Lit {
 	j: number;
 }
 
-/** Walls and blocks, with cracks. Lit per tile afterwards. */
-export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textures) {
+/** The tiles in view: columns i0 to i1 and rows j0 to j1 (exclusive). */
+export interface View {
+	i0: number;
+	j0: number;
+	i1: number;
+	j1: number;
+}
+
+/** Walls and blocks in `view` (all of them by default), with cracks. Lit per tile afterwards. */
+export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textures, view?: View) {
 	const { tiles } = world;
+	const i0 = Math.max(0, view?.i0 ?? 0);
+	const j0 = Math.max(0, view?.j0 ?? 0);
+	const i1 = Math.min(tiles.width, view?.i1 ?? tiles.width);
+	const j1 = Math.min(tiles.height, view?.j1 ?? tiles.height);
 
 	// Walls (Main.DrawWalls): 32x32, overhanging their tile by 8 px a side.
-	for (let j = 0; j < tiles.height; j++) {
-		for (let i = 0; i < tiles.width; i++) {
+	for (let j = j0; j < j1; j++) {
+		for (let i = i0; i < i1; i++) {
 			if (!tiles.wall[j * tiles.width + i]) continue;
 			const [fx, fy] = tiles.wallFrame(i, j);
 			sprite(ctx, t.wall, [fx, fy, 32, 32], i * 16 - 8, j * 16 - 8);
@@ -185,8 +197,8 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 	}
 
 	// Blocks.
-	for (let j = 0; j < tiles.height; j++) {
-		for (let i = 0; i < tiles.width; i++) {
+	for (let j = j0; j < j1; j++) {
+		for (let i = i0; i < i1; i++) {
 			const type = tiles.at(i, j);
 			if (!isSolid(type)) continue;
 			const k = j * tiles.width + i;

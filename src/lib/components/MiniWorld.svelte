@@ -9,9 +9,9 @@
 
 	/**
 	 * A little Terraria world beside the game, just to watch (see $lib/world): a player digs and
-	 * builds in a few columns of ground, lit by the page's sky. Drawn at the game's 1x, one game
-	 * pixel per CSS pixel, filling the column it's in, or the whole screen (a bigger world) with
-	 * the fullscreen button.
+	 * builds in a screen-wide stretch of ground, lit by the page's sky. Drawn at the game's 1x,
+	 * one game pixel per CSS pixel: the column it's in shows part of it, following the player
+	 * like the game's camera; the fullscreen button shows all of it.
 	 */
 	const STEP_MS = 1000 / 60;
 	/** Sounds from the little world are quieter than the page's own. */
@@ -61,22 +61,48 @@
 
 		const sound = (s: Sound) => play(s, VOLUME[s]);
 
-		/** Sizes the world to the column: whole tiles, as many as fit. */
+		/** The view's size, in game pixels (the column, or the screen). */
+		let vw = 0;
+		let vh = 0;
+
+		/**
+		 * The world is made once, as big as the screen (so fullscreen shows all of it), and kept:
+		 * the column shows part of it, following the player. Returns whether there's a view.
+		 */
 		const fit = () => {
-			const cols = Math.floor(box.clientWidth / 16);
-			const rows = Math.floor(box.clientHeight / 16);
-			if (cols < 4 || rows < 8) return false;
-			if (!world || world.cols !== cols) world = new World(cols, rows);
-			else world.setHeight(rows);
+			vw = Math.floor(box.clientWidth);
+			vh = Math.floor(box.clientHeight);
+			if (vw < 64 || vh < 128) return false;
+			if (!world) {
+				const cols = Math.max(Math.ceil(screen.width / 16), Math.ceil(vw / 16));
+				const rows = Math.max(Math.ceil(screen.height / 16), Math.ceil(vh / 16));
+				world = new World(cols, rows);
+			}
 			return true;
+		};
+
+		/**
+		 * Main.screenPosition: centred on the player, kept within the world's shown part. A view
+		 * bigger than the world shows it centred, ground at the bottom, and nothing round it.
+		 */
+		const camera = (world: World) => {
+			const left = MARGIN * 16;
+			const width = world.cols * 16;
+			const height = world.rows * 16;
+			const p = world.player;
+			const c = p.center;
+			let x = c.x - vw / 2;
+			let y = c.y + p.gfxOffY - vh / 2;
+			x = vw >= width ? left - (vw - width) / 2 : Math.min(Math.max(x, left), left + width - vw);
+			y = vh >= height ? height - vh : Math.min(Math.max(y, 0), height - vh);
+			return { x: Math.round(x), y: Math.round(y) };
 		};
 
 		const draw = () => {
 			if (!world || !textures) return;
-			// The shown part: the world without its margin (see $lib/world/tiles).
-			const w = world.cols * 16;
-			const h = world.rows * 16;
-			const ox = -MARGIN * 16;
+			const w = vw;
+			const h = vh;
+			const cam = camera(world);
 			for (const c of [scene, things, light]) {
 				if (c.width !== w) c.width = w;
 				if (c.height !== h) c.height = h;
@@ -84,8 +110,14 @@
 			const ctx = scene.getContext('2d')!;
 			ctx.imageSmoothingEnabled = false;
 			ctx.clearRect(0, 0, w, h);
-			ctx.setTransform(1, 0, 0, 1, ox, 0);
-			drawTiles(ctx, world, textures);
+			ctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
+			// The tiles in view (and one more round, for walls overhanging into it).
+			drawTiles(ctx, world, textures, {
+				i0: Math.floor(cam.x / 16) - 1,
+				j0: Math.floor(cam.y / 16) - 1,
+				i1: Math.ceil((cam.x + w) / 16) + 1,
+				j1: Math.ceil((cam.y + h) / 16) + 1
+			});
 			ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 			// Light: one pixel per tile, stretched smoothly over the tiles (like the game's
@@ -109,21 +141,21 @@
 			const l = light.getContext('2d')!;
 			l.globalCompositeOperation = 'copy';
 			l.imageSmoothingEnabled = true;
-			l.drawImage(lightTiles, ox, 0, world.width * 16, world.height * 16);
+			l.drawImage(lightTiles, -cam.x, -cam.y, world.width * 16, world.height * 16);
 			applyLight(scene);
 
 			// Items, the player and dust: each in its own tile's light.
 			const tctx = things.getContext('2d')!;
 			tctx.imageSmoothingEnabled = false;
 			tctx.clearRect(0, 0, w, h);
-			tctx.setTransform(1, 0, 0, 1, ox, 0);
+			tctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
 			const lit = drawThings(tctx, world, textures);
 			tctx.setTransform(1, 0, 0, 1, 0, 0);
 			l.globalCompositeOperation = 'source-over';
 			l.clearRect(0, 0, w, h);
 			for (const r of lit) {
 				l.fillStyle = `rgb(${lm.color(r.i, r.j).join()})`;
-				l.fillRect(r.x + ox, r.y, r.w, r.h);
+				l.fillRect(r.x - cam.x, r.y - cam.y, r.w, r.h);
 			}
 			applyLight(things);
 			ctx.drawImage(things, 0, 0);
@@ -236,11 +268,6 @@
 		left: 0;
 		bottom: 0;
 		image-rendering: pixelated;
-	}
-
-	.wide canvas {
-		left: 50%;
-		transform: translateX(-50%);
 	}
 
 	.fullscreen {
