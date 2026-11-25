@@ -22,7 +22,7 @@ import { tileCollision } from './collision';
 import { AIR, DIRT, GRASS, isSolid, STONE } from './framing';
 import { LightMap, type RGB } from './light';
 import { Player, type HeldItem } from './player';
-import { Tiles } from './tiles';
+import { MARGIN, Tiles } from './tiles';
 
 export type Sound = 'dig' | 'tink' | 'swing' | 'grab';
 
@@ -110,22 +110,35 @@ export class World {
 	#stuck = 0;
 	#lastCrack = -1;
 
+	/** The whole world, in tiles: what's shown plus MARGIN (see ./tiles). */
+	readonly width: number;
+	height: number;
+
+	/** A world showing `cols` x `rows` tiles. */
 	constructor(
-		readonly width: number,
-		public height: number,
+		readonly cols: number,
+		rows: number,
 		private rand: Rand = random
 	) {
-		this.tiles = new Tiles(width, height, (n) => rand(n));
-		this.light = new LightMap(width, height);
+		this.width = cols + MARGIN * 2;
+		this.height = rows + MARGIN;
+		this.tiles = new Tiles(this.width, this.height, (n) => rand(n));
+		this.light = new LightMap(this.width, this.height);
 		this.surface = this.#generate();
-		const i = Math.trunc(width / 2);
+		const i = MARGIN + Math.trunc(cols / 2);
 		this.player = new Player(i * 16 + 8 - 10, this.surface[i] * 16 - 42);
+	}
+
+	/** How many rows are shown. */
+	get rows() {
+		return this.height - MARGIN;
 	}
 
 	/** Rolling grass over a few blocks of dirt, then stone with some dirt in it. */
 	#generate(): number[] {
 		const { width: W, height: H, tiles, rand: r } = this;
-		const base = Math.max(4, H - Math.min(12, Math.round(H * 0.45)));
+		const rows = this.rows;
+		const base = Math.max(4, rows - Math.min(12, Math.round(rows * 0.45)));
 		const phase = r(1000) / 100;
 		const surface = Array.from({ length: W }, (_, i) =>
 			Math.round(base + Math.sin(i * 0.55 + phase) * 1.2 + Math.sin(i * 0.23 + phase * 2) * 1.4)
@@ -135,44 +148,35 @@ export class World {
 			const dirtDepth = 3 + r(3);
 			for (let j = top; j < H; j++) {
 				tiles.type[j * W + i] = j === top ? GRASS : j < top + dirtDepth ? DIRT : STONE;
+				tiles.active[j * W + i] = 1;
 				// A dirt wall behind the ground, from just under the grass.
 				if (j > top + 1) tiles.wall[j * W + i] = 1;
 			}
 		}
 		// A few patches: stone poking into the dirt, dirt in the stone.
 		for (let n = 0; n < 3; n++) {
-			const ci = r(W);
+			const ci = MARGIN + r(this.cols);
 			const cj = surface[ci] + 2 + r(6);
 			const type = n === 0 ? STONE : DIRT;
 			for (let i = ci - 2; i <= ci + 2; i++)
 				for (let j = cj - 1; j <= cj + 1; j++)
-					if (tiles.inWorld(i, j) && j > surface[i] && r(3) > 0) tiles.type[j * W + i] = type;
+					if (j > surface[i] && j < H && r(3) > 0) tiles.type[j * W + i] = type;
 		}
+		// Each block's random variant (frameNumber), then WorldGen's framing of the lot.
+		for (let k = 0; k < W * H; k++) tiles.frameNumber[k] = r(3);
 		tiles.frameAll();
 		return surface;
 	}
 
 	/**
-	 * Makes the world `height` rows tall by adding (or taking away) rows of sky at the top, so
+	 * Shows `rows` rows by adding (or taking away) rows of sky at the top, so
 	 * the ground stays at the bottom as the page around it grows.
 	 */
-	setHeight(height: number) {
+	setHeight(rows: number) {
+		const height = rows + MARGIN;
 		const d = height - this.height;
 		if (!d) return;
-		const old = this.tiles;
-		const tiles = new Tiles(this.width, height, (n) => this.rand(n));
-		for (let j = 0; j < height; j++) {
-			const oj = j - d;
-			if (oj < 0 || oj >= old.height) continue;
-			for (let i = 0; i < this.width; i++) {
-				tiles.type[j * this.width + i] = old.type[oj * this.width + i];
-				tiles.variant[j * this.width + i] = old.variant[oj * this.width + i];
-				tiles.wall[j * this.width + i] = old.wall[oj * this.width + i];
-				tiles.wallVariant[j * this.width + i] = old.wallVariant[oj * this.width + i];
-			}
-		}
-		tiles.frameAll();
-		this.tiles = tiles;
+		this.tiles = this.tiles.resized(height, (n) => this.rand(n));
 		this.light = new LightMap(this.width, height);
 		this.height = height;
 		this.surface = this.surface.map((j) => j + d);
@@ -284,10 +288,11 @@ export class World {
 			this.#newDust(i * 16, j * 16, 16, 16, dust);
 		}
 		if (fail) {
-			if (type === GRASS) this.tiles.set(i, j, DIRT);
+			// The block stays (grass knocked back to dirt), reframed with a new variant.
+			this.tiles.convert(i, j, type === GRASS ? DIRT : type, r(3));
 			return;
 		}
-		this.tiles.set(i, j, AIR);
+		this.tiles.kill(i, j);
 		// Item.NewItem at the block's centre.
 		const item = ITEM_OF[type];
 		this.drops.push({
@@ -310,8 +315,7 @@ export class World {
 		sound: (s: Sound, at: { x: number; y: number }) => void
 	): boolean {
 		if (!this.canPlace(i, j) || !this.inventory[item]) return false;
-		this.tiles.variant[j * this.width + i] = this.rand(3);
-		this.tiles.set(i, j, TILE_OF[item]);
+		this.tiles.place(i, j, TILE_OF[item], this.rand(3));
 		this.inventory[item]--;
 		sound('dig', { x: i * 16 + 8, y: j * 16 + 8 });
 		return true;
@@ -319,20 +323,23 @@ export class World {
 
 	canPlace(i: number, j: number) {
 		const t = this.tiles;
-		if (!t.inWorld(i, j) || t.at(i, j) !== AIR) return false;
+		if (!t.inView(i, j) || t.at(i, j) !== AIR) return false;
 		const touching = [
 			[i - 1, j],
 			[i + 1, j],
 			[i, j - 1],
 			[i, j + 1]
-		].some(([x, y]) => t.inWorld(x, y) && isSolid(t.at(x, y)));
+		].some(([x, y]) => isSolid(t.at(x, y)));
 		const p = this.player;
 		return touching && !intersects({ x: i * 16, y: j * 16, w: 16, h: 16 }, hitbox(p));
 	}
 
 	// ---- The world -------------------------------------------------------------------------------
 
-	/** WorldGen.UpdateWorld's grass: a random block each frame; grass creeps onto open dirt beside it. */
+	/**
+	 * WorldGen.UpdateWorld's grass, roughly: a random block each frame; grass creeps onto open
+	 * dirt beside it (WorldGen.SpreadGrass: the dirt becomes grass, reframed with a new variant).
+	 */
 	#grow() {
 		const t = this.tiles;
 		const i = this.rand(this.width);
@@ -346,8 +353,8 @@ export class World {
 			[x + 1, y],
 			[x, y - 1],
 			[x, y + 1]
-		].some(([a, b]) => t.inWorld(a, b) && t.at(a, b) === AIR);
-		if (open) t.set(x, y, GRASS);
+		].some(([a, b]) => b >= 0 && t.at(a, b) === AIR);
+		if (open) t.convert(x, y, GRASS, this.rand(3));
 	}
 
 	/** Player.GrabItems and WorldItem.UpdateItem for the dropped blocks. */
@@ -498,6 +505,9 @@ export class World {
 		const r = this.rand;
 		const W = this.width;
 		const tops = Array.from({ length: W }, (_, i) => this.top(i));
+		// Columns in view, not right at its sides.
+		const first = MARGIN + 1;
+		const last = W - MARGIN - 2;
 		const p = this.player;
 		// A dropped block nearby: go and get it.
 		const loose = this.drops.find((d) => Math.abs(d.x - p.x) < 16 * 8);
@@ -507,9 +517,9 @@ export class World {
 		if (roll < 4 || (roll < 7 && blocks === 0)) {
 			// Mine an open block that's no deeper than 3 below where the ground was.
 			const options: [number, number][] = [];
-			for (let i = 1; i < W - 1; i++) {
+			for (let i = first; i <= last; i++) {
 				const j = tops[i];
-				if (j < this.height - 1 && j <= this.surface[i] + 2) options.push([i, j]);
+				if (j < this.rows - 1 && j <= this.surface[i] + 2) options.push([i, j]);
 			}
 			const weighted = options.filter(([i, j]) => j <= this.surface[i] || r(3) === 0);
 			const pick = weighted[r(weighted.length)] ?? options[r(options.length)];
@@ -518,7 +528,7 @@ export class World {
 		if (roll < 7 && blocks > 0) {
 			// Build up a column that's no more than 3 above where the ground was.
 			const options: [number, number][] = [];
-			for (let i = 1; i < W - 1; i++) {
+			for (let i = first; i <= last; i++) {
 				const j = tops[i] - 1;
 				if (j >= 2 && j >= this.surface[i] - 3 && this.canPlace(i, j)) {
 					// Lower spots first.
@@ -529,6 +539,6 @@ export class World {
 			const pick = options[r(options.length)];
 			if (pick) return { kind: 'place', i: pick[0], j: pick[1] };
 		}
-		return { kind: 'walk', x: 16 + r((W - 2) * 16) };
+		return { kind: 'walk', x: first * 16 + r((last - first + 1) * 16) };
 	}
 }

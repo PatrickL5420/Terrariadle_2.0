@@ -14,7 +14,8 @@
 		"lint": "prettier --check . && eslint .",
 		"test": "vitest run",
 		"fetch-images": "node scripts/fetch-images.mjs",
-		"sync-wiki": "node scripts/sync-wiki.mjs"
+		"sync-wiki": "node scripts/sync-wiki.mjs",
+		"verify": "vitest run --config tools/verify/vitest.config.ts"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.1.0",

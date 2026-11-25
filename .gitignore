@@ -24,3 +24,8 @@ vite.config.ts.timestamp-*
 
 # Python helper caches
 __pycache__/
+
+# tools/verify: the game's extracted code and the oracle's build stay local
+/tools/verify/oracle/game/
+/tools/verify/oracle/bin/
+/tools/verify/oracle/obj/

@@ -1,47 +1,48 @@
-import { AIR, isSolid, pickFrame, STONE, type Merge, type Neighbours } from './framing';
-
-const NO_MERGE: Merge = { up: false, down: false, left: false, right: false };
+import { AIR, isSolid, TileGrid } from './framing';
 
 /**
- * The little world's blocks: a grid of tile types (Main.tile), each with the sprite frame it
- * shows (frameX / frameY, picked by ./framing like WorldGen.TileFrame) and its random variant
- * (frameNumber). Outside the grid counts as more of the same block at the sides and bottom (so
- * the edges frame as if the ground went on) and as air above.
+ * Columns of real ground kept beyond each side of what's shown, and rows below it. The game
+ * doesn't frame blocks within 5 of the world's edge, and a block frames against what's beside
+ * it, so the shown world is a window into a slightly bigger one, as in the game.
  */
-export class Tiles {
-	readonly type: Int8Array;
-	readonly frameX: Int16Array;
-	readonly frameY: Int16Array;
-	readonly variant: Uint8Array;
-	readonly merge: Merge[];
+export const MARGIN = 6;
+
+/**
+ * The little world's tiles (Main.tile): blocks, framed like the game (./framing), and a dirt
+ * wall behind the ground. Columns MARGIN to width - MARGIN - 1, rows 0 to height - MARGIN - 1,
+ * are shown; the player and items are kept in there (its sides and floor are solid).
+ */
+export class Tiles extends TileGrid {
 	/** Whether there's a dirt wall behind (Main.tile.wall, wall 2 only), and its variant. */
 	readonly wall: Uint8Array;
 	readonly wallVariant: Uint8Array;
 
-	constructor(
-		readonly width: number,
-		readonly height: number,
-		rand: (n: number) => number = (n) => Math.floor(Math.random() * n)
-	) {
-		const n = width * height;
-		this.type = new Int8Array(n).fill(AIR);
-		this.frameX = new Int16Array(n);
-		this.frameY = new Int16Array(n);
-		this.variant = Uint8Array.from({ length: n }, () => rand(3));
-		this.merge = Array.from({ length: n }, () => NO_MERGE);
-		this.wall = new Uint8Array(n);
-		this.wallVariant = Uint8Array.from({ length: n }, () => rand(3));
+	constructor(width: number, height: number, rand: (n: number) => number) {
+		super(width, height);
+		this.wall = new Uint8Array(width * height);
+		this.wallVariant = Uint8Array.from({ length: width * height }, () => rand(3));
+	}
+
+	/** Whether (i, j) is in the part that's shown. */
+	inView(i: number, j: number) {
+		return i >= MARGIN && i < this.width - MARGIN && j >= 0 && j < this.height - MARGIN;
+	}
+
+	/** Whether the player and items stand on / bump into (i, j). The view's sides and floor are solid. */
+	solid(i: number, j: number): boolean {
+		if (i < MARGIN || i >= this.width - MARGIN || j >= this.height - MARGIN) return true;
+		return isSolid(this.at(i, j));
 	}
 
 	/** Whether (i, j) has a wall: off the sides and bottom, the walls go on. */
 	hasWall(i: number, j: number) {
 		if (j < 0) return false;
-		if (!this.inWorld(i, j)) return true;
+		if (i < 0 || i >= this.width || j >= this.height) return true;
 		return this.wall[j * this.width + i] === 1;
 	}
 
 	/**
-	 * WorldGen.WallFrame: the wall's 32x32 frame (on a 36 px grid) by which neighbours have walls.
+	 * Framing.WallFrame: the wall's 32x32 frame (on a 36 px grid) by which neighbours have walls.
 	 * Walls use the same layout as a block's basic frames, at twice the size.
 	 */
 	wallFrame(i: number, j: number): [number, number] {
@@ -66,61 +67,27 @@ export class Tiles {
 		return [f[0] * 2, f[1] * 2];
 	}
 
-	inWorld(i: number, j: number) {
-		return i >= 0 && j >= 0 && i < this.width && j < this.height;
-	}
-
-	/** The block at (i, j), AIR for none. */
-	at(i: number, j: number): number {
-		if (this.inWorld(i, j)) return this.type[j * this.width + i];
-		return AIR;
-	}
-
-	/** Whether the player and items stand on / bump into (i, j). The box's sides and floor are solid. */
-	solid(i: number, j: number): boolean {
-		if (i < 0 || i >= this.width || j >= this.height) return true;
-		return isSolid(this.at(i, j));
-	}
-
-	/** WorldGen.PlaceTile / KillTile's change, then WorldGen.SquareTileFrame: reframes the 3x3 around it. */
-	set(i: number, j: number, type: number) {
-		if (!this.inWorld(i, j)) return;
-		this.type[j * this.width + i] = type;
-		for (let x = i - 1; x <= i + 1; x++) for (let y = j - 1; y <= j + 1; y++) this.frame(x, y);
-	}
-
-	/** Frames every block (after building the world). */
-	frameAll() {
-		for (let j = 0; j < this.height; j++) for (let i = 0; i < this.width; i++) this.frame(i, j);
-	}
-
-	/** WorldGen.TileFrame for one block. */
-	frame(i: number, j: number) {
-		if (!this.inWorld(i, j)) return;
-		const k = j * this.width + i;
-		const T = this.type[k];
-		if (T === AIR) return;
-		const near = (x: number, y: number) => {
-			if (y < 0) return AIR;
-			// Off the sides or bottom: the same block goes on.
-			if (!this.inWorld(x, y)) return T;
-			return this.at(x, y);
-		};
-		const n: Neighbours = {
-			up: near(i, j - 1),
-			down: near(i, j + 1),
-			left: near(i - 1, j),
-			right: near(i + 1, j),
-			upLeft: near(i - 1, j - 1),
-			upRight: near(i + 1, j - 1),
-			downLeft: near(i - 1, j + 1),
-			downRight: near(i + 1, j + 1)
-		};
-		const frameOf = (x: number, y: number) =>
-			this.at(x, y) === STONE ? this.merge[y * this.width + x] : NO_MERGE;
-		const f = pickFrame(T, i, j, this.variant[k], n, frameOf);
-		this.frameX[k] = f.x;
-		this.frameY[k] = f.y;
-		this.merge[k] = f.merge;
+	/** A copy `rows` taller (or shorter), the new rows added (or taken away) at the top. */
+	resized(rows: number, rand: (n: number) => number): Tiles {
+		const d = rows - this.height;
+		const t = new Tiles(this.width, rows, rand);
+		const arrays = [
+			'type',
+			'active',
+			'frameX',
+			'frameY',
+			'frameNumber',
+			'wall',
+			'wallVariant'
+		] as const;
+		for (let j = 0; j < rows; j++) {
+			const oj = j - d;
+			if (oj < 0 || oj >= this.height) continue;
+			for (const a of arrays)
+				t[a].set(this[a].subarray(oj * this.width, (oj + 1) * this.width), j * this.width);
+		}
+		return t;
 	}
 }
+
+export { AIR };

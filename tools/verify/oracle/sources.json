@@ -1,0 +1,136 @@
+{
+	"usings": [
+		"System",
+		"System.Collections.Generic",
+		"System.Linq",
+		"Microsoft.Xna.Framework",
+		"Terraria.DataStructures",
+		"Terraria.ID",
+		"Terraria.Utilities",
+		"ReLogic.Reflection"
+	],
+	"sources": [
+		{
+			"file": "Terraria/WorldGen.cs",
+			"class": "WorldGen",
+			"members": [
+				"TileFrame",
+				"TileFrameCosmetic",
+				"SquareTileFrame",
+				"TileMergeAttempt",
+				"TileMergeAttemptFrametest",
+				"TileMergeAttemptWeird",
+				"GetTileMergeCulling",
+				"TileMergeCullCache",
+				"mergeUp",
+				"mergeDown",
+				"mergeLeft",
+				"mergeRight"
+			],
+			"auto": [
+				"IsRope",
+				"SolidOrSlopedTile",
+				"TileEmpty",
+				"genRand",
+				"generatingWorld",
+				"tileReframeCount"
+			]
+		},
+		{
+			"file": "Terraria/Tile.cs"
+		},
+		{
+			"file": "Terraria.ID/TileID.cs"
+		},
+		{
+			"file": "Terraria.ID/SetFactory.cs"
+		},
+		{
+			"file": "Terraria.Utilities/UnifiedRandom.cs"
+		},
+		{
+			"file": "Terraria.DataStructures/TileDataType.cs"
+		},
+		{
+			"file": "Terraria/TileColorCache.cs"
+		},
+		{
+			"file": "Terraria/Main.cs",
+			"class": "Main",
+			"members": [
+				"tileStone",
+				"tileSolid",
+				"tileMergeDirt",
+				"tileBrick",
+				"tileMoss",
+				"tileLargeFrames",
+				"tileRope",
+				"tilePile",
+				"tileFrameImportant",
+				"tileBlendAll",
+				"tileSolidTop",
+				"tileNoAttach",
+				"tileMerge",
+				"netMode",
+				"rockLayer",
+				"Initialize_TileAndNPCData1",
+				"Initialize_TileAndNPCData2",
+				"SetupTileMerge"
+			],
+			"auto": [
+				"AddEchoFurnitureTile",
+				"SetTileValue",
+				"bottomWorld",
+				"buffNoSave",
+				"buffNoTimeDisplay",
+				"critterCage",
+				"debuff",
+				"lightPet",
+				"maxTilesX",
+				"maxTilesY",
+				"meleeBuff",
+				"npcCatchable",
+				"persistentBuff",
+				"projFrames",
+				"projPet",
+				"pvpBuff",
+				"rand",
+				"rightWorld",
+				"slimeRainNPC",
+				"tile",
+				"tileAlch",
+				"tileAxe",
+				"tileBlockLight",
+				"tileBouncy",
+				"tileContainer",
+				"tileCracked",
+				"tileCut",
+				"tileDungeon",
+				"tileFlame",
+				"tileFrame",
+				"tileFrameCounter",
+				"tileGlowMask",
+				"tileHammer",
+				"tileLavaDeath",
+				"tileLighted",
+				"tileNoFail",
+				"tileNoSunLight",
+				"tileObsidianKill",
+				"tileOreFinderPriority",
+				"tileSand",
+				"tileShine",
+				"tileShine2",
+				"tileSign",
+				"tileSpelunker",
+				"tileTable",
+				"tileWaterDeath",
+				"vanityPet",
+				"wallBlend",
+				"wallDungeon",
+				"wallHouse",
+				"wallLargeFrames",
+				"wallLight"
+			]
+		}
+	]
+}

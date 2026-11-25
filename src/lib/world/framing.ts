@@ -1,22 +1,52 @@
 /**
- * How a block picks its sprite from its neighbours: Terraria's WorldGen.TileFrame (via
- * TileFrameCosmetic), for the blocks this little world has: dirt, stone and grass.
+ * How a block picks its sprite from its neighbours: Terraria 1.4.5's WorldGen.TileFrame,
+ * TileFrameCosmetic and SquareTileFrame, for the blocks this little world has (dirt, stone,
+ * grass). The frame tables are converted from the game's code (./frame-tables.ts); the code
+ * around them is ported here by hand, in the game's order, keeping its quirks: dirt reframes a
+ * stone neighbour to ask whether that stone blends into it (through the game's global merge
+ * flags), a block whose frame changes reframes its neighbours, and blocks within 5 of the
+ * world's edge aren't framed unless a neighbour does it. Branches for blocks this world doesn't
+ * have are left out, and say so.
  *
- * Each neighbour is first relabelled (the game's TileMergeAttempt calls): the block's own type
- * `T` where it joins up, -2 where it blends into a different block, -1 where there's nothing to
- * join. Then the game's frame tables (below, converted from its code: same conditions, same
- * order) pick a frame; each spot has 3 variants (`variant`, random per tile) to break up repeats.
+ * tools/verify checks this against the game's own code (compiled from the decompiled source),
+ * over every 3x3 neighbourhood and many random worlds and edits: see tools/verify/README.md.
  * Frames are 16 px tiles on an 18 px grid in Images/Tiles_N.
  */
+import { basicFrames, grassFrames, mergeFrames } from './frame-tables';
 
 export const AIR = -1;
 export const DIRT = 0;
 export const STONE = 1;
 export const GRASS = 2;
-export const TORCH = 4;
 
-/** Main.tileSolid. */
-export const isSolid = (type: number) => type === DIRT || type === STONE || type === GRASS;
+/**
+ * The game's data about these blocks (Main.tile* and TileID.Sets), as the game sets it up
+ * (Main.Initialize_TileAndNPCData1/2). tools/verify checks these against the game's.
+ */
+export const TILE_DATA = {
+	/** Main.tileSolid */
+	solid: [DIRT, STONE, GRASS],
+	/** Main.tileBrick: bricks join up with each other. */
+	brick: [STONE, GRASS],
+	/** Main.tileMergeDirt: blends into dirt. */
+	mergeDirt: [STONE],
+	/** TileID.Sets.Dirt */
+	dirt: [DIRT],
+	/** TileID.Sets.Conversion.MergesWithDirtInASpecialWay: grass. */
+	specialDirt: [GRASS],
+	/** TileID.Sets.ChecksForMerge */
+	checksForMerge: [DIRT, GRASS],
+	/** TileID.Sets.NeedsGrassFramingDirt[GRASS]: what grass grows on. */
+	grassDirt: DIRT
+};
+const is = (set: number[]) => (type: number) => type > -1 && set.includes(type);
+const isSolid = is(TILE_DATA.solid);
+const isBrick = is(TILE_DATA.brick);
+const mergesDirt = is(TILE_DATA.mergeDirt);
+const isDirt = is(TILE_DATA.dirt);
+const isSpecialDirt = is(TILE_DATA.specialDirt);
+const checksForMerge = is(TILE_DATA.checksForMerge);
+export { isSolid };
 
 export interface Neighbours {
 	up: number;
@@ -29,13 +59,16 @@ export interface Neighbours {
 	downRight: number;
 }
 
-/** Which sides the frame blends into dirt on (the game's mergeUp / Down / Left / Right). */
+/** Which sides a frame blends into dirt on (WorldGen.mergeUp / Down / Left / Right). */
 export interface Merge {
 	up: boolean;
 	down: boolean;
 	left: boolean;
 	right: boolean;
 }
+
+/** Sets the frame to one of three, by the block's random variant. */
+export type Pick = (x0: number, y0: number, x1: number, y1: number, x2: number, y2: number) => void;
 
 const SIDES = [
 	'up',
@@ -48,664 +81,221 @@ const SIDES = [
 	'downRight'
 ] as const;
 
-/** TileMergeAttempt: neighbours that are `lookFor` count as `as`. */
-function relabel(n: Neighbours, lookFor: number | ((type: number) => boolean), as: number) {
-	for (const side of SIDES) {
-		const type = n[side];
-		if (typeof lookFor === 'number' ? type === lookFor : type > -1 && lookFor(type)) n[side] = as;
-	}
+/** WorldGen.TileMergeAttempt(myType, bool[] lookfor, ...): neighbours in the set become myType. */
+function mergeAttempt(n: Neighbours, myType: number, lookFor: (type: number) => boolean) {
+	for (const side of SIDES) if (n[side] > -1 && lookFor(n[side])) n[side] = myType;
 }
 
-/** TileMergeAttemptWeird(T, -1, Main.tileSolid): non-solid neighbours (torches) count as air. */
-function dropNonSolid(n: Neighbours, T: number) {
-	relabel(n, (type) => !isSolid(type) && type !== T, AIR);
+/** WorldGen.TileMergeAttempt(myType, int lookfor, ...): neighbours equal to lookfor become myType. */
+function mergeAttemptValue(n: Neighbours, myType: number, lookFor: number) {
+	for (const side of SIDES) if (n[side] === lookFor) n[side] = myType;
+}
+
+/** WorldGen.TileMergeAttemptWeird(myType, -1, Main.tileSolid, ...): non-solid neighbours are air. */
+function dropNonSolid(n: Neighbours, myType: number) {
+	for (const side of SIDES)
+		if (n[side] > -1 && !isSolid(n[side]) && n[side] !== myType) n[side] = -1;
 }
 
 /**
- * Picks the frame for block `T` at (i, j) with neighbours `n` (types, -1 for air). `frameOf`
- * frames a neighbouring stone block, which dirt needs to know whether that stone blends into it.
+ * Main.tile for the little world, with what framing reads: each tile's type (kept when it's
+ * broken, like the game), whether it's there, its frame and its random variant (frameNumber).
  */
-export function pickFrame(
-	T: number,
-	i: number,
-	j: number,
-	variant: number,
-	n: Neighbours,
-	frameOf: (i: number, j: number) => Merge
-): { x: number; y: number; merge: Merge } {
-	const v = { x: -1, y: -1 };
-	const merge: Merge = { up: false, down: false, left: false, right: false };
-	const pick = (x0: number, y0: number, x1: number, y1: number, x2: number, y2: number) => {
-		[v.x, v.y] = variant === 0 ? [x0, y0] : variant === 1 ? [x1, y1] : [x2, y2];
-	};
+export class TileGrid {
+	readonly type: Int16Array;
+	readonly active: Uint8Array;
+	readonly frameX: Int16Array;
+	readonly frameY: Int16Array;
+	readonly frameNumber: Uint8Array;
 
-	// Stone and grass are both "bricks", and bricks join up with each other.
-	if (T === STONE || T === GRASS) relabel(n, (type) => type === STONE || type === GRASS, T);
-	if (T === DIRT) {
-		// Dirt joins a stone neighbour if that stone's frame blends into it.
-		if (n.up === STONE && frameOf(i, j - 1).down) n.up = T;
-		if (n.down === STONE && frameOf(i, j + 1).up) n.down = T;
-		if (n.left === STONE && frameOf(i - 1, j).right) n.left = T;
-		if (n.right === STONE && frameOf(i + 1, j).left) n.right = T;
-		// Grass grows on dirt: dirt joins it, and diagonal stone or grass.
-		relabel(n, GRASS, T);
-		for (const side of ['upLeft', 'upRight', 'downLeft', 'downRight'] as const) {
-			if (n[side] === STONE) n[side] = T;
-		}
-	}
-	// Stone blends into dirt.
-	if (T === STONE) relabel(n, DIRT, -2);
+	/** WorldGen.mergeUp etc.: set by the last frame picked, read by dirt beside stone. */
+	readonly merge: Merge = { up: false, down: false, left: false, right: false };
+	/** WorldGen.tileReframeCount: how deep neighbours reframing neighbours has gone. */
+	#reframeCount = 0;
 
-	// Grass, framed against the dirt it grows on (D).
-	let grassFramed = false;
-	if (T === GRASS) {
-		grassFramed = true;
-		dropNonSolid(n, T);
-		const D = DIRT;
-		grassTable(T, D, i, j, n, pick);
-		relabel(n, DIRT, -2);
+	constructor(
+		readonly width: number,
+		readonly height: number
+	) {
+		const n = width * height;
+		this.type = new Int16Array(n);
+		this.active = new Uint8Array(n);
+		this.frameX = new Int16Array(n);
+		this.frameY = new Int16Array(n);
+		this.frameNumber = new Uint8Array(n);
 	}
 
-	if (v.x === -1 && v.y === -1) blendTable(T, n, grassFramed, pick, merge, v);
-	if (v.x < 0 || v.y < 0) basicTable(T, n, grassFramed, pick, v);
-	if (v.x <= -1 || v.y <= -1) [v.x, v.y] = [18 + Math.min(2, variant) * 18, 18];
-	return { ...v, merge };
-}
+	/** The block at (i, j), AIR if none (or outside the world). */
+	at(i: number, j: number): number {
+		if (i < 0 || j < 0 || i >= this.width || j >= this.height) return AIR;
+		const k = j * this.width + i;
+		return this.active[k] ? this.type[k] : AIR;
+	}
 
-type Pick = (x0: number, y0: number, x1: number, y1: number, x2: number, y2: number) => void;
+	// ---- The game's ways of changing tiles (also the operations tools/verify replays) -----------
 
-/* eslint-disable no-dupe-else-if -- the game's tables have a few unreachable branches; kept as is */
+	/** Frames every tile, column by column. */
+	frameAll() {
+		for (let i = 0; i < this.width; i++) for (let j = 0; j < this.height; j++) this.tileFrame(i, j);
+	}
 
-/** The grass part of WorldGen.TileFrameCosmetic (the NeedsGrassFraming block). */
-function grassTable(T: number, D: number, i: number, j: number, n: Neighbours, pick: Pick) {
-	if (n.up !== T && n.up !== D && (n.down === T || n.down === D)) {
-		if (n.left === D && n.right === T) {
-			pick(0, 198, 18, 198, 36, 198);
-		} else if (n.left === T && n.right === D) {
-			pick(54, 198, 72, 198, 90, 198);
-		}
-	} else if (n.down !== T && n.down !== D && (n.up === T || n.up === D)) {
-		if (n.left === D && n.right === T) {
-			pick(0, 216, 18, 216, 36, 216);
-		} else if (n.left === T && n.right === D) {
-			pick(54, 216, 72, 216, 90, 216);
-		}
-	} else if (n.left !== T && n.left !== D && (n.right === T || n.right === D)) {
-		if (n.up === D && n.down === T) {
-			pick(72, 144, 72, 162, 72, 180);
-		} else if (n.down === T && n.up === D) {
-			pick(72, 90, 72, 108, 72, 126);
-		}
-	} else if (n.right !== T && n.right !== D && (n.left === T || n.left === D)) {
-		if (n.up === D && n.down === T) {
-			pick(90, 144, 90, 162, 90, 180);
-		} else if (n.down === T && n.right === n.up) {
-			pick(90, 90, 90, 108, 90, 126);
-		}
-	} else if (n.up === T && n.down === T && n.left === T && n.right === T) {
-		if (n.upLeft !== T && n.upRight !== T && n.downLeft !== T && n.downRight !== T) {
-			if (n.downRight === D) {
-				pick(108, 324, 126, 324, 144, 324);
-			} else if (n.upRight === D) {
-				pick(108, 342, 126, 342, 144, 342);
-			} else if (n.downLeft === D) {
-				pick(108, 360, 126, 360, 144, 360);
-			} else if (n.upLeft === D) {
-				pick(108, 378, 126, 378, 144, 378);
-			} else {
-				pick(144, 234, 198, 234, 252, 234);
+	/** WorldGen.PlaceTile for a block: a fresh tile (frame 0, 0), framed with variant `v`. */
+	place(i: number, j: number, type: number, v: number) {
+		const k = j * this.width + i;
+		this.type[k] = type;
+		this.active[k] = 1;
+		this.frameX[k] = 0;
+		this.frameY[k] = 0;
+		this.frameNumber[k] = v;
+		this.squareTileFrame(i, j);
+	}
+
+	/** WorldGen.KillTile: the tile's gone (frame -1, -1; variant 0) and its neighbours reframe. */
+	kill(i: number, j: number) {
+		const k = j * this.width + i;
+		this.active[k] = 0;
+		this.frameX[k] = -1;
+		this.frameY[k] = -1;
+		this.frameNumber[k] = 0;
+		this.squareTileFrame(i, j);
+	}
+
+	/** KillTile's failed hit on grass: it becomes dirt, with a new variant `v`. */
+	convert(i: number, j: number, type: number, v: number) {
+		const k = j * this.width + i;
+		this.type[k] = type;
+		this.frameNumber[k] = v;
+		this.squareTileFrame(i, j);
+	}
+
+	/**
+	 * WorldGen.SquareTileFrame: frames the 3x3 around (i, j). (The game's reset re-rolls the
+	 * centre's variant here; callers set it first, which is the same thing.)
+	 */
+	squareTileFrame(i: number, j: number) {
+		for (let x = i - 1; x <= i + 1; x++) for (let y = j - 1; y <= j + 1; y++) this.tileFrame(x, y);
+	}
+
+	/** WorldGen.TileFrame: not within 5 of the edge; only blocks that are there. */
+	tileFrame(i: number, j: number) {
+		if (i <= 5 || j <= 5 || i >= this.width - 5 || j >= this.height - 5) return;
+		if (!this.active[j * this.width + i]) return;
+		// Not frame-important, solid, not falling: on to TileFrameCosmetic.
+		this.tileFrameCosmetic(i, j);
+	}
+
+	/** WorldGen.TileFrameCosmetic. */
+	tileFrameCosmetic(i: number, j: number) {
+		const W = this.width;
+		if (i <= 0 || j <= 0 || i >= W - 1 || j >= this.height - 1) return;
+		const k = j * W + i;
+		if (!this.active[k]) return;
+		const num = this.type[k]; // no Main.tileStone types here
+		const frameX = this.frameX[k];
+		const frameY = this.frameY[k];
+		const n: Neighbours = {
+			up: this.at(i, j - 1),
+			down: this.at(i, j + 1),
+			left: this.at(i - 1, j),
+			right: this.at(i + 1, j),
+			upLeft: this.at(i - 1, j - 1),
+			upRight: this.at(i + 1, j - 1),
+			downLeft: this.at(i - 1, j + 1),
+			downRight: this.at(i + 1, j + 1)
+		};
+		// No slopes, half blocks or Echo Coating here (so no culling).
+		// TileMergeAttempt(0, TileID.Sets.Dirt): dirt is already 0.
+		// Bricks join each other (not mud, ash or snow types).
+		if (isBrick(num)) mergeAttempt(n, num, isBrick);
+		const merge = this.merge;
+		merge.up = merge.down = merge.left = merge.right = false;
+		const variant = this.frameNumber[k];
+		// No large-frame, merge-all or forced-dirt-merging blocks here.
+
+		if (isDirt(num)) {
+			// Dirt asks a neighbour that blends into dirt (stone) whether it does, by framing it.
+			if (n.up > -1 && mergesDirt(n.up)) {
+				this.tileFrame(i, j - 1);
+				if (merge.down) n.up = num;
 			}
-		} else if (n.upLeft !== T && n.downRight !== T) {
-			pick(36, 306, 54, 306, 72, 306);
-		} else if (n.upRight !== T && n.downLeft !== T) {
-			pick(90, 306, 108, 306, 126, 306);
-		} else if (n.upLeft !== T && n.upRight === T && n.downLeft === T && n.downRight === T) {
-			pick(54, 108, 54, 144, 54, 180);
-		} else if (n.upLeft === T && n.upRight !== T && n.downLeft === T && n.downRight === T) {
-			pick(36, 108, 36, 144, 36, 180);
-		} else if (n.upLeft === T && n.upRight === T && n.downLeft !== T && n.downRight === T) {
-			pick(54, 90, 54, 126, 54, 162);
-		} else if (n.upLeft === T && n.upRight === T && n.downLeft === T && n.downRight !== T) {
-			pick(36, 90, 36, 126, 36, 162);
+			if (n.down > -1 && mergesDirt(n.down)) {
+				this.tileFrame(i, j + 1);
+				if (merge.up) n.down = num;
+			}
+			if (n.left > -1 && mergesDirt(n.left)) {
+				this.tileFrame(i - 1, j);
+				if (merge.right) n.left = num;
+			}
+			if (n.right > -1 && mergesDirt(n.right)) {
+				this.tileFrame(i + 1, j);
+				if (merge.left) n.right = num;
+			}
+			// Grass joins dirt; so do diagonal blocks that blend into dirt.
+			for (const side of ['up', 'down', 'left', 'right'] as const)
+				if (n[side] > -1 && isSpecialDirt(n[side])) n[side] = num;
+			for (const side of ['upLeft', 'upRight', 'downLeft', 'downRight'] as const) {
+				if (n[side] > -1 && mergesDirt(n[side])) n[side] = num;
+				else if (n[side] > -1 && isSpecialDirt(n[side])) n[side] = num;
+			}
+			// Dirt, mud, sand (191) and forced-dirt merges: none that change anything here.
 		}
-	} else if (
-		n.up === T &&
-		n.down === D &&
-		n.left === T &&
-		n.right === T &&
-		n.upLeft === -1 &&
-		n.upRight === -1
-	) {
-		pick(108, 18, 126, 18, 144, 18);
-	} else if (
-		n.up === D &&
-		n.down === T &&
-		n.left === T &&
-		n.right === T &&
-		n.downLeft === -1 &&
-		n.downRight === -1
-	) {
-		pick(108, 36, 126, 36, 144, 36);
-	} else if (
-		n.up === T &&
-		n.down === T &&
-		n.left === D &&
-		n.right === T &&
-		n.upRight === -1 &&
-		n.downRight === -1
-	) {
-		pick(198, 0, 198, 18, 198, 36);
-	} else if (
-		n.up === T &&
-		n.down === T &&
-		n.left === T &&
-		n.right === D &&
-		n.upLeft === -1 &&
-		n.downLeft === -1
-	) {
-		pick(180, 0, 180, 18, 180, 36);
-	} else if (n.up === T && n.down === D && n.left === T && n.right === T) {
-		if (n.upRight !== -1) {
-			pick(54, 108, 54, 144, 54, 180);
-		} else if (n.upLeft !== -1) {
-			pick(36, 108, 36, 144, 36, 180);
+		if (mergesDirt(num)) {
+			// Stone blends into dirt (and into mud and ash, which aren't here).
+			mergeAttempt(n, -2, isDirt);
 		}
-	} else if (n.up === D && n.down === T && n.left === T && n.right === T) {
-		if (n.downRight !== -1) {
-			pick(54, 90, 54, 126, 54, 162);
-		} else if (n.downLeft !== -1) {
-			pick(36, 90, 36, 126, 36, 162);
-		}
-	} else if (n.up === T && n.down === T && n.left === T && n.right === D) {
-		if (n.upLeft !== -1) {
-			pick(54, 90, 54, 126, 54, 162);
-		} else if (n.downLeft !== -1) {
-			pick(54, 108, 54, 144, 54, 180);
-		}
-	} else if (n.up === T && n.down === T && n.left === D && n.right === T) {
-		if (n.upRight !== -1) {
-			pick(36, 90, 36, 126, 36, 162);
-		} else if (n.downRight !== -1) {
-			pick(36, 108, 36, 144, 36, 180);
-		}
-	} else if (
-		(n.up === D && n.down === T && n.left === T && n.right === T) ||
-		(n.up === T && n.down === D && n.left === T && n.right === T) ||
-		(n.up === T && n.down === T && n.left === D && n.right === T) ||
-		(n.up === T && n.down === T && n.left === T && n.right === D)
-	) {
-		pick(18, 18, 36, 18, 54, 18);
-	}
-	if (
-		(n.up === T || n.up === D) &&
-		(n.down === T || n.down === D) &&
-		(n.left === T || n.left === D) &&
-		(n.right === T || n.right === D)
-	) {
-		if (
-			n.upLeft !== T &&
-			n.upLeft !== D &&
-			(n.upRight === T || n.upRight === D) &&
-			(n.downLeft === T || n.downLeft === D) &&
-			(n.downRight === T || n.downRight === D)
-		) {
-			pick(54, 108, 54, 144, 54, 180);
-		} else if (
-			n.upRight !== T &&
-			n.upRight !== D &&
-			(n.upLeft === T || n.upLeft === D) &&
-			(n.downLeft === T || n.downLeft === D) &&
-			(n.downRight === T || n.downRight === D)
-		) {
-			pick(36, 108, 36, 144, 36, 180);
-		} else if (
-			n.downLeft !== T &&
-			n.downLeft !== D &&
-			(n.upLeft === T || n.upLeft === D) &&
-			(n.upRight === T || n.upRight === D) &&
-			(n.downRight === T || n.downRight === D)
-		) {
-			pick(54, 90, 54, 126, 54, 162);
-		} else if (
-			n.downRight !== T &&
-			n.downRight !== D &&
-			(n.upLeft === T || n.upLeft === D) &&
-			(n.downLeft === T || n.downLeft === D) &&
-			(n.upRight === T || n.upRight === D)
-		) {
-			pick(36, 90, 36, 126, 36, 162);
-		}
-	}
-	if (
-		n.up !== D &&
-		n.up !== T &&
-		n.down === T &&
-		n.left !== D &&
-		n.left !== T &&
-		n.right === T &&
-		n.downRight !== D &&
-		n.downRight !== T
-	) {
-		pick(90, 270, 108, 270, 126, 270);
-	} else if (
-		n.up !== D &&
-		n.up !== T &&
-		n.down === T &&
-		n.left === T &&
-		n.right !== D &&
-		n.right !== T &&
-		n.downLeft !== D &&
-		n.downLeft !== T
-	) {
-		pick(144, 270, 162, 270, 180, 270);
-	} else if (
-		n.down !== D &&
-		n.down !== T &&
-		n.up === T &&
-		n.left !== D &&
-		n.left !== T &&
-		n.right === T &&
-		n.upRight !== D &&
-		n.upRight !== T
-	) {
-		pick(90, 288, 108, 288, 126, 288);
-	} else if (
-		n.down !== D &&
-		n.down !== T &&
-		n.up === T &&
-		n.left === T &&
-		n.right !== D &&
-		n.right !== T &&
-		n.upLeft !== D &&
-		n.upLeft !== T
-	) {
-		pick(144, 288, 162, 288, 180, 288);
-	} else if (
-		n.up !== T &&
-		n.up !== D &&
-		n.down === T &&
-		n.left === T &&
-		n.right === T &&
-		n.downLeft !== T &&
-		n.downLeft !== D &&
-		n.downRight !== T &&
-		n.downRight !== D
-	) {
-		pick(144, 216, 198, 216, 252, 216);
-	} else if (
-		n.down !== T &&
-		n.down !== D &&
-		n.up === T &&
-		n.left === T &&
-		n.right === T &&
-		n.upLeft !== T &&
-		n.upLeft !== D &&
-		n.upRight !== T &&
-		n.upRight !== D
-	) {
-		pick(144, 252, 198, 252, 252, 252);
-	} else if (
-		n.left !== T &&
-		n.left !== D &&
-		n.down === T &&
-		n.up === T &&
-		n.right === T &&
-		n.upRight !== T &&
-		n.upRight !== D &&
-		n.downRight !== T &&
-		n.downRight !== D
-	) {
-		pick(126, 234, 180, 234, 234, 234);
-	} else if (
-		n.right !== T &&
-		n.right !== D &&
-		n.down === T &&
-		n.up === T &&
-		n.left === T &&
-		n.upLeft !== T &&
-		n.upLeft !== D &&
-		n.downLeft !== T &&
-		n.downLeft !== D
-	) {
-		pick(162, 234, 216, 234, 270, 234);
-	} else if (
-		n.up !== D &&
-		n.up !== T &&
-		(n.down === D || n.down === T) &&
-		n.left === D &&
-		n.right === D
-	) {
-		pick(36, 270, 54, 270, 72, 270);
-	} else if (
-		n.down !== D &&
-		n.down !== T &&
-		(n.up === D || n.up === T) &&
-		n.left === D &&
-		n.right === D
-	) {
-		pick(36, 288, 54, 288, 72, 288);
-	} else if (
-		n.left !== D &&
-		n.left !== T &&
-		(n.right === D || n.right === T) &&
-		n.up === D &&
-		n.down === D
-	) {
-		pick(0, 270, 0, 288, 0, 306);
-	} else if (
-		n.right !== D &&
-		n.right !== T &&
-		(n.left === D || n.left === T) &&
-		n.up === D &&
-		n.down === D
-	) {
-		pick(18, 270, 18, 288, 18, 306);
-	} else if (n.up === T && n.down === D && n.left === D && n.right === D) {
-		pick(198, 288, 216, 288, 234, 288);
-	} else if (n.up === D && n.down === T && n.left === D && n.right === D) {
-		pick(198, 270, 216, 270, 234, 270);
-	} else if (n.up === D && n.down === D && n.left === T && n.right === D) {
-		pick(198, 306, 216, 306, 234, 306);
-	} else if (n.up === D && n.down === D && n.left === D && n.right === T) {
-		pick(144, 306, 162, 306, 180, 306);
-	}
-	if (n.up !== T && n.up !== D && n.down === T && n.left === T && n.right === T) {
-		if ((n.downLeft === D || n.downLeft === T) && n.downRight !== D && n.downRight !== T) {
-			pick(0, 324, 18, 324, 36, 324);
-		} else if ((n.downRight === D || n.downRight === T) && n.downLeft !== D && n.downLeft !== T) {
-			pick(54, 324, 72, 324, 90, 324);
-		}
-	} else if (n.down !== T && n.down !== D && n.up === T && n.left === T && n.right === T) {
-		if ((n.upLeft === D || n.upLeft === T) && n.upRight !== D && n.upRight !== T) {
-			pick(0, 342, 18, 342, 36, 342);
-		} else if ((n.upRight === D || n.upRight === T) && n.upLeft !== D && n.upLeft !== T) {
-			pick(54, 342, 72, 342, 90, 342);
-		}
-	} else if (n.left !== T && n.left !== D && n.up === T && n.down === T && n.right === T) {
-		if ((n.upRight === D || n.upRight === T) && n.downRight !== D && n.downRight !== T) {
-			pick(54, 360, 72, 360, 90, 360);
-		} else if ((n.downRight === D || n.downRight === T) && n.upRight !== D && n.upRight !== T) {
-			pick(0, 360, 18, 360, 36, 360);
-		}
-	} else if (n.right !== T && n.right !== D && n.up === T && n.down === T && n.left === T) {
-		if ((n.upLeft === D || n.upLeft === T) && n.downLeft !== D && n.downLeft !== T) {
-			pick(0, 378, 18, 378, 36, 378);
-		} else if ((n.downLeft === D || n.downLeft === T) && n.upLeft !== D && n.upLeft !== T) {
-			pick(54, 378, 72, 378, 90, 378);
-		}
-	}
-	if (
-		(n.up === T || n.up === D) &&
-		(n.down === T || n.down === D) &&
-		(n.left === T || n.left === D) &&
-		(n.right === T || n.right === D) &&
-		n.upLeft !== -1 &&
-		n.upRight !== -1 &&
-		n.downLeft !== -1 &&
-		n.downRight !== -1
-	) {
-		if ((i + j) % 2 === 1) {
-			pick(108, 198, 126, 198, 144, 198);
-		} else {
-			pick(18, 18, 36, 18, 54, 18);
-		}
-	}
-}
+		// Moss, ore, sand, snow and mud merges: none of those blocks here.
 
-/** Blocks that blend into dirt (ChecksForMerge / tileMergeDirt), with their merge flags. */
-function blendTable(
-	T: number,
-	n: Neighbours,
-	grassFramed: boolean,
-	pick: Pick,
-	merge: Merge,
-	v: { x: number; y: number }
-) {
-	if (v.x === -1 && v.y === -1) {
-		if (!grassFramed) dropNonSolid(n, T);
-		if (n.up > -1 && n.up !== T) {
-			n.up = -1;
+		const v = { x: -1, y: -1 };
+		const pick: Pick = (x0, y0, x1, y1, x2, y2) => {
+			[v.x, v.y] = variant === 0 ? [x0, y0] : variant === 1 ? [x1, y1] : [x2, y2];
+		};
+		let flag7 = false;
+		if (num === GRASS) {
+			flag7 = true;
+			dropNonSolid(n, num);
+			const D = TILE_DATA.grassDirt;
+			// TileMergeAttempt(D, 23): no corrupt grass here.
+			grassFrames(num, D, i, j, n, pick);
+			if (isDirt(D)) mergeAttempt(n, -2, isDirt);
 		}
-		if (n.down > -1 && n.down !== T) {
-			n.down = -1;
-		}
-		if (n.left > -1 && n.left !== T) {
-			n.left = -1;
-		}
-		if (n.right > -1 && n.right !== T) {
-			n.right = -1;
-		}
-		if (n.up !== -1 && n.down !== -1 && n.left !== -1 && n.right !== -1) {
-			if (n.up === -2 && n.down === T && n.left === T && n.right === T) {
-				pick(144, 108, 162, 108, 180, 108);
-				merge.up = true;
-			} else if (n.up === T && n.down === -2 && n.left === T && n.right === T) {
-				pick(144, 90, 162, 90, 180, 90);
-				merge.down = true;
-			} else if (n.up === T && n.down === T && n.left === -2 && n.right === T) {
-				pick(162, 126, 162, 144, 162, 162);
-				merge.left = true;
-			} else if (n.up === T && n.down === T && n.left === T && n.right === -2) {
-				pick(144, 126, 144, 144, 144, 162);
-				merge.right = true;
-			} else if (n.up === -2 && n.down === T && n.left === -2 && n.right === T) {
-				pick(36, 90, 36, 126, 36, 162);
-				merge.up = true;
-				merge.left = true;
-			} else if (n.up === -2 && n.down === T && n.left === T && n.right === -2) {
-				pick(54, 90, 54, 126, 54, 162);
-				merge.up = true;
-				merge.right = true;
-			} else if (n.up === T && n.down === -2 && n.left === -2 && n.right === T) {
-				pick(36, 108, 36, 144, 36, 180);
-				merge.down = true;
-				merge.left = true;
-			} else if (n.up === T && n.down === -2 && n.left === T && n.right === -2) {
-				pick(54, 108, 54, 144, 54, 180);
-				merge.down = true;
-				merge.right = true;
-			} else if (n.up === T && n.down === T && n.left === -2 && n.right === -2) {
-				pick(180, 126, 180, 144, 180, 162);
-				merge.left = true;
-				merge.right = true;
-			} else if (n.up === -2 && n.down === -2 && n.left === T && n.right === T) {
-				pick(144, 180, 162, 180, 180, 180);
-				merge.up = true;
-				merge.down = true;
-			} else if (n.up === -2 && n.down === T && n.left === -2 && n.right === -2) {
-				pick(198, 90, 198, 108, 198, 126);
-				merge.up = true;
-				merge.left = true;
-				merge.right = true;
-			} else if (n.up === T && n.down === -2 && n.left === -2 && n.right === -2) {
-				pick(198, 144, 198, 162, 198, 180);
-				merge.down = true;
-				merge.left = true;
-				merge.right = true;
-			} else if (n.up === -2 && n.down === -2 && n.left === T && n.right === -2) {
-				pick(216, 144, 216, 162, 216, 180);
-				merge.up = true;
-				merge.down = true;
-				merge.right = true;
-			} else if (n.up === -2 && n.down === -2 && n.left === -2 && n.right === T) {
-				pick(216, 90, 216, 108, 216, 126);
-				merge.up = true;
-				merge.down = true;
-				merge.left = true;
-			} else if (n.up === -2 && n.down === -2 && n.left === -2 && n.right === -2) {
-				pick(108, 198, 126, 198, 144, 198);
-				merge.up = true;
-				merge.down = true;
-				merge.left = true;
-				merge.right = true;
-			} else if (n.up === T && n.down === T && n.left === T && n.right === T) {
-				if (n.upLeft === -2) {
-					pick(18, 108, 18, 144, 18, 180);
-				}
-				if (n.upRight === -2) {
-					pick(0, 108, 0, 144, 0, 180);
-				}
-				if (n.downLeft === -2) {
-					pick(18, 90, 18, 126, 18, 162);
-				}
-				if (n.downRight === -2) {
-					pick(0, 90, 0, 126, 0, 162);
-				}
+		// TileMergeAttempt(num, Main.tileMerge[num]): nothing for these blocks.
+		if (v.x === -1 && v.y === -1 && (mergesDirt(num) || checksForMerge(num))) {
+			if (!flag7) {
+				flag7 = true;
+				dropNonSolid(n, num);
 			}
-		} else {
-			if (
-				T !== 2 &&
-				T !== 23 &&
-				T !== 60 &&
-				T !== 70 &&
-				T !== 109 &&
-				T !== 199 &&
-				T !== 477 &&
-				T !== 492 &&
-				T !== 633 &&
-				T !== 661 &&
-				T !== 662
-			) {
-				if (n.up === -1 && n.down === -2 && n.left === T && n.right === T) {
-					pick(234, 0, 252, 0, 270, 0);
-					merge.down = true;
-				} else if (n.up === -2 && n.down === -1 && n.left === T && n.right === T) {
-					pick(234, 18, 252, 18, 270, 18);
-					merge.up = true;
-				} else if (n.up === T && n.down === T && n.left === -1 && n.right === -2) {
-					pick(234, 36, 252, 36, 270, 36);
-					merge.right = true;
-				} else if (n.up === T && n.down === T && n.left === -2 && n.right === -1) {
-					pick(234, 54, 252, 54, 270, 54);
-					merge.left = true;
-				}
-			}
-			if (n.up !== -1 && n.down !== -1 && n.left === -1 && n.right === T) {
-				if (n.up === -2 && n.down === T) {
-					pick(72, 144, 72, 162, 72, 180);
-					merge.up = true;
-				} else if (n.down === -2 && n.up === T) {
-					pick(72, 90, 72, 108, 72, 126);
-					merge.down = true;
-				}
-			} else if (n.up !== -1 && n.down !== -1 && n.left === T && n.right === -1) {
-				if (n.up === -2 && n.down === T) {
-					pick(90, 144, 90, 162, 90, 180);
-					merge.up = true;
-				} else if (n.down === -2 && n.up === T) {
-					pick(90, 90, 90, 108, 90, 126);
-					merge.down = true;
-				}
-			} else if (n.up === -1 && n.down === T && n.left !== -1 && n.right !== -1) {
-				if (n.left === -2 && n.right === T) {
-					pick(0, 198, 18, 198, 36, 198);
-					merge.left = true;
-				} else if (n.right === -2 && n.left === T) {
-					pick(54, 198, 72, 198, 90, 198);
-					merge.right = true;
-				}
-			} else if (n.up === T && n.down === -1 && n.left !== -1 && n.right !== -1) {
-				if (n.left === -2 && n.right === T) {
-					pick(0, 216, 18, 216, 36, 216);
-					merge.left = true;
-				} else if (n.right === -2 && n.left === T) {
-					pick(54, 216, 72, 216, 90, 216);
-					merge.right = true;
-				}
-			} else if (n.up !== -1 && n.down !== -1 && n.left === -1 && n.right === -1) {
-				if (n.up === -2 && n.down === -2) {
-					pick(108, 216, 108, 234, 108, 252);
-					merge.up = true;
-					merge.down = true;
-				} else if (n.up === -2) {
-					pick(126, 144, 126, 162, 126, 180);
-					merge.up = true;
-				} else if (n.down === -2) {
-					pick(126, 90, 126, 108, 126, 126);
-					merge.down = true;
-				}
-			} else if (n.up === -1 && n.down === -1 && n.left !== -1 && n.right !== -1) {
-				if (n.left === -2 && n.right === -2) {
-					pick(162, 198, 180, 198, 198, 198);
-					merge.left = true;
-					merge.right = true;
-				} else if (n.left === -2) {
-					pick(0, 252, 18, 252, 36, 252);
-					merge.left = true;
-				} else if (n.right === -2) {
-					pick(54, 252, 72, 252, 90, 252);
-					merge.right = true;
-				}
-			} else if (n.up === -2 && n.down === -1 && n.left === -1 && n.right === -1) {
-				pick(108, 144, 108, 162, 108, 180);
-				merge.up = true;
-			} else if (n.up === -1 && n.down === -2 && n.left === -1 && n.right === -1) {
-				pick(108, 90, 108, 108, 108, 126);
-				merge.down = true;
-			} else if (n.up === -1 && n.down === -1 && n.left === -2 && n.right === -1) {
-				pick(0, 234, 18, 234, 36, 234);
-				merge.left = true;
-			} else if (n.up === -1 && n.down === -1 && n.left === -1 && n.right === -2) {
-				pick(54, 234, 72, 234, 90, 234);
-				merge.right = true;
-			}
+			if (n.up > -1 && n.up !== num) n.up = -1;
+			if (n.down > -1 && n.down !== num) n.down = -1;
+			if (n.left > -1 && n.left !== num) n.left = -1;
+			if (n.right > -1 && n.right !== num) n.right = -1;
+			mergeFrames(num, n, merge, pick);
 		}
-	}
-}
-
-/** The frames every block has: joined to its own type on any combination of sides. */
-function basicTable(
-	T: number,
-	n: Neighbours,
-	grassFramed: boolean,
-	pick: Pick,
-	v: { x: number; y: number }
-) {
-	if (v.x < 0 || v.y < 0) {
-		if (!grassFramed) dropNonSolid(n, T);
-		if (T === GRASS) relabel(n, -2, T);
-		if (n.up === T && n.down === T && n.left === T && n.right === T) {
-			if (n.upLeft !== T && n.upRight !== T) {
-				pick(108, 18, 126, 18, 144, 18);
-			} else if (n.downLeft !== T && n.downRight !== T) {
-				pick(108, 36, 126, 36, 144, 36);
-			} else if (n.upLeft !== T && n.downLeft !== T) {
-				pick(180, 0, 180, 18, 180, 36);
-			} else if (n.upRight !== T && n.downRight !== T) {
-				pick(198, 0, 198, 18, 198, 36);
-			} else {
-				pick(18, 18, 36, 18, 54, 18);
+		// No slope frames for these blocks.
+		if (v.x < 0 || v.y < 0) {
+			// (The game sets flag7 here too; nothing reads it after.)
+			if (!flag7) dropNonSolid(n, num);
+			if (num === GRASS) mergeAttemptValue(n, num, -2);
+			basicFrames(num, n, pick);
+		}
+		if (v.x <= -1 || v.y <= -1) {
+			if (variant <= 0) [v.x, v.y] = [18, 18];
+			else if (variant === 1) [v.x, v.y] = [36, 18];
+			if (variant >= 2) [v.x, v.y] = [54, 18];
+		}
+		this.frameX[k] = v.x;
+		this.frameY[k] = v.y;
+		// A frame that changed (both ways) reframes the neighbours, up to 25 deep.
+		if (v.x !== frameX && v.y !== frameY && frameX >= 0 && frameY >= 0) {
+			this.#reframeCount++;
+			if (this.#reframeCount < 25) {
+				const saved = { ...merge };
+				this.tileFrameCosmetic(i - 1, j);
+				this.tileFrameCosmetic(i + 1, j);
+				this.tileFrameCosmetic(i, j - 1);
+				this.tileFrameCosmetic(i, j + 1);
+				Object.assign(merge, saved);
 			}
-		} else if (n.up !== T && n.down === T && n.left === T && n.right === T) {
-			pick(18, 0, 36, 0, 54, 0);
-		} else if (n.up === T && n.down !== T && n.left === T && n.right === T) {
-			pick(18, 36, 36, 36, 54, 36);
-		} else if (n.up === T && n.down === T && n.left !== T && n.right === T) {
-			pick(0, 0, 0, 18, 0, 36);
-		} else if (n.up === T && n.down === T && n.left === T && n.right !== T) {
-			pick(72, 0, 72, 18, 72, 36);
-		} else if (n.up !== T && n.down === T && n.left !== T && n.right === T) {
-			pick(0, 54, 36, 54, 72, 54);
-		} else if (n.up !== T && n.down === T && n.left === T && n.right !== T) {
-			pick(18, 54, 54, 54, 90, 54);
-		} else if (n.up === T && n.down !== T && n.left !== T && n.right === T) {
-			pick(0, 72, 36, 72, 72, 72);
-		} else if (n.up === T && n.down !== T && n.left === T && n.right !== T) {
-			pick(18, 72, 54, 72, 90, 72);
-		} else if (n.up === T && n.down === T && n.left !== T && n.right !== T) {
-			pick(90, 0, 90, 18, 90, 36);
-		} else if (n.up !== T && n.down !== T && n.left === T && n.right === T) {
-			pick(108, 72, 126, 72, 144, 72);
-		} else if (n.up !== T && n.down === T && n.left !== T && n.right !== T) {
-			pick(108, 0, 126, 0, 144, 0);
-		} else if (n.up === T && n.down !== T && n.left !== T && n.right !== T) {
-			pick(108, 54, 126, 54, 144, 54);
-		} else if (n.up !== T && n.down !== T && n.left !== T && n.right === T) {
-			pick(162, 0, 162, 18, 162, 36);
-		} else if (n.up !== T && n.down !== T && n.left === T && n.right !== T) {
-			pick(216, 0, 216, 18, 216, 36);
-		} else if (n.up !== T && n.down !== T && n.left !== T && n.right !== T) {
-			pick(162, 54, 180, 54, 198, 54);
+			this.#reframeCount--;
 		}
 	}
 }

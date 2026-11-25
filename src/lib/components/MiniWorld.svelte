@@ -5,6 +5,7 @@
 	import { drawThings, drawTiles, loadTextures, type Textures } from '$lib/world/draw';
 	import { tileColor } from '$lib/world/light';
 	import { World, type Sound } from '$lib/world/sim';
+	import { MARGIN } from '$lib/world/tiles';
 
 	/**
 	 * A little Terraria world beside the game, just to watch (see $lib/world): a player digs and
@@ -50,15 +51,17 @@
 			const cols = Math.floor(box.clientWidth / 16);
 			const rows = Math.floor(box.clientHeight / 16);
 			if (cols < 4 || rows < 8) return false;
-			if (!world || world.width !== cols) world = new World(cols, rows);
+			if (!world || world.cols !== cols) world = new World(cols, rows);
 			else world.setHeight(rows);
 			return true;
 		};
 
 		const draw = () => {
 			if (!world || !textures) return;
-			const w = world.width * 16;
-			const h = world.height * 16;
+			// The shown part: the world without its margin (see $lib/world/tiles).
+			const w = world.cols * 16;
+			const h = world.rows * 16;
+			const ox = -MARGIN * 16;
 			for (const c of [scene, things, light]) {
 				if (c.width !== w) c.width = w;
 				if (c.height !== h) c.height = h;
@@ -66,7 +69,9 @@
 			const ctx = scene.getContext('2d')!;
 			ctx.imageSmoothingEnabled = false;
 			ctx.clearRect(0, 0, w, h);
+			ctx.setTransform(1, 0, 0, 1, ox, 0);
 			drawTiles(ctx, world, textures);
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 			// Light: one pixel per tile, stretched smoothly over the tiles (like the game's
 			// corner-blended tile lighting), kept only where something was drawn, multiplied in.
@@ -89,19 +94,21 @@
 			const l = light.getContext('2d')!;
 			l.globalCompositeOperation = 'copy';
 			l.imageSmoothingEnabled = true;
-			l.drawImage(lightTiles, 0, 0, w, h);
+			l.drawImage(lightTiles, ox, 0, world.width * 16, world.height * 16);
 			applyLight(scene);
 
 			// Items, the player and dust: each in its own tile's light.
 			const tctx = things.getContext('2d')!;
 			tctx.imageSmoothingEnabled = false;
 			tctx.clearRect(0, 0, w, h);
+			tctx.setTransform(1, 0, 0, 1, ox, 0);
 			const lit = drawThings(tctx, world, textures);
+			tctx.setTransform(1, 0, 0, 1, 0, 0);
 			l.globalCompositeOperation = 'source-over';
 			l.clearRect(0, 0, w, h);
 			for (const r of lit) {
 				l.fillStyle = `rgb(${lm.color(r.i, r.j).join()})`;
-				l.fillRect(r.x, r.y, r.w, r.h);
+				l.fillRect(r.x + ox, r.y, r.w, r.h);
 			}
 			applyLight(things);
 			ctx.drawImage(things, 0, 0);
