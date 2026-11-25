@@ -4,11 +4,6 @@ using Terraria.ID;
 
 namespace Terraria
 {
-	public static class StubExtensions
-	{
-		/** Utils.ToInt. */
-		public static int ToInt(this bool value) => value ? 1 : 0;
-	}
 
 	public static class NetMessage
 	{
@@ -18,6 +13,12 @@ namespace Terraria
 
 	public static class Framing
 	{
+		public static Tile GetTileSafely(int i, int j)
+		{
+			if (!WorldGen.InWorld(i, j)) return new Tile();
+			return Main.tile[i, j] ??= new Tile();
+		}
+
 		public static void SelfFrame8Way(int i, int j, Tile centerTile, bool resetFrame) =>
 			Stub.Hit("Framing.SelfFrame8Way");
 	}
@@ -35,6 +36,7 @@ namespace Terraria
 	public partial class Main
 	{
 		public static void AnimateTiles_CritterCages() { }
+		public dynamic CameraModifiers;
 	}
 
 	public partial class WorldGen
@@ -108,6 +110,10 @@ namespace Terraria.ID
 		public static class Sets
 		{
 			public static int[] MountType = new int[Count];
+			public static bool[] AddBuffTimeAdditivelyToCap = new bool[Count];
+			public static bool[] BuffTimeIsExtendedByDeadCellsPotionStationBuff = new bool[Count];
+			public static bool[] BuffTimeIsExtendedWithGameDifficulty = new bool[Count];
+			public static bool[] IsFedState = new bool[Count];
 		}
 	}
 }

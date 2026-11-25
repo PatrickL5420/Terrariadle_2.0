@@ -23,7 +23,9 @@ public static class Program
 	static readonly Dictionary<string, IFeature> Features = new()
 	{
 		["framing"] = new FramingFeature(),
-		["lookup"] = new LookupFeature()
+		["lookup"] = new LookupFeature(),
+		["collision"] = new CollisionFeature(),
+		["movement"] = new MovementFeature()
 	};
 
 	public static int Main(string[] args)

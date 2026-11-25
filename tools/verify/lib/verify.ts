@@ -16,6 +16,8 @@ export interface Run<C, R> {
 	cases: Iterable<C>;
 	/** Runs a case on the port. */
 	port: (c: C) => R;
+	/** Adjusts the game's answer before comparing (e.g. floats arrive as JSON text: `fround` them). */
+	game?: (r: R) => R;
 	batch?: number;
 	/** With RECORD=1: where to save a sample of the game's answers, and how sparse a sample. */
 	fixture?: { file: string; every: number };
@@ -29,7 +31,8 @@ export function verify<C, R>(run: Run<C, R>): number {
 	let total = 0;
 	const flush = () => {
 		if (!chunk.length) return;
-		const game = oracle<C, R>(run.feature, chunk);
+		const raw = oracle<C, R>(run.feature, chunk);
+		const game = run.game ? raw.map(run.game) : raw;
 		const bad = mismatches(chunk, chunk.map(run.port), game);
 		bad.forEach((m) => (m.index += total));
 		expect(bad.length, report(run.name, total + chunk.length, bad)).toBe(0);

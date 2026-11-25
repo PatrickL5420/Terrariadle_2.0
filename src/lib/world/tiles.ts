@@ -1,3 +1,4 @@
+import type { TileMap } from './collision';
 import { AIR, isSolid, TileGrid } from './framing';
 
 /**
@@ -12,7 +13,7 @@ export const MARGIN = 6;
  * wall behind the ground. Columns MARGIN to width - MARGIN - 1, rows 0 to height - MARGIN - 1,
  * are shown; the player and items are kept in there (its sides and floor are solid).
  */
-export class Tiles extends TileGrid {
+export class Tiles extends TileGrid implements TileMap {
 	/** Whether there's a dirt wall behind (Main.tile.wall, wall 2 only), and its variant. */
 	readonly wall: Uint8Array;
 	readonly wallVariant: Uint8Array;
@@ -21,6 +22,16 @@ export class Tiles extends TileGrid {
 		super(width, height);
 		this.wall = new Uint8Array(width * height);
 		this.wallVariant = Uint8Array.from({ length: width * height }, () => rand(3));
+	}
+
+	/** Main.maxTilesX / maxTilesY for collision: the game only collides above maxTilesY - 40,
+	 * and a real world goes on far below, so this one says it's 40 rows deeper than it is. */
+	get maxTilesX() {
+		return this.width;
+	}
+
+	get maxTilesY() {
+		return this.height + 40;
 	}
 
 	/** Whether (i, j) is in the part that's shown. */

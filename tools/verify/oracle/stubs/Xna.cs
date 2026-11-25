@@ -26,6 +26,12 @@ public struct Color
 	public override bool Equals(object o) => o is Color c && c == this;
 	public override int GetHashCode() => (R << 24) | (G << 16) | (B << 8) | A;
 	public static Color White => new(255, 255, 255);
+	public static Color Black => new(0, 0, 0);
+	public static Color Red => new(255, 0, 0);
+	public static Color LimeGreen => new(50, 205, 50);
+
+	public static Color Lerp(Color a, Color b, float t) =>
+		new((int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t), (int)(a.A + (b.A - a.A) * t));
 	public static Color Transparent => new(0, 0, 0, 0);
 }
 
@@ -62,6 +68,8 @@ public struct Vector2
 	}
 
 	public static float Distance(Vector2 a, Vector2 b) => (a - b).Length();
+	public static float Dot(Vector2 a, Vector2 b) => a.X * b.X + a.Y * b.Y;
+	public static Vector2 Lerp(Vector2 a, Vector2 b, float t) => new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t);
 	public static Vector2 operator +(Vector2 a, Vector2 b) => new(a.X + b.X, a.Y + b.Y);
 	public static Vector2 operator -(Vector2 a, Vector2 b) => new(a.X - b.X, a.Y - b.Y);
 	public static Vector2 operator -(Vector2 a) => new(-a.X, -a.Y);
@@ -90,6 +98,21 @@ public struct Vector3
 	public static Vector3 operator *(Vector3 a, float f) => new(a.X * f, a.Y * f, a.Z * f);
 }
 
+public struct Vector4
+{
+	public float X, Y, Z, W;
+
+	public Vector4(float x, float y, float z, float w)
+	{
+		X = x;
+		Y = y;
+		Z = z;
+		W = w;
+	}
+
+	public Vector4(Vector2 xy, float z, float w) : this(xy.X, xy.Y, z, w) { }
+}
+
 public struct Point
 {
 	public int X, Y;
@@ -112,6 +135,26 @@ public struct Rectangle
 		Width = w;
 		Height = h;
 	}
+
+	public static Rectangle Intersect(Rectangle a, Rectangle b)
+	{
+		int x = System.Math.Max(a.X, b.X);
+		int y = System.Math.Max(a.Y, b.Y);
+		int r = System.Math.Min(a.Right, b.Right);
+		int bt = System.Math.Min(a.Bottom, b.Bottom);
+		return r > x && bt > y ? new Rectangle(x, y, r - x, bt - y) : new Rectangle(0, 0, 0, 0);
+	}
+
+	public void Offset(int x, int y)
+	{
+		X += x;
+		Y += y;
+	}
+
+	public int Left => X;
+	public int Right => X + Width;
+	public int Top => Y;
+	public int Bottom => Y + Height;
 
 	public bool Intersects(Rectangle r) =>
 		r.X < X + Width && X < r.X + r.Width && r.Y < Y + Height && Y < r.Y + r.Height;

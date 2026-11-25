@@ -1,20 +1,37 @@
 /**
- * A Terraria 1.4.5 player with no armour or accessories: how it runs and jumps
- * (Player.HorizontalMovement, JumpMovement, gravity, DryCollision with StepUp / StepDown), how it
- * animates (Player.PlayerFrame) and swings a held item (ItemCheck_ApplyUseStyle, useStyle 1).
- * Game pixels and game frames (60 a second).
+ * A Terraria 1.4.5 player with no items held, armour, accessories, mount or buffs, moving about
+ * on full blocks. Ported line by line from the game's Player.Update, the parts that run for such
+ * a player, in the game's order:
+ *
+ *   the frame's defaults (maxFallSpeed, gravity, run and jump stats)
+ *   Player.HorizontalMovement   running, turning, friction
+ *   Player.JumpMovement         jumping
+ *   gravity                     (Update's no-wings, no-rockets branch)
+ *   gfxOffY                     the sprite catching up with a step
+ *   Collision.StepDown / StepUp
+ *   Player.DryCollision         Collision.TileCollision, then moving; bumping a ceiling
+ *   Collision.StepConveyorBelt  (its float rounding: see #dryCollision)
+ *   (ItemCheck: the swing; not yet compared with the game, see below)
+ *   Player.PlayerFrame          body and leg animation
+ *
+ * The game does this in single-precision floats, so every float operation is rounded to one
+ * (`f`); its frame counters are doubles. tools/verify runs the game's own code on random worlds
+ * and inputs and compares every frame. Left out because they can't happen here: slopes and
+ * half blocks (SlopeDownMovement, SlopingCollision do nothing on full blocks), water, wings,
+ * dashes, mounts, grappling, and DryCollision's sub-steps (only above 16 px a frame).
  */
 import { PLAYER_SIZE } from '$lib/game/items';
-import { stepDown, stepUp, tileCollision } from './collision';
-import type { Tiles } from './tiles';
+import { f, stepDown, stepUp, tileCollision, type TileMap } from './collision';
 
-const GRAVITY = 0.4;
-const MAX_FALL = 10;
+/** Player.defaultGravity, and Update's other per-frame values for a plain player. */
+const GRAVITY = f(0.4);
+const MAX_FALL_SPEED = f(f(10) + f(0.01));
 const JUMP_HEIGHT = 15;
-const JUMP_SPEED = 5.01;
-const RUN_ACCELERATION = 0.08;
-const MAX_RUN_SPEED = 3;
-const RUN_SLOWDOWN = 0.2;
+const JUMP_SPEED = f(5.01);
+const MAX_RUN_SPEED = 3; // originalRunSpeed
+const ACC_RUN_SPEED = MAX_RUN_SPEED;
+const RUN_ACCELERATION = f(0.08);
+const RUN_SLOWDOWN = f(0.2);
 
 export interface Controls {
 	left: boolean;
@@ -22,11 +39,13 @@ export interface Controls {
 	jump: boolean;
 }
 
-/** What the player is swinging: the item type, its texture's width (heldItemFrame) and Item.scale. */
+/** What the player is swinging: the item type, its texture's width (heldItemFrame), Item.scale. */
 export interface HeldItem {
 	item: number;
 	width: number;
 	scale: number;
+	/** Item.useTurn: the player can turn while swinging it. */
+	useTurn?: boolean;
 }
 
 export class Player {
@@ -39,11 +58,11 @@ export class Player {
 	direction: 1 | -1 = 1;
 	controls: Controls = { left: false, right: false, jump: false };
 
-	#jump = 0;
-	#releaseJump = true;
+	jump = 0;
+	releaseJump = true;
 	/** How far the sprite is drawn below its hitbox while it glides up or down a step. */
 	gfxOffY = 0;
-	#stepSpeed = 1;
+	stepSpeed = 1;
 
 	/** The swing: frames left of it (itemAnimation) and its length (itemAnimationMax). */
 	itemAnimation = 0;
@@ -52,16 +71,17 @@ export class Player {
 	itemLocation = { x: 0, y: 0 };
 	held: HeldItem | null = null;
 
-	/** Sprite frames (index into the 20-frame sheets) and their counters. */
+	/** Sprite frames (index into the 20-frame sheets) and their counters (doubles, like the game). */
 	bodyFrame = 0;
 	legFrame = 0;
-	#legFrameCounter = 0;
+	legFrameCounter = 0;
+	bodyFrameCounter = 0;
 	/** Frames since spawning, for blinking. */
 	#time = 0;
 
 	constructor(x: number, y: number) {
-		this.x = x;
-		this.y = y;
+		this.x = f(x);
+		this.y = f(y);
 	}
 
 	get grounded() {
@@ -81,85 +101,117 @@ export class Player {
 	}
 
 	/** One frame of Player.Update. */
-	update(tiles: Tiles) {
+	update(m: TileMap) {
 		this.#time++;
-		const c = this.controls;
-		// Player.HorizontalMovement.
-		if (c.left && !c.right) {
-			if (this.vx > -MAX_RUN_SPEED) {
-				if (this.vx > RUN_SLOWDOWN) this.vx -= RUN_SLOWDOWN;
-				this.vx -= RUN_ACCELERATION;
-			}
-			if (this.itemAnimation === 0) this.direction = -1;
-		} else if (c.right && !c.left) {
-			if (this.vx < MAX_RUN_SPEED) {
-				if (this.vx < -RUN_SLOWDOWN) this.vx += RUN_SLOWDOWN;
-				this.vx += RUN_ACCELERATION;
-			}
-			if (this.itemAnimation === 0) this.direction = 1;
-		} else {
-			const slow = this.vy === 0 ? RUN_SLOWDOWN : RUN_SLOWDOWN * 0.5;
-			if (this.vx > slow) this.vx -= slow;
-			else if (this.vx < -slow) this.vx += slow;
-			else this.vx = 0;
-		}
-
-		// Player.JumpMovement.
-		if (c.jump) {
-			if (this.#jump > 0) {
-				if (this.vy === 0) this.#jump = 0;
-				else {
-					this.vy = -JUMP_SPEED;
-					this.#jump--;
-				}
-			} else if (this.vy === 0 && this.#releaseJump) {
-				this.vy = -JUMP_SPEED;
-				this.#jump = JUMP_HEIGHT;
-			}
-			this.#releaseJump = false;
-		} else {
-			this.#jump = 0;
-			this.#releaseJump = true;
-		}
-
-		this.vy = Math.min(MAX_FALL, this.vy + GRAVITY);
-
+		this.#horizontalMovement();
+		this.#jumpMovement();
+		// Gravity (no wings, rockets or mount): then capped at the fall speed.
+		this.vy = f(this.vy + GRAVITY);
+		if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
+		this.#glide();
+		// SlopeDownMovement does nothing on full blocks; then a step down or up.
+		if (this.vy === GRAVITY) stepDown(m, this, this);
+		if (this.vy >= GRAVITY) stepUp(m, this, this);
+		this.#dryCollision(m);
 		this.#updateSwing();
-
-		// The sprite catches up with a step it took.
-		const glide = (1 + Math.abs(this.vx) / 3) * this.#stepSpeed;
-		if (this.gfxOffY > 0) this.gfxOffY = Math.max(0, this.gfxOffY - glide);
-		else if (this.gfxOffY < 0) this.gfxOffY = Math.min(0, this.gfxOffY + glide);
-		this.gfxOffY = Math.max(-32, Math.min(32, this.gfxOffY));
-
-		// Stepping down a block while walking, and up one.
-		if (this.vy === GRAVITY) {
-			const down = stepDown(tiles, this);
-			if (down) {
-				this.gfxOffY -= down.drop;
-				this.#stepSpeed = down.stepSpeed;
-			}
-		}
-		if (this.vy >= GRAVITY) {
-			const up = stepUp(tiles, this);
-			if (up) {
-				this.gfxOffY += up.lift;
-				this.#stepSpeed = up.stepSpeed;
-			}
-		}
-
-		// Player.DryCollision.
-		const hit = tileCollision(tiles, this);
-		if (hit.up) this.#jump = 0;
-		this.vx = hit.vx;
-		this.vy = hit.vy;
-		this.x += this.vx;
-		this.y += this.vy;
-
 		this.#frame();
 	}
 
-	/** ItemCheck: the swing counts down; useStyle 1 places and turns the item. */
+	/** Player.HorizontalMovement. */
+	#horizontalMovement() {
+		const c = this.controls;
+		const turn = (c.right ? 1 : 0) - (c.left ? 1 : 0);
+		// ChangeDir: while swinging, only an item with useTurn lets the player turn.
+		if (turn !== 0 && (this.itemAnimation === 0 || this.held?.useTurn))
+			this.direction = turn as 1 | -1;
+		const vx = this.vx;
+		if (c.left && vx > -MAX_RUN_SPEED) {
+			if (this.vx > RUN_SLOWDOWN) this.vx = f(this.vx - RUN_SLOWDOWN);
+			this.vx = f(this.vx - RUN_ACCELERATION);
+		} else if (c.right && vx < MAX_RUN_SPEED) {
+			if (this.vx < -RUN_SLOWDOWN) this.vx = f(this.vx + RUN_SLOWDOWN);
+			this.vx = f(this.vx + RUN_ACCELERATION);
+		} else if (c.left && vx > -ACC_RUN_SPEED) {
+			// Running faster than maxRunSpeed (accessories): never, as accRunSpeed is the same.
+			if (this.vy === 0) {
+				if (this.vx > RUN_SLOWDOWN) this.vx = f(this.vx - RUN_SLOWDOWN);
+				this.vx = f(this.vx - f(RUN_ACCELERATION * f(0.2)));
+			}
+		} else if (c.right && vx < ACC_RUN_SPEED) {
+			if (this.vy === 0) {
+				if (this.vx < -RUN_SLOWDOWN) this.vx = f(this.vx + RUN_SLOWDOWN);
+				this.vx = f(this.vx + f(RUN_ACCELERATION * f(0.2)));
+			}
+		} else if (this.vy === 0) {
+			// Friction on the ground (also slows a run held past maxRunSpeed).
+			if (this.vx > RUN_SLOWDOWN) this.vx = f(this.vx - RUN_SLOWDOWN);
+			else if (this.vx < -RUN_SLOWDOWN) this.vx = f(this.vx + RUN_SLOWDOWN);
+			else this.vx = 0;
+		} else {
+			// In the air: half as much.
+			const half = f(RUN_SLOWDOWN * f(0.5));
+			if (this.vx > RUN_SLOWDOWN * 0.5) this.vx = f(this.vx - half);
+			else if (this.vx < -RUN_SLOWDOWN * 0.5) this.vx = f(this.vx + half);
+			else this.vx = 0;
+		}
+	}
+
+	/** Player.JumpMovement. */
+	#jumpMovement() {
+		if (this.controls.jump) {
+			if (this.jump > 0) {
+				if (this.vy === 0) this.jump = 0;
+				else {
+					this.vy = -JUMP_SPEED;
+					this.jump--;
+				}
+			} else if (this.vy === 0 && this.releaseJump) {
+				this.vy = -JUMP_SPEED;
+				this.jump = JUMP_HEIGHT;
+			}
+			this.releaseJump = false;
+		} else {
+			this.jump = 0;
+			this.releaseJump = true;
+		}
+	}
+
+	/** The sprite catches up with a step it took (gfxOffY), faster when running. */
+	#glide() {
+		const speed = f(f(1) + f(Math.abs(this.vx) / 3));
+		const by = f(speed * this.stepSpeed);
+		if (this.gfxOffY > 0) {
+			this.gfxOffY = f(this.gfxOffY - by);
+			if (this.gfxOffY < 0) this.gfxOffY = 0;
+		} else if (this.gfxOffY < 0) {
+			this.gfxOffY = f(this.gfxOffY + by);
+			if (this.gfxOffY > 0) this.gfxOffY = 0;
+		}
+		if (this.gfxOffY > 32) this.gfxOffY = 32;
+		if (this.gfxOffY < -32) this.gfxOffY = -32;
+	}
+
+	/** Player.DryCollision (under 16 px a frame), then bumping a ceiling stops the jump. */
+	#dryCollision(m: TileMap) {
+		const hit = tileCollision(m, this);
+		this.vx = hit.vx;
+		this.vy = hit.vy;
+		if (hit.up) this.jump = 0;
+		this.x = f(this.x + this.vx);
+		this.y = f(this.y + this.vy);
+		// SlopingCollision: nothing on full blocks, except that its own TileCollision call (with
+		// no motion) sets Collision.up again, which is what the ceiling check below reads.
+		const up = tileCollision(m, { x: this.x, y: this.y, w: this.w, h: this.h, vx: 0, vy: 0 }).up;
+		// Collision.StepConveyorBelt: there are no belts, but it looks for them with the body
+		// moved 5 px down and then back up, which in floats can move it by a hair.
+		if (Math.abs(this.gfxOffY) <= 2) this.y = f(f(this.y + 5) - 5);
+		if (up) {
+			this.vy = f(0.01);
+			this.jump = 0;
+		}
+	}
+
+	/** ItemCheck for useStyle 1 (a swing): the swing counts down, and places and turns the item. */
 	#updateSwing() {
 		if (this.itemAnimation <= 0 || !this.held) return;
 		const W = this.held.width;
@@ -175,29 +227,38 @@ export class Player {
 		if (this.itemAnimation === 0) this.held = null;
 	}
 
-	/** Player.PlayerFrame: body and leg frames. */
+	/** Player.PlayerFrame for a plain player: the legs, then the body. */
 	#frame() {
-		if (this.itemAnimation > 0 && this.held) {
-			const t = this.itemAnimation / this.itemAnimationMax;
-			this.bodyFrame = t < 0.333 ? 3 : t < 0.666 ? 2 : 1;
-		} else this.bodyFrame = 0;
-
 		if (this.vy !== 0) {
-			this.#legFrameCounter = 0;
+			this.legFrameCounter = 0;
 			this.legFrame = 5;
-			if (!this.held) this.bodyFrame = 5;
 		} else if (this.vx !== 0) {
-			this.#legFrameCounter += Math.abs(this.vx) * 1.3;
-			while (this.#legFrameCounter > 8) {
-				this.#legFrameCounter -= 8;
+			this.legFrameCounter += Math.abs(this.vx) * 1.3;
+			while (this.legFrameCounter > 8) {
+				this.legFrameCounter -= 8;
 				this.legFrame++;
 			}
 			if (this.legFrame < 7) this.legFrame = 19;
-			if (this.legFrame > 19) this.legFrame = 7;
-			if (!this.held) this.bodyFrame = this.legFrame;
+			else if (this.legFrame > 19) this.legFrame = 7;
 		} else {
-			this.#legFrameCounter = 0;
+			this.legFrameCounter = 0;
 			this.legFrame = 0;
+		}
+
+		if (this.itemAnimation > 0 && this.held) {
+			// A swing (useStyle 1): three poses by how far through it is.
+			const t = this.itemAnimation;
+			const max = this.itemAnimationMax;
+			this.bodyFrame = t < max * 0.333 ? 3 : t < max * 0.666 ? 2 : 1;
+		} else if (this.vy !== 0) {
+			this.bodyFrame = 5;
+			this.bodyFrameCounter = 0;
+		} else if (this.vx !== 0) {
+			this.bodyFrameCounter += Math.abs(this.vx) * 1.5;
+			this.bodyFrame = this.legFrame;
+		} else {
+			this.bodyFrameCounter = 0;
+			this.bodyFrame = 0;
 		}
 	}
 

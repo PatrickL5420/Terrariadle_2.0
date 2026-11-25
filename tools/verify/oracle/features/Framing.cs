@@ -26,37 +26,9 @@ public class FramingFeature : IFeature
 {
 	public object Run(JsonElement c)
 	{
-		int w = c.GetProperty("w").GetInt32();
-		int h = c.GetProperty("h").GetInt32();
-		Main.maxTilesX = w;
-		Main.maxTilesY = h;
-		Main.tile = new Tile[w, h];
-		for (int j = 0; j < h; j++)
-			for (int i = 0; i < w; i++)
-				Main.tile[i, j] = new Tile();
-		void Set(int i, int j, int ty, int v)
-		{
-			var t = Main.tile[i, j];
-			if (ty >= 0)
-			{
-				t.active(active: true);
-				t.type = (ushort)ty;
-			}
-			t.frameNumber((byte)v);
-		}
-		if (c.TryGetProperty("cells", out var cells))
-		{
-			foreach (var cell in cells.EnumerateArray())
-				Set(cell[0].GetInt32(), cell[1].GetInt32(), cell[2].GetInt32(), cell[3].GetInt32());
-		}
-		else
-		{
-			var type = c.GetProperty("type");
-			var variant = c.GetProperty("variant");
-			for (int j = 0; j < h; j++)
-				for (int i = 0; i < w; i++)
-					Set(i, j, type[j * w + i].GetInt32(), variant[j * w + i].GetInt32());
-		}
+		WorldSetup.Load(c);
+		int w = Main.maxTilesX;
+		int h = Main.maxTilesY;
 		foreach (var op in c.GetProperty("ops").EnumerateArray())
 		{
 			string name = op[0].GetString();

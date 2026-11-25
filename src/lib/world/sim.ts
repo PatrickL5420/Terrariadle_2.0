@@ -37,6 +37,7 @@ const PICKAXE: Usable = {
 	item: 3509,
 	width: 32,
 	scale: 0.9,
+	useTurn: true,
 	useAnimation: 23,
 	useTime: 15,
 	tileBoost: -1
@@ -47,6 +48,7 @@ const block = (item: number): Usable => ({
 	item,
 	width: 16,
 	scale: 1,
+	useTurn: true,
 	useAnimation: 15,
 	useTime: 10,
 	tileBoost: 0

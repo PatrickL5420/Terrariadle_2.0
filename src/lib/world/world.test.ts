@@ -60,15 +60,18 @@ describe('collision (Collision.TileCollision, StepUp)', () => {
 		const body = { x: (X + 5) * 16 - 21, y: 8 * 16 - 42, w: 20, h: 42, vx: 3, vy: 0 };
 		const hit = tileCollision(t, body);
 		expect(body.x + body.w + hit.vx).toBe((X + 5) * 16);
-		expect(stepUp(t, { ...body })).toBeNull();
+		const step = { stepSpeed: 1, gfxOffY: 0 };
+		stepUp(t, body, step);
+		expect(step.gfxOffY).toBe(0);
 	});
 
 	it('walks up a one-block step', () => {
 		const t = flat();
 		t.place(X + 5, 7, DIRT, 0);
 		const body = { x: (X + 5) * 16 - 21, y: 8 * 16 - 42, w: 20, h: 42, vx: 3, vy: 0.4 };
-		const step = stepUp(t, body);
-		expect(step?.lift).toBe(16);
+		const step = { stepSpeed: 1, gfxOffY: 0 };
+		stepUp(t, body, step);
+		expect(step.gfxOffY).toBe(16);
 		expect(body.y + body.h).toBe(7 * 16);
 	});
 });
@@ -90,12 +93,18 @@ describe('the player (Player.Update)', () => {
 		expect((ground - top) / 16).toBeLessThan(7);
 	});
 
-	it('runs up to 3 px a frame', () => {
+	it('runs at about 3 px a frame (the game overshoots, then friction pulls it back)', () => {
 		const t = flat(40);
 		const p = new Player((X + 1) * 16, 8 * 16 - 42);
 		p.controls.right = true;
-		for (let f = 0; f < 50; f++) p.update(t);
-		expect(p.vx).toBeCloseTo(3, 1);
+		const speeds: number[] = [];
+		for (let f = 0; f < 70; f++) {
+			p.update(t);
+			speeds.push(p.vx);
+		}
+		const top = speeds.slice(40);
+		expect(Math.min(...top)).toBeGreaterThan(2.8);
+		expect(Math.max(...top)).toBeLessThan(3.1);
 		expect(p.legFrame).toBeGreaterThanOrEqual(7);
 	});
 });

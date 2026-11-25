@@ -64,6 +64,40 @@ export function members(lines, name) {
 	return out;
 }
 
+/**
+ * A slice of a long method, as a method of its own: from the line `from` (after the line
+ * `after`, if given; `fromOffset` lines before it) to the line `to` (and its block, if it opens
+ * one), then on until the braces balance. For running part of something like Player.Update, the game's code in the game's order.
+ */
+export function slice(lines, s) {
+	const find = (text, start) => {
+		for (let k = start; k < lines.length; k++) if (lines[k].trim() === text) return k;
+		throw new Error(`slice ${s.name}: line not found: ${text}`);
+	};
+	const base = s.after ? find(s.after, 0) : 0;
+	const from = find(s.from, base) - (s.fromOffset ?? 0);
+	let end = find(s.to, from);
+	let depth = 0;
+	for (let k = from; k <= end; k++) depth += count(lines[k], '{') - count(lines[k], '}');
+	// A last line that opens a block (`if (...)`, `else`) takes its block.
+	if (!/[;}]\s*$/.test(lines[end])) {
+		end++;
+		depth += count(lines[end], '{') - count(lines[end], '}');
+	}
+	while (depth > 0) {
+		end++;
+		depth += count(lines[end], '{') - count(lines[end], '}');
+	}
+	if (depth < 0) throw new Error(`slice ${s.name}: braces don't balance`);
+	const indent = lines[from].match(/^\t*/)[0].length;
+	const body = lines
+		.slice(from, end + 1)
+		.map((l) => '\t\t' + l.slice(Math.min(indent, l.match(/^\t*/)[0].length)))
+		.join('\n');
+	return `\t// ${s.from} ... ${s.to}\n\tpublic void ${s.name}(${s.params ?? ''})\n\t{\n${body}\n\t}`;
+}
+const count = (line, ch) => line.split(ch).length - 1;
+
 /** Writes oracle/game/ from oracle/sources.json (members listed, plus the build's `auto` ones). */
 export function extract(src) {
 	const config = JSON.parse(readFileSync(SOURCES, 'utf8'));
@@ -90,15 +124,17 @@ export function extract(src) {
 		const ns = lines.find((l) => /^namespace /.test(l)) ?? '';
 		const kind = s.kind ?? 'class';
 		const body = [...s.members, ...(s.auto ?? [])]
+			.filter((m) => !(s.stubbed ?? []).includes(m))
 			.flatMap((m) => {
 				const found = members(lines, m);
 				if (!found.length) throw new Error(`${s.file}: member not found: ${m}`);
 				return found;
 			})
+			.concat((s.slices ?? []).map((sl) => slice(lines, sl)))
 			.join('\n\n');
 		writeFileSync(
 			join(OUT, name),
-			`// Extracted from ${s.file} by tools/verify/extract.mjs. The game's code: not committed.\n${usings}\n\n${ns}\n\npublic partial ${kind} ${s.class}\n{\n${fix(body)}\n}\n`
+			`// Extracted from ${s.file} by tools/verify/extract.mjs. The game's code: not committed.\n${usings}\n\n${ns}\n\npublic ${s.static ? 'static ' : ''}partial ${kind} ${s.class}\n{\n${fix(body)}\n}\n`
 		);
 		count++;
 	}
