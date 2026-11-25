@@ -31,7 +31,11 @@
 		"Terraria.GameContent.NetModules",
 		"Terraria.GameContent.UI.Chat",
 		"Terraria.UI.Chat",
-		"Terraria.GameContent.Prefixes"
+		"Terraria.GameContent.Prefixes",
+		"Terraria.IO",
+		"Terraria.WorldBuilding",
+		"Terraria.GameContent.Biomes",
+		"ReLogic.Utilities"
 	],
 	"sources": [
 		{
@@ -60,11 +64,17 @@
 				"KillTile_GetTileDustAmount",
 				"KillTile_PlaySounds",
 				"PlaceTile",
-				"SolidTile2"
+				"SolidTile2",
+				"TileRunner",
+				"Caverer",
+				"SpreadGrass",
+				"digTunnel",
+				"IsTreeType"
 			],
 			"auto": [
 				"AttemptFossilShattering",
 				"BroadcastText",
+				"CanBeClearedDuringGeneration",
 				"CanCutTile",
 				"CanUnderwaterPlantGrowHere",
 				"CheckBoulderChest",
@@ -79,6 +89,7 @@
 				"GetPlayerForTile",
 				"GetProjectileSource_TileBreak",
 				"GetRainbowPaintIDForPosition",
+				"GetWorldSize",
 				"HasValidGroundForAbigailsFlowerBelowSpot",
 				"HasValidGroundForGlowTulipBelowSpot",
 				"InWorld",
@@ -138,16 +149,27 @@
 				"TileEmpty",
 				"TopEdgeCanBeAttachedTo",
 				"WouldTileReplacementWork",
+				"beachDistance",
+				"crimson",
 				"destroyObject",
+				"dontStarveWorldGen",
+				"drunkWorldGen",
 				"fossilBreak",
 				"genRand",
 				"generatingWorld",
+				"getGoodWorldGen",
+				"grassSpread",
+				"growGrassUnderground",
 				"isGeneratingOrLoadingWorld",
+				"notTheBees",
+				"oceanDepths",
+				"oceanLevel",
 				"paintEffect",
 				"paintTile",
 				"paintWall",
 				"remixWorldGen",
 				"stopDrops",
+				"tenthAnniversaryWorldGen",
 				"tileReframeCount"
 			],
 			"refuse": [
@@ -200,9 +222,23 @@
 				"paintCoatWall",
 				"paintColor",
 				"PlaceChest",
-				"PlaceObject"
+				"PlaceObject",
+				"Convert"
 			],
-			"noop": ["KillTile_DropBait", "KillTile_MakeTileDust"]
+			"noop": ["KillTile_DropBait", "KillTile_MakeTileDust"],
+			"passes": [
+				"DirtWallBackgrounds",
+				"RocksInDirt",
+				"DirtInRocks",
+				"Clay",
+				"SmallHoles",
+				"DirtLayerCaves",
+				"RockLayerCaves",
+				"SurfaceCaves",
+				"Grass",
+				"SpreadingGrassOnSurfaceSunflowersEvilsOnSurfaceAndLavaCleanup"
+			],
+			"stubbed": ["TryConvertingOrKillingTreesAboveIfTheyWouldBecomeInvalid"]
 		},
 		{
 			"file": "Terraria/Tile.cs"
@@ -310,6 +346,8 @@
 				"dontStarveWorld",
 				"drawToScreen",
 				"drunkWorld",
+				"dungeonX",
+				"dungeonY",
 				"dust",
 				"eclipse",
 				"expertMode",
@@ -394,6 +432,7 @@
 				"tileTable",
 				"tileWaterDeath",
 				"time",
+				"townNPCCanSpawn",
 				"vanityPet",
 				"wallBlend",
 				"wallDungeon",
@@ -1773,6 +1812,24 @@
 		},
 		{
 			"file": "Terraria.GameContent/FixExploitManEaters.cs"
+		},
+		{
+			"file": "Terraria.WorldBuilding/GenVars.cs"
+		},
+		{
+			"file": "Terraria.WorldBuilding/GenBase.cs"
+		},
+		{
+			"file": "Terraria.WorldBuilding/GenPass.cs"
+		},
+		{
+			"file": "Terraria.WorldBuilding/GenerationProgress.cs"
+		},
+		{
+			"file": "Terraria.GameContent.Biomes/TerrainPass.cs"
+		},
+		{
+			"file": "Terraria.ID/GenPassNameID.cs"
 		}
 	],
 	"autostubs": {
@@ -2011,7 +2068,7 @@
 			"Item52:staticfield",
 			"Item30:staticfield"
 		],
-		"MathHelper": ["Clamp:staticmethod", "Lerp:staticmethod"],
+		"MathHelper": ["Clamp:staticmethod", "Lerp:staticmethod", "Max:staticmethod"],
 		"DelegateMethods": ["Minecart:staticfield"],
 		"MountID": ["Sets:staticfield"],
 		"TileObjectData": [
@@ -2114,7 +2171,7 @@
 		"Texture2D": ["Frame:method"],
 		"AssetRequestMode": [],
 		"IAssetRepository": ["Request:field"],
-		"Lang": ["GetTooltip:staticmethod"],
+		"Lang": ["GetTooltip:staticmethod", "gen:staticfield"],
 		"LocalizedText": ["HasValue:field", "Value:field"],
 		"MiscShaderData": [],
 		"JsonProperty": [],
@@ -2292,7 +2349,18 @@
 		"TEHatRack": ["IsBreakable:staticmethod"],
 		"PressurePlateHelper": ["DestroyPlate:staticmethod"],
 		"SpriteEffects": [],
-		"TilePaintSystemV2": ["TryGetTileAndRequestIfNotReady:method"]
+		"TilePaintSystemV2": ["TryGetTileAndRequestIfNotReady:method"],
+		"GenPass": [],
+		"DungeonGenVars": [],
+		"WorldGenConfiguration": [],
+		"StructureMap": [],
+		"LandmassData": [],
+		"DungeonControlLine": ["NormalizedDistanceSafeFromDither:staticfield"],
+		"GenPassNameID": ["Terrain:staticfield"],
+		"DungeonUtils": [
+			"InAnyPotentialDungeonBounds:staticmethod",
+			"IsConsideredDungeonTile:staticmethod"
+		]
 	},
 	"neverReal": ["CrashDump", "TileEntityType"],
 	"realNamespaces": ["Terraria.ID", "Terraria.Enums", "Terraria.DataStructures"]

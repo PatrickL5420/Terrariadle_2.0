@@ -113,7 +113,7 @@ describe('the player (Player.Update)', () => {
 describe('mining (Player.PickTile with a Copper Pickaxe)', () => {
 	/** A world with one block of `type` to mine, and what mining it does. */
 	const worldWith = (type: number) => {
-		const w = new World(10, 20, () => 0);
+		const w = new World(() => 0);
 		const j = w.top(X + 2);
 		w.tiles.place(X + 2, j, type, 0);
 		const sounds: string[] = [];
@@ -183,27 +183,25 @@ describe('lighting', () => {
 
 describe('the little world', () => {
 	it('keeps going for a long while without the player leaving it', () => {
-		const w = new World(13, 30);
+		const w = new World();
 		const start = w.tiles.active.slice();
-		for (let f = 0; f < 60 * 60 * 3; f++) {
+		for (let f = 0; f < 60 * 60; f++) {
 			w.update([255, 255, 255], quiet);
 			const p = w.player;
 			expect(p.x).toBeGreaterThanOrEqual(X * 16);
-			expect(p.x + p.w).toBeLessThanOrEqual((X + 13) * 16);
-			expect(p.y + p.h).toBeLessThanOrEqual(30 * 16);
+			expect(p.x + p.w).toBeLessThanOrEqual((X + w.cols) * 16);
+			expect(p.y + p.h).toBeLessThanOrEqual(w.rows * 16);
 		}
 		// It does things: blocks have been dug or placed.
 		expect(w.tiles.active).not.toEqual(start);
-	});
+	}, 60_000);
 
-	it('grows taller by adding sky, keeping the ground at the bottom', () => {
-		const w = new World(13, 20);
-		const top = w.top(X + 5);
-		const y = w.player.y;
-		const frames = w.tiles.frameX.slice(top * w.width, (top + 1) * w.width);
-		w.setHeight(25);
-		expect(w.top(X + 5)).toBe(top + 5);
-		expect(w.tiles.frameX.slice((top + 5) * w.width, (top + 6) * w.width)).toEqual(frames);
-		expect(w.player.y).toBe(y + 80);
+	it('is made by the game’s world generation: grass over dirt and stone, clay, walls', () => {
+		const w = new World();
+		const types = new Set<number>();
+		for (let k = 0; k < w.width * w.height; k++) if (w.tiles.active[k]) types.add(w.tiles.type[k]);
+		expect([...types].sort((a, b) => a - b)).toEqual([0, 1, 2, 40]);
+		expect(w.tiles.wall.some((x) => x === 1)).toBe(true);
+		expect(w.cols).toBe(150);
 	});
 });

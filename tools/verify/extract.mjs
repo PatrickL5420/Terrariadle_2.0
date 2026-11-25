@@ -109,6 +109,26 @@ export function slice(lines, s) {
 const count = (line, ch) => line.split(ch).length - 1;
 
 /**
+ * A world generation pass (a delegate in WorldGen.GenerateWorld:
+ * `AddGenerationPass(GenPassNameID.Clay, delegate(GenerationProgress progress, ...) { ... });`)
+ * as a method of its own, `Pass_Clay(progress, passConfig)`.
+ */
+export function pass(lines, name) {
+	const start = lines.findIndex((l) =>
+		new RegExp(`AddGenerationPass\\(GenPassNameID\\.${name}, delegate`).test(l)
+	);
+	if (start < 0) throw new Error(`pass not found: ${name}`);
+	const indent = lines[start].match(/^\t*/)[0];
+	let end = start + 1;
+	while (lines[end] !== `${indent}});`) end++;
+	const body = lines
+		.slice(start + 1, end)
+		.map((l) => '\t' + l.slice(Math.min(indent.length, l.match(/^\t*/)[0].length)))
+		.join('\n');
+	return `\tpublic static void Pass_${name}(GenerationProgress progress, GameConfiguration passConfig)\n${body}\n\t}`;
+}
+
+/**
  * A stand-in for each overload of `name`, with the game's own signature: `refuse` ones refuse
  * the case if they're ever called (Stub.Hit), `noop` ones just return (for code reviewed to be
  * visual only). Out parameters get their defaults; anything returned is the type's default.
@@ -168,6 +188,7 @@ export function extract(src) {
 				return found;
 			})
 			.concat((s.slices ?? []).map((sl) => slice(lines, sl)))
+			.concat((s.passes ?? []).map((name) => pass(lines, name)))
 			.concat((s.refuse ?? []).flatMap((m) => standIns(lines, m, s.class, true)))
 			.concat((s.noop ?? []).flatMap((m) => standIns(lines, m, s.class, false)))
 			// One declaration can name several members (int a, b;): take it once.

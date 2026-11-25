@@ -45,6 +45,7 @@ public partial class Item
 				return default; // no item (PlayerFrame only loads it)
 			case 2:
 			case 3:
+			case 133: // (the Clay Block's icon is 16x16 too)
 				return new Rectangle(0, 0, 16, 16);
 			case 3509:
 				return new Rectangle(0, 0, 32, 32);

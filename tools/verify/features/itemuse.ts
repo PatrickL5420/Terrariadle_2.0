@@ -195,7 +195,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		tops.push(top);
 		const dirt = 2 + rand(4);
 		for (let j = top; j < rows; j++) {
-			put(i, j, j === top && rand(5) ? 2 : j < top + dirt ? 0 : 1);
+			put(i, j, j === top && rand(5) ? 2 : j < top + dirt ? (rand(6) ? 0 : 40) : 1);
 			if (j > top + (rand(3) ? 1 : 0)) walls.push([i, j]);
 		}
 		if (i < 2 || i >= w - 2) for (let j = 0; j < rows; j++) put(i, j, 1);
@@ -204,7 +204,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 	for (let n = rand(5); n > 0; n--) {
 		const i = 4 + rand(w - 8);
 		const j = tops[i] - 2 - rand(5);
-		const type = rand(3);
+		const type = [0, 1, 2, 40][rand(4)];
 		for (let k = 0; k < 1 + rand(4); k++) put(i + k, j, type);
 	}
 	for (let n = rand(4); n > 0; n--) {
@@ -215,7 +215,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 	const i = 10 + rand(w - 20);
 	const x = f(i * 16 + rand(16) - 10);
 	const y = f(tops[i] * 16 - 42);
-	const item = [3509, 3509, 2, 3][rand(4)];
+	const item = [3509, 3509, 3509, 2, 3, 133][rand(6)];
 	// The cursor: near the player's start (within reach, or just out of it).
 	const frames: ItemUseCase['frames'] = [];
 	const length = 60 + rand(300);

@@ -79,6 +79,8 @@ export const ITEMS: Record<number, ItemStats> = {
 	2: { ...BLOCK, createTile: 0 },
 	/** Stone Block. */
 	3: { ...BLOCK, createTile: 1 },
+	/** Clay Block. */
+	133: { ...BLOCK, createTile: 40 },
 	/** Copper Pickaxe. */
 	3509: {
 		...NONE,
@@ -97,7 +99,7 @@ export const ITEMS: Record<number, ItemStats> = {
 export const stats = (type: number): ItemStats => ITEMS[type] ?? NONE;
 
 /** The item a block drops (KillTile_GetItemDrops). */
-export const ITEM_OF: Record<number, number> = { 0: 2, 1: 3, 2: 2 };
+export const ITEM_OF: Record<number, number> = { 0: 2, 1: 3, 2: 2, 40: 133 };
 
 /** SoundEngine.PlaySound(type, x, y, style), or an item's use sound (with its pitch). */
 export interface SoundCall {
@@ -284,8 +286,8 @@ export function pickTile(p: Player, w: ItemWorld, x: number, y: number, pickPowe
 	const type = w.tiles.at(x, y);
 	// PickTile_DetermineDamage.
 	const buffer = hit.hitObject(x, y, TILE);
-	// GetPickaxeDamage: the pick power, twice over on dirt.
-	let damage = type === AIR ? 0 : pickPower + (type === 0 ? pickPower : 0);
+	// GetPickaxeDamage: the pick power, twice over on dirt and clay.
+	let damage = type === AIR ? 0 : pickPower + (type === 0 || type === 40 ? pickPower : 0);
 	// (WorldGen.CanKillTile: a block with nothing on it can always go.)
 	if (type === AIR) damage = 0;
 	// DoesPickTargetTransformOnKill: grass about to break is knocked to dirt instead.

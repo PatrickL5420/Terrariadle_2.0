@@ -39,7 +39,7 @@ public partial class TileObject
  */
 public partial class Player
 {
-	static bool Reviewed(Item item) => item.type is 3509 or 2 or 3 or 0; // 0: used up
+	static bool Reviewed(Item item) => item.type is 3509 or 2 or 3 or 133 or 0; // 0: used up
 
 	static void Only(Item item, string what)
 	{
@@ -88,14 +88,14 @@ public partial class TileObjectData
 	public static bool CustomPlace(int type, int style)
 	{
 		// (No item: the pickaxe's createTile is -1.)
-		if (type < 0 || type is 0 or 1 or 2) return false;
+		if (type < 0 || type is 0 or 1 or 2 or 40) return false;
 		Stub.Hit("TileObjectData.CustomPlace");
 		return false;
 	}
 
 	public static TileObjectData GetTileData(int type, int style, int alternate = 0)
 	{
-		if (type is 0 or 1 or 2) return null;
+		if (type is 0 or 1 or 2 or 40) return null;
 		Stub.Hit("TileObjectData.GetTileData");
 		return null;
 	}

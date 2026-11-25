@@ -83,6 +83,15 @@ function writeAutoStubs(config) {
 	const hand = handStubbed();
 	// Extracted classes aren't placeholders; hand-stubbed members win over placeholder ones.
 	for (const src of config.sources) if (src.class) delete types[src.class];
+	// So are the types whole extracted files declare (a placeholder would shadow them).
+	for (const file of readdirSync(join(ORACLE, 'game'))) {
+		if (file === 'AutoStubs.cs') continue;
+		const text = readFileSync(join(ORACLE, 'game', file), 'utf8');
+		for (const m of text.matchAll(
+			/^public (?:static |abstract |sealed |partial )*(?:class|struct|enum) (\w+)/gm
+		))
+			delete types[m[1]];
+	}
 	for (const type of Object.keys(types)) if (hand.has(`${type}:type`)) delete types[type];
 	for (const type of Object.keys(types))
 		types[type] = types[type].filter(

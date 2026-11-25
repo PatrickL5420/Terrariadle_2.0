@@ -27,12 +27,15 @@ public static class Program
 		["collision"] = new CollisionFeature(),
 		["movement"] = new MovementFeature(),
 		["item"] = new ItemDefaultsFeature(),
-		["itemuse"] = new ItemUseFeature()
+		["itemuse"] = new ItemUseFeature(),
+		["worldgen"] = new WorldGenFeature()
 	};
 
 	public static int Main(string[] args)
 	{
 		Terraria.Main.InitTileData();
+		// `convert <config.json> <oracle dir>`: the game's code to TypeScript (convert/Converter.cs).
+		if (args.Length == 3 && args[0] == "convert") return Convert.Converter.Run(args[1], args[2]);
 		var stdin = new StreamReader(Console.OpenStandardInput(), Encoding.UTF8);
 		var stdout = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)) { AutoFlush = false };
 		var options = new JsonSerializerOptions { IncludeFields = true };

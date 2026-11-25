@@ -1,7 +1,7 @@
 /**
  * How a block picks its sprite from its neighbours: Terraria 1.4.5's WorldGen.TileFrame,
  * TileFrameCosmetic and SquareTileFrame, for the blocks this little world has (dirt, stone,
- * grass). The frame tables are converted from the game's code (./frame-tables.ts); the code
+ * grass, clay). The frame tables are converted from the game's code (./frame-tables.ts); the code
  * around them is ported here by hand, in the game's order, keeping its quirks: dirt reframes a
  * stone neighbour to ask whether that stone blends into it (through the game's global merge
  * flags), a block whose frame changes reframes its neighbours, and blocks within 5 of the
@@ -18,6 +18,7 @@ export const AIR = -1;
 export const DIRT = 0;
 export const STONE = 1;
 export const GRASS = 2;
+export const CLAY = 40;
 
 /**
  * The game's data about these blocks (Main.tile* and TileID.Sets), as the game sets it up
@@ -25,11 +26,11 @@ export const GRASS = 2;
  */
 export const TILE_DATA = {
 	/** Main.tileSolid */
-	solid: [DIRT, STONE, GRASS],
+	solid: [DIRT, STONE, GRASS, CLAY],
 	/** Main.tileBrick: bricks join up with each other. */
 	brick: [STONE, GRASS],
 	/** Main.tileMergeDirt: blends into dirt. */
-	mergeDirt: [STONE],
+	mergeDirt: [STONE, CLAY],
 	/** TileID.Sets.Dirt */
 	dirt: [DIRT],
 	/** TileID.Sets.Conversion.MergesWithDirtInASpecialWay: grass. */

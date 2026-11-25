@@ -169,6 +169,9 @@ public struct Rectangle
 	}
 
 	public Point Center => new(X + Width / 2, Y + Height / 2);
+	public static Rectangle Empty => default;
+	public bool Contains(int x, int y) => X <= x && x < X + Width && Y <= y && y < Y + Height;
+	public bool Contains(Point p) => Contains(p.X, p.Y);
 	public int Left => X;
 	public int Right => X + Width;
 	public int Top => Y;

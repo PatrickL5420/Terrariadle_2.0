@@ -38,6 +38,8 @@ namespace Terraria
 	public static class Liquid
 	{
 		public static void AddWater(int x, int y) { }
+
+		public static void QuickWater(int verbose = 0, int minY = -1, int maxY = -1) => Stub.Hit("Liquid.QuickWater");
 	}
 
 	public static class MapUpdateQueue

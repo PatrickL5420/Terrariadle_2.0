@@ -5,7 +5,7 @@
  * is applied afterwards by the caller (see MiniWorld.svelte): per tile for walls and blocks, one
  * colour each for everything else. Textures are the game's (static/world).
  */
-import { DIRT, GRASS, isSolid, STONE } from './framing';
+import { CLAY, DIRT, GRASS, isSolid, STONE } from './framing';
 import { stats } from './item-check';
 import type { RGB } from './light';
 import type { World } from './sim';
@@ -105,6 +105,9 @@ function tint(img: HTMLImageElement, [r, g, b]: RGB): HTMLCanvasElement {
 	return c;
 }
 
+/** A stand-in tint for clay, until its textures are added (static/world/Tiles_40, Item_133). */
+const CLAY_COLOR: RGB = [255, 170, 140];
+
 export async function loadTextures(): Promise<Textures> {
 	const w = (name: string) => load(`/world/${name}.png`);
 	const [tiles0, tiles1, tiles2, wall, cracks, dust, item2, item3, pickaxe, hair] =
@@ -122,12 +125,17 @@ export async function loadTextures(): Promise<Textures> {
 		]);
 	const sheets = Object.keys(SHEETS).map(Number);
 	const player = await Promise.all(sheets.map((n) => w(`Player_0_${n}`)));
+	// Clay's textures, if they're there; until then, stone and dirt tinted clay's colour.
+	const [clay, clayItem] = await Promise.all([
+		w('Tiles_40').catch(() => tint(tiles1, CLAY_COLOR)),
+		w('Item_133').catch(() => tint(item2, CLAY_COLOR))
+	]);
 	return {
-		tiles: { [DIRT]: tiles0, [STONE]: tiles1, [GRASS]: tiles2 },
+		tiles: { [DIRT]: tiles0, [STONE]: tiles1, [GRASS]: tiles2, [CLAY]: clay },
 		wall,
 		cracks,
 		dust,
-		items: { 2: item2, 3: item3, 3509: pickaxe },
+		items: { 2: item2, 3: item3, 133: clayItem, 3509: pickaxe },
 		player: Object.fromEntries(sheets.map((n, i) => [n, tint(player[i], COLORS[SHEETS[n]])])),
 		hair: tint(hair, COLORS.hair)
 	};

@@ -14,6 +14,8 @@ public partial class Main
 	{
 		Initialize_TileAndNPCData1();
 		Initialize_TileAndNPCData2();
+		// As Main.Initialize does after them.
+		Terraria.ID.TileID.Sets.PostSetupContent();
 	}
 
 	/// Nothing held on the cursor, nothing being crafted.

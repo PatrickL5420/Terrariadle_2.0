@@ -11,4 +11,8 @@
     <NoWarn>CS0162;CS0168;CS0219;CS0414;CS0649;CS0169;CS8321;CS0108;CS0114;CS1717;CS0665</NoWarn>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
+  <!-- Roslyn, for `convert` (convert/: the game's code to TypeScript, with the compiler's types). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+  </ItemGroup>
 </Project>

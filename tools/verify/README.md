@@ -31,9 +31,26 @@ src/lib/... (the port) ◀── features/*.ts ── *.verify.ts ──▶ same
 - **Stubs that mustn't run** call `Stub.Hit(...)`: the oracle then refuses the case (it
   answers `{"stubs": [...]}`), so a case can't take a path we haven't extracted. A stub for
   something that runs every frame copies the game's own first check, and refuses only past it.
-- **`port/`** has a small C# → TypeScript converter for straight-line game code (if/else,
-  comparisons, assignments, the game's three-variant frame picks), used to generate tables
-  like `src/lib/world/frame-tables.ts`. It refuses lines it doesn't understand.
+- **Passes**: `"passes": ["Clay", ...]` in WorldGen's source turns a world generation pass (a
+  delegate inside `WorldGen.GenerateWorld`) into a method of its own, `WorldGen.Pass_Clay`.
+- **`port/`** converts the game's code to TypeScript. `convert.mjs` runs the oracle in its
+  `convert` mode (`oracle/convert/Converter.cs`), which reads the oracle's own sources with Roslyn,
+  the C# compiler, and writes TypeScript from what the compiler knows: every expression's type
+  (so integer division truncates, float arithmetic rounds to single precision, casts narrow),
+  which overload a call is and its default arguments, constants and enum values folded, structs
+  copied. From the roots a config names (`port/worldgen.json`) it follows everything they use:
+  - Code in `game/` and `stubs/` is converted.
+  - A config's `data` types' static arrays (`Main.tileSolid`, `TileID.Sets.*`...) are copied
+    from the running oracle, after the game's own setup, rather than converted.
+  - `external` members and `externalTypes` come from a small hand-written runtime (2D arrays,
+    the progress bar, sounds).
+  - `holes` and placeholders become calls that throw if they're ever reached: the oracle refuses
+    those cases too, so a verified case can't have gone there.
+  - Anything it can't convert faithfully (ref arguments, gotos, lambdas...) it refuses, naming
+    the member and what led to it.
+
+  The older `csharp-to-ts.mjs` converts straight-line code line by line (the frame tables).
+
 - **`*.verify.ts`** are Vitest suites (`npm run verify`) that send cases to the oracle and to
   the port and compare. They're skipped when the oracle isn't built.
 - **Fixtures**: `RECORD=1 npm run verify` also saves a sample of the game's answers into
@@ -65,6 +82,13 @@ RECORD=1 npm run verify
 neighbourhood plus 20,000 random worlds. Use `VERIFY_WORLDS` and `VERIFY_SEED` to fuzz more or
 differently, and `RECORD=1` to refresh the replayed fixtures.
 
+To regenerate world generation's TypeScript (`src/lib/world/gen/game.ts`) from the game's code,
+after building the oracle:
+
+```bash
+node tools/verify/port/convert.mjs port/worldgen.json
+```
+
 To regenerate the frame tables after the converter or anchors change:
 
 ```bash
@@ -79,7 +103,8 @@ node tools/verify/port/frame-tables.mjs
 | `TILE_DATA` in `framing.ts`                    | `Main.tile*`, `TileID.Sets.*` after the game's own setup     | `data.verify.ts`, via the `lookup` feature                                                                                                   |
 | `src/lib/world/collision.ts`                   | `Collision.TileCollision`, `StepUp`, `StepDown`              | 200,000 random bodies (player- and item-sized, on grid edges and off) near random ground                                                     |
 | `src/lib/world/player.ts`                      | `Player.Update` for a plain player (see below)               | 5,000 random walks of up to 300 frames, every frame's position, velocity, jump state, step glide and body / leg frames                       |
-| `src/lib/world/item-check.ts` + `hit-tile.ts`  | `Player.ItemCheck` with the Copper Pickaxe, dirt and stone   | 3,000 random uses of up to 360 frames, every frame: the swing, item position and turn, mining damage, tile changes, drops, sounds, the stack |
+| `src/lib/world/item-check.ts` + `hit-tile.ts`  | `Player.ItemCheck`: the Copper Pickaxe, dirt, stone, clay    | 3,000 random uses of up to 360 frames, every frame: the swing, item position and turn, mining damage, tile changes, drops, sounds, the stack |
+| `src/lib/world/gen/` (converted)               | `TerrainPass` and the surface passes of `GenerateWorld`      | 60 seeds, every tile, wall and liquid in a 150 x 250 window around the surface, and the heights the passes work out                          |
 
 Each random suite also checks that its cases really cover what they should (landing, walls,
 ceilings and steps for collision; steps up and down, ceiling bumps, full speed, turning, jumps,
@@ -97,6 +122,17 @@ reach is 3 tiles up and down, not 4; a block's damage only wears off when someth
 (HitTile prunes after a hit, not every frame), and the spare slot holds a block at 0 damage;
 turning mirrors the item held; dirt takes twice the pick power; and using up a stack cuts the
 use time short.
+
+### The world generation oracle
+
+`oracle/features/WorldGenFeature.cs` runs `TerrainPass` and the forest surface passes of
+`WorldGen.GenerateWorld` (dirt walls, rocks in dirt, dirt in rocks, clay, holes and caves,
+grass and its spreading) on an empty world, set up as `GenerateWorld` does for a plain world
+(`Main.rand` seeded; `generatingWorld` on, so nothing is framed until the end), except that
+there are no beaches: the world is a slice of a bigger one. The site's world is generated 250
+wide and as tall as a small world, and the middle 150 columns used (the passes keep 50 or more
+from a world's edges, and place things by fractions of its height). The secret seeds, remix and
+drunk worlds, corruption and sunflowers' placing are left out (holes in `port/worldgen.json`).
 
 ### The item use oracle
 
@@ -150,6 +186,10 @@ The game computes in single-precision floats, so the ports round every float ope
 oracle's answers come back as JSON text and are rounded back to singles before comparing.
 
 ## Equivalences relied on
+
+- World generation draws every random number from one generator (`Main.rand`, .NET's
+  `Random`), so a converted pass makes the same world from the same seed only if it draws the
+  same numbers in the same order: it's checked tile for tile, so it does.
 
 - A block placed, or hit without breaking, gets a new random variant (`SquareTileFrame`'s
   `genRand.Next(3)`). The item use port takes it from the game's answer (the variant the block

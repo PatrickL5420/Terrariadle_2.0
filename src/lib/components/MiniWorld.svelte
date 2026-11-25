@@ -9,9 +9,10 @@
 
 	/**
 	 * A little Terraria world beside the game, just to watch (see $lib/world): a player digs and
-	 * builds in a screen-wide stretch of ground, lit by the page's sky. Drawn at the game's 1x,
-	 * one game pixel per CSS pixel: the column it's in shows part of it, following the player
-	 * like the game's camera; the fullscreen button shows all of it.
+	 * builds in a stretch of forest made by the game's own world generation, lit by the page's sky.
+	 * Drawn at the game's 1x, one game pixel per CSS pixel: the column it's in, or the whole
+	 * window with the fullscreen button, shows part of it, following the player like the game's
+	 * camera.
 	 */
 	const STEP_MS = 1000 / 60;
 	/** Sounds from the little world are quieter than the page's own. */
@@ -64,18 +65,14 @@
 		let vh = 0;
 
 		/**
-		 * The world is made once, as big as the screen (so fullscreen shows all of it), and kept:
-		 * the column shows part of it, following the player. Returns whether there's a view.
+		 * The world is made once (150 blocks wide, see $lib/world/sim) and kept: the column and
+		 * the fullscreen view show part of it, following the player. Returns whether there's a view.
 		 */
 		const fit = () => {
 			vw = Math.floor(box.clientWidth);
 			vh = Math.floor(box.clientHeight);
 			if (vw < 64 || vh < 128) return false;
-			if (!world) {
-				const cols = Math.max(Math.ceil(screen.width / 16), Math.ceil(vw / 16));
-				const rows = Math.max(Math.ceil(screen.height / 16), Math.ceil(vh / 16));
-				world = new World(cols, rows);
-			}
+			world ??= new World();
 			return true;
 		};
 
