@@ -218,6 +218,21 @@ describe('lighting', () => {
 });
 
 describe('the little world', () => {
+	it('starts the player on the ground, even where the middle column is a cave shaft', () => {
+		// Worlds whose middle column is open to the bottom (from a seeded random).
+		for (const seed of [19, 45, 54]) {
+			let s = seed;
+			const rnd = ((a: number, b?: number) => {
+				s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+				const v = s / 2 ** 32;
+				return b === undefined ? Math.floor(v * a) : a + Math.floor(v * (b - a));
+			}) as ConstructorParameters<typeof World>[0];
+			const w = new World(rnd);
+			w.update([255, 255, 255], quiet);
+			expect(w.player.y + w.player.h).toBeLessThanOrEqual(w.rows * 16);
+		}
+	});
+
 	it('keeps going for a long while without the player leaving it', () => {
 		const w = new World();
 		const start = w.tiles.active.slice();

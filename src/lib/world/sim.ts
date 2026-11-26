@@ -120,7 +120,17 @@ export class World implements ItemWorld {
 		const style = rnd(6);
 		this.treeStyle = style === 0 ? 0 : style === 5 ? 10 : 5 + style;
 		play(this.tiles, this.rand, this);
-		const i = MARGIN + Math.trunc(COLS / 2);
+		// In the middle, or the nearest column with ground (not a cave shaft down to the bottom).
+		let i = MARGIN + Math.trunc(COLS / 2);
+		for (let d = 0; d < COLS / 2; d++) {
+			const near = [i + d, i - d].find(
+				(c) => this.surface[c] < this.rows - 4 && this.surface[c + 1] < this.rows - 4
+			);
+			if (near !== undefined) {
+				i = near;
+				break;
+			}
+		}
 		this.player = new Player(i * 16 + 8 - 10, this.surface[i] * 16 - 42);
 		this.player.releaseJump = true;
 	}

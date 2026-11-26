@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { AIR, DIRT } from '../framing';
 import { plan, recordedJumps, type NavMap, type Step } from './nav';
 
+// (Searches here run without the time limit, which a busy machine running every test at once
+// can hit.)
+
 /** A map from rows of text: '#' dirt, '.' air; the left and right edges and below are solid. */
 function map(rows: string[]): NavMap {
 	const H = rows.length;
@@ -44,7 +47,7 @@ describe('getting about (ai/nav)', () => {
 			'##############################'
 		]);
 		const t0 = performance.now();
-		const steps = plan(m, { i: 3, j: 12 }, to(24), { blocks: 0, dig: false });
+		const steps = plan(m, { i: 3, j: 12 }, to(24), { blocks: 0, dig: false, ms: 1e4 });
 		const ms = performance.now() - t0;
 		expect(kinds(steps)).toContain('jump');
 		expect(kinds(steps)).not.toContain('mine');
@@ -72,10 +75,12 @@ describe('getting about (ai/nav)', () => {
 		const m = map(rows);
 		// The top of the cliff.
 		const goal = { i: 20, done: (s: { i: number; j: number }) => s.i === 20 && s.j === 6 };
-		expect(kinds(plan(m, { i: 3, j: 14 }, goal, { blocks: 10, dig: false }))).toContain('pillar');
-		const none = plan(m, { i: 3, j: 14 }, goal, { blocks: 0 });
+		expect(kinds(plan(m, { i: 3, j: 14 }, goal, { blocks: 10, dig: false, ms: 1e4 }))).toContain(
+			'pillar'
+		);
+		const none = plan(m, { i: 3, j: 14 }, goal, { blocks: 0, ms: 1e4 });
 		expect(kinds(none)).toContain('mine');
-		expect(plan(m, { i: 3, j: 14 }, goal, { blocks: 0, dig: false })).toBeNull();
+		expect(plan(m, { i: 3, j: 14 }, goal, { blocks: 0, dig: false, ms: 1e4 })).toBeNull();
 	});
 
 	it('bridges a deep chasm with blocks, and climbs down and out of it without', () => {
@@ -84,10 +89,15 @@ describe('getting about (ai/nav)', () => {
 		rows.push('##############################');
 		const m = map(rows);
 		const on = (s: { i: number; j: number }) => s.i === 27 && s.j === 6;
-		const steps = plan(m, { i: 3, j: 6 }, { i: 27, done: on }, { blocks: 30 });
+		const steps = plan(m, { i: 3, j: 6 }, { i: 27, done: on }, { blocks: 30, ms: 1e4 });
 		expect(kinds(steps)).toContain('place');
 		expect(kinds(steps)).not.toContain('mine');
-		const without = plan(m, { i: 3, j: 6 }, { i: 27, done: on }, { blocks: 0, limit: 20000 });
+		const without = plan(
+			m,
+			{ i: 3, j: 6 },
+			{ i: 27, done: on },
+			{ blocks: 0, limit: 20000, ms: 1e4 }
+		);
 		expect(kinds(without)).toContain('mine');
 	});
 });
