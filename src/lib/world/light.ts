@@ -2,9 +2,14 @@
  * Terraria 1.4.5's lighting (LightingEngine in Color mode) for the little world: every open tile
  * on the surface with no wall behind it is lit by the sky (TileLightScanner.ApplySurfaceLight, Main.tileColor), then
  * the light map is blurred (LightMap.Blur): light spreads to neighbours, fading by 0.91 a tile
- * through air and by 0.56 through blocks. A block is drawn in its tile's light.
+ * through air and by 0.56 through blocks. Torches light their own tile (Lighting.AddLight, in
+ * the torch's colour) before the blur. A block is drawn in its tile's light.
  */
+import { TORCH } from './framing';
 import type { Tiles } from './tiles';
+
+/** A Torch's light (TorchID.TorchColor(Torch)). */
+const TORCH_LIGHT: RGB = [1, 0.95, 0.8];
 
 export type RGB = [number, number, number];
 
@@ -35,8 +40,11 @@ export class LightMap {
 		this.#solid = new Uint8Array(n);
 	}
 
-	/** Lights the world with the sky's tile colour (0-255). */
-	update(tiles: Tiles, sky: RGB) {
+	/**
+	 * Lights the world with the sky's tile colour (0-255), torches, and `torches` more where
+	 * they're held (tile positions).
+	 */
+	update(tiles: Tiles, sky: RGB, held: [number, number][] = []) {
 		const { width: W, height: H } = this;
 		const [sr, sg, sb] = sky.map((v) => v / 255);
 		const avg = (sr + sg + sb) / 3;
@@ -50,7 +58,19 @@ export class LightMap {
 				this.r[k] = lit ? sr : 0;
 				this.g[k] = lit ? sg : 0;
 				this.b[k] = lit ? sb : 0;
+				if (tiles.at(x, y) === TORCH) {
+					this.r[k] = Math.max(this.r[k], TORCH_LIGHT[0]);
+					this.g[k] = Math.max(this.g[k], TORCH_LIGHT[1]);
+					this.b[k] = Math.max(this.b[k], TORCH_LIGHT[2]);
+				}
 			}
+		}
+		for (const [x, y] of held) {
+			if (x < 0 || y < 0 || x >= W || y >= H) continue;
+			const k = x * H + y;
+			this.r[k] = Math.max(this.r[k], TORCH_LIGHT[0]);
+			this.g[k] = Math.max(this.g[k], TORCH_LIGHT[1]);
+			this.b[k] = Math.max(this.b[k], TORCH_LIGHT[2]);
 		}
 		for (let pass = 0; pass < 2; pass++) {
 			for (let x = 0; x < W; x++) {

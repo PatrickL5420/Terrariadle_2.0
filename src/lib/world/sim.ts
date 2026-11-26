@@ -20,10 +20,12 @@ import {
 	type Rand
 } from '$lib/game/items';
 import { tileCollision } from './collision';
-import { AIR, DIRT, GRASS, isSolid, STONE, TREE, TREES } from './framing';
+import { AIR, DIRT, GRASS, isSolid, STONE, TORCH, TREE, TREES } from './framing';
 import { generate, play, UnifiedRandom } from './gen';
 import {
 	canPlaceAt,
+	canPlaceTorch,
+	inRange,
 	overlapsPlayer,
 	type DropCall,
 	type Item,
@@ -43,6 +45,7 @@ const AXE = 3506;
 /** Wood and acorns, from trees. */
 export const WOOD = 9;
 export const ACORN = 27;
+export const TORCH_ITEM = 8;
 /** The blocks the player builds with: dirt, stone and clay blocks (items 2, 3, 133). */
 const BLOCKS = [2, 3, 133];
 
@@ -91,7 +94,7 @@ export class World implements ItemWorld {
 	inventory: Item[] = [
 		{ type: PICKAXE, stack: 1 },
 		{ type: AXE, stack: 1 },
-		...[...BLOCKS, WOOD, ACORN].map((type) => ({ type, stack: 0 }))
+		...[...BLOCKS, WOOD, ACORN, TORCH_ITEM].map((type) => ({ type, stack: 0 }))
 	];
 	/** The ground's height when the world was made, per column: the player keeps it roughly so. */
 	surface: number[];
@@ -176,7 +179,13 @@ export class World implements ItemWorld {
 		this.#updateDust();
 		// HitTile.DrawFreshAnimations' clock, for the miner's wobble.
 		for (const h of this.player.hitTile.data) h.animationTimeElapsed++;
-		this.light.update(this.tiles, sky);
+		// A torch in hand lights where it's held (ItemCheck's held-item light).
+		const p = this.player;
+		const held: [number, number][] =
+			p.item.type === TORCH_ITEM && p.item.stack > 0
+				? [[Math.trunc(p.itemLocation.x / 16), Math.trunc((p.itemLocation.y - 14) / 16)]]
+				: [];
+		this.light.update(this.tiles, sky, held);
 	}
 
 	// ---- What the player's item does to the world (ItemWorld, for ./item-check) ---------------
@@ -324,6 +333,7 @@ export class World implements ItemWorld {
 	#think() {
 		const p = this.player;
 		p.controls = { left: false, right: false, jump: false, use: false };
+		if (this.#lightTheWay()) return;
 		const task = this.#task;
 		if (task.kind === 'idle') {
 			if (--task.frames <= 0) this.#task = this.#choose();
@@ -409,15 +419,89 @@ export class World implements ItemWorld {
 		return true;
 	}
 
-	/** Body.hold (./ai/follow): the pickaxe, axe or a stack of blocks in hand, between swings. */
-	hold(kind: 'pickaxe' | 'block' | 'axe'): boolean {
+	// ---- Torches --------------------------------------------------------------------------------
+
+	/** Where a torch is going (null for none), and how long it's been trying. */
+	#torchAt: [number, number] | null = null;
+	#torchFrames = 0;
+	#clock = 0;
+
+	/**
+	 * In the dark (at night, or in a hole) with no torch near: puts one up within reach, on
+	 * the way (whatever it's doing pauses). Torches are made from wood as needed (the game's
+	 * recipe: a Wood and a Gel make 3; gel's taken as unlimited). True while it's at it.
+	 */
+	#lightTheWay(): boolean {
+		const p = this.player;
+		const t = this.tiles;
+		this.#clock++;
+		if (this.#torchAt) {
+			const [i, j] = this.#torchAt;
+			if (t.at(i, j) !== AIR || ++this.#torchFrames > 40 || !inRange(p, i, j, 0)) {
+				if (p.itemAnimation === 0) this.#torchAt = null;
+				return p.itemAnimation > 0;
+			}
+			if (!this.hold('torch')) return true;
+			use(p, i, j);
+			return true;
+		}
+		if (this.#clock % 20 !== 0 || !p.grounded || p.itemAnimation > 0) return false;
+		// Not in the middle of something: only between steps or while walking.
+		const step = this.#follow?.step;
+		if (step && step.kind !== 'walk') return false;
+		const pi = Math.trunc(p.center.x / 16);
+		const pj = Math.trunc(p.center.y / 16);
+		const [r, g, b] = this.light.color(pi, pj).map((v) => v / 255);
+		if (Math.max(r, g, b) >= 0.45) return false;
+		for (let j = pj - 6; j <= pj + 6; j++)
+			for (let i = pi - 8; i <= pi + 8; i++) if (t.at(i, j) === TORCH) return false;
+		if (!this.#torches()) return false;
+		// The spot: a few tiles ahead, about head height.
+		let best: [number, number] | null = null;
+		let score = Infinity;
+		for (let j = pj - 4; j <= pj + 3; j++)
+			for (let i = pi - 5; i <= pi + 5; i++) {
+				if (t.at(i, j) !== AIR || !t.inView(i, j) || !inRange(p, i, j, 0)) continue;
+				if (!canPlaceTorch(this, i, j)) continue;
+				const sc = Math.abs(i - (pi + 3 * p.direction)) + Math.abs(j - (pj - 1)) * 0.6;
+				if (sc < score) {
+					score = sc;
+					best = [i, j];
+				}
+			}
+		if (!best) return false;
+		this.#torchAt = best;
+		this.#torchFrames = 0;
+		return true;
+	}
+
+	/** Torches in hand, making 3 from a wood if it's out. */
+	#torches(): boolean {
+		const torches = this.inventory.find((it) => it.type === TORCH_ITEM && it.stack > 0);
+		if (torches) return true;
+		const wood = this.inventory.find((it) => it.type === WOOD && it.stack > 0);
+		if (!wood) return false;
+		wood.stack--;
+		const slot =
+			this.inventory.find((it) => it.type === TORCH_ITEM) ??
+			this.inventory.find((it) => it.type === 0);
+		if (!slot) return false;
+		slot.type = TORCH_ITEM;
+		slot.stack += 3;
+		return true;
+	}
+
+	/** Body.hold (./ai/follow): the pickaxe, axe, torches or a stack of blocks in hand, between swings. */
+	hold(kind: 'pickaxe' | 'block' | 'axe' | 'torch'): boolean {
 		const p = this.player;
 		const slot =
 			kind === 'pickaxe'
 				? this.inventory[0]
 				: kind === 'axe'
 					? this.inventory[1]
-					: this.#blockToPlace();
+					: kind === 'torch'
+						? (this.inventory.find((it) => it.type === TORCH_ITEM && it.stack > 0) ?? null)
+						: this.#blockToPlace();
 		if (!slot) return false;
 		if (p.item === slot) return true;
 		if (p.itemAnimation > 0) return false;
@@ -548,8 +632,15 @@ export class World implements ItemWorld {
 				return { kind: 'mine', tile: [pk.i, pk.j], goal: this.#reach(pk.i, pk.j, -1), frames: 0 };
 		}
 
-		// A tree, now and then: chopped at its foot.
-		if (r(6) === 0) {
+		// A tree, now and then: chopped at its foot. Straight away in the dark with no torches
+		// or wood to make them from.
+		const c = p.center;
+		const dark =
+			Math.max(...this.light.color(Math.trunc(c.x / 16), Math.trunc(c.y / 16))) < 0.45 * 255;
+		const noLight = !this.inventory.some(
+			(it) => (it.type === TORCH_ITEM || it.type === WOOD) && it.stack > 0
+		);
+		if (r(6) === 0 || (dark && noLight)) {
 			const trees: { i: number; j: number }[] = [];
 			for (let i = first; i <= last; i++) {
 				const j = this.top(i) - 1;

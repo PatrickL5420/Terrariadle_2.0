@@ -23,7 +23,7 @@
  * this player only places into the open).
  */
 import { f } from './collision';
-import { AIR, GRASS, isSolid, TREES, type TileGrid } from './framing';
+import { AIR, FRAME_IMPORTANT, GRASS, isSolid, TORCH, TREES, type TileGrid } from './framing';
 import { holding, WorldGen } from './gen';
 import { Rt } from './gen/runtime';
 import { HitTile, TILE } from './hit-tile';
@@ -51,6 +51,8 @@ export interface ItemStats {
 	axe: number;
 	tileBoost: number;
 	scale: number;
+	/** How it's held when not in use: 1 held up, like a torch. */
+	holdStyle?: number;
 	/** Item.UseSound: [sound type, style] (SoundID.Item1 is [2, 1]). */
 	useSound?: [number, number];
 	/** Item.GetDrawHitbox: its texture's size, which places it in the hand. */
@@ -103,6 +105,8 @@ export const ITEMS: Record<number, ItemStats> = {
 		useSound: [2, 1],
 		frame: [32, 32]
 	},
+	/** Torch. */
+	8: { ...BLOCK, createTile: 4, holdStyle: 1, frame: [14, 16] },
 	/** Copper Axe. */
 	3506: {
 		...NONE,
@@ -218,8 +222,10 @@ export function itemCheck(p: Player, w?: ItemWorld) {
 	p.releaseUseItem = !c.use;
 	if (p.itemTime > 0) p.itemTime--;
 
-	// AnimatePlayerAndGetItemFrame: mid-swing, the item the swing started with.
+	// AnimatePlayerAndGetItemFrame: mid-swing, the item the swing started with; otherwise how
+	// the item's held.
 	if (p.itemAnimation > 0) applyUseStyle(p, stats(p.lastVisualized.type));
+	else if (!isAir(item)) applyHoldStyle(p, s);
 
 	// ItemCheck_OwnerOnlyCode.
 	p.toolTime = p.itemTime;
@@ -240,6 +246,17 @@ export function itemCheck(p: Player, w?: ItemWorld) {
 	}
 	// ItemCheckWrapped.
 	if (p.itemAnimation === 0) p.lastVisualized = { ...item };
+}
+
+/** ItemCheck_ApplyHoldStyle for holdStyle 1 (a torch): held out in front, upright. */
+function applyHoldStyle(p: Player, s: ItemStats) {
+	if (s.holdStyle !== 1) return;
+	const [W] = s.frame;
+	p.itemLocation = {
+		x: f(f(p.x + f(p.w * 0.5)) + f(f(f(W * 0.5) + 2) * p.direction)),
+		y: f(p.y + 24)
+	};
+	p.itemRotation = 0;
 }
 
 /** ItemCheck_ApplyUseStyle for useStyle 1 (a swing): three positions, and the turn. */
@@ -355,8 +372,9 @@ function placeThing(p: Player, s: ItemStats, w: ItemWorld) {
 	// these blocks and tiles it gets as far as asking what the tile there (or its leftover type,
 	// if it's gone) would drop, unless it's the block being placed: KillTile_GetItemDrops, which
 	// for a tree rolls the game's random numbers, every frame.
+	// (Not for a torch: it's frame-important, which rules swapping out before that.)
 	const there = Rt.tile.get(x, y);
-	if (there.type !== s.createTile) {
+	if (there.type !== s.createTile && !FRAME_IMPORTANT.includes(s.createTile)) {
 		const box = <T>(v: T) => ({ v });
 		WorldGen.KillTile_GetItemDrops(x, y, there, box(0), box(0), box(0), box(0), box(false), false);
 	}
@@ -364,11 +382,26 @@ function placeThing(p: Player, s: ItemStats, w: ItemWorld) {
 	if (w.tiles.at(x, y) !== AIR) return;
 	if (p.itemTime !== 0 || p.itemAnimation <= 0 || !p.controls.use) return;
 	// PlaceThing_Tiles_BlockPlacementForAssortedThings: next to a block or a wall, or on a wall.
-	if (!canPlaceAt(w, x, y)) return;
+	if (!(s.createTile === TORCH ? canPlaceTorch(w, x, y) : canPlaceAt(w, x, y))) return;
 	if (!placeTile(p, w, x, y, s.createTile)) return;
 	// PlaceThing_Tiles_PlaceIt: ApplyItemTime (times tileSpeed, 1).
 	p.itemTime = p.itemTimeMax = Math.max(Math.trunc(f(s.useTime * 1)), 1);
 	killGrassForSolids(w, x, y, s.createTile);
+}
+
+/**
+ * The same for a torch: a wall behind it, or a block under it or beside it, or a tree trunk
+ * beside it (and above, and above again: the game's code checks the same tile twice on the
+ * left, where it means the one below).
+ */
+export function canPlaceTorch(w: ItemWorld, x: number, y: number): boolean {
+	const t = w.tiles;
+	if (x >= 0 && y >= 0 && x < t.width && y < t.height && t.wall[y * t.width + x] > 0) return true;
+	const solid = (i: number, j: number) => isSolid(t.at(i, j));
+	const tree = (i: number, j: number) => WorldGen.IsTreeType(t.at(i, j));
+	if (solid(x, y + 1)) return true;
+	if (solid(x - 1, y) || (tree(x - 1, y) && tree(x - 1, y - 1) && tree(x - 1, y - 1))) return true;
+	return solid(x + 1, y) || (tree(x + 1, y) && tree(x + 1, y - 1) && tree(x + 1, y + 1));
 }
 
 /** Whether a block can go at (x, y) by what's around it: a block or wall beside it, or a wall behind. */
@@ -380,14 +413,12 @@ export function canPlaceAt(w: ItemWorld, x: number, y: number): boolean {
 	);
 }
 
-/** WorldGen.PlaceTile for a block: only where nobody's standing (Collision.EmptyTile). */
-function placeTile(p: Player, w: ItemWorld, i: number, j: number, type: number): boolean {
-	const t = w.tiles;
-	if (i < 0 || j < 0 || i >= t.width || j >= t.height) return false;
-	if (t.at(i, j) !== AIR || overlapsPlayer(p, i, j)) return false;
-	t.place(i, j, type, w.variant(i, j));
-	w.sound({ type: 0, style: 1, x: i * 16, y: j * 16 });
-	return true;
+/**
+ * WorldGen.PlaceTile (the game's, converted): a block only where nobody's standing
+ * (Collision.EmptyTile), a torch only where it has something to hang on (CheckTorch).
+ */
+function placeTile(_p: Player, _w: ItemWorld, i: number, j: number, type: number): boolean {
+	return WorldGen.PlaceTile(i, j, type, false, false, 0, 0);
 }
 
 /** Rectangle.Intersects of the tile with the player's (int) hitbox. */

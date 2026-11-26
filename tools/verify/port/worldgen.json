@@ -15,7 +15,8 @@
 		"Terraria.WorldGen.Pass_Trees",
 		"Terraria.WorldGen.KillTile",
 		"Terraria.WorldGen.CanKillTile",
-		"Terraria.WorldGen.ResetTreeShakes"
+		"Terraria.WorldGen.ResetTreeShakes",
+		"Terraria.WorldGen.PlaceTile"
 	],
 	"data": ["Terraria.Main", "Terraria.ID.TileID.Sets", "Terraria.ID.WallID.Sets"],
 	"external": {
@@ -65,7 +66,6 @@
 		"Terraria.NPC": "GameNPC"
 	},
 	"holes": [
-		"Terraria.WorldGen.PlaceTile",
 		"Terraria.WorldGen.Convert",
 		"Terraria.WorldGen.CheckOnTable1x1",
 		"Terraria.WorldGen.CheckCactus",

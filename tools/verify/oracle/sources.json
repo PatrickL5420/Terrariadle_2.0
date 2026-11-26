@@ -87,7 +87,12 @@
 				"GetTreeBottom",
 				"GetTreeType",
 				"GetTreeLeaf",
-				"ResetTreeShakes"
+				"ResetTreeShakes",
+				"CheckTorch",
+				"TopEdgeCanBeAttachedTo",
+				"LeftEdgeCanBeAttachedTo",
+				"RightEdgeCanBeAttachedTo",
+				"BottomEdgeCanBeAttachedTo"
 			],
 			"auto": [
 				"AshTreeGroundTest",

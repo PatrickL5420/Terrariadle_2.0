@@ -65,7 +65,7 @@ export function generate(
 	Main.rand = new UnifiedRandom(seed);
 	Rt.rand = Main.rand;
 	Main.myPlayer = 0;
-	Main.player[0] = new GamePlayer();
+	Main.player = Array.from({ length: 256 }, () => new GamePlayer());
 	WorldGen.isGeneratingOrLoadingWorld = true;
 	WorldGen.generatingWorld = true;
 	GenVars.leftBeachEnd = -100;
@@ -93,6 +93,8 @@ export function generate(
 
 /** Where the game's code, run on a world being played, sends what it makes. */
 export interface PlayHooks {
+	/** The player (Main.player[0]): where it is, so nothing's placed on it. */
+	player?: { x: number; y: number; w: number; h: number; direction: number };
 	drop(d: Drop): void;
 	sound(s: Sound): void;
 	/** NPC.NewNPC: a critter let out of a shaken tree (not simulated). */
@@ -114,7 +116,10 @@ export function play(grid: TileGrid, rand: UnifiedRandom, hooks: PlayHooks) {
 	Main.rand = rand;
 	Rt.rand = rand;
 	Main.myPlayer = 0;
-	Main.player[0] = new GamePlayer();
+	Main.player = Array.from(
+		{ length: 256 },
+		(_, k) => new GamePlayer(k === 0 ? () => hooks.player : undefined)
+	);
 	Main.gameMenu = false;
 	WorldGen.isGeneratingOrLoadingWorld = false;
 	WorldGen.generatingWorld = false;

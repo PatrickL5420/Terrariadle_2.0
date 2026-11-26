@@ -11,6 +11,9 @@ public partial class TileObject
 	public static bool CanPlace(int x, int y, int type, int style, int dir, out TileObject objectData, bool onlyCheck = false, int? forcedRandom = null)
 	{
 		objectData = null;
+		// Player.UpdatePlacementPreview's check for a torch, every frame it's held: for the
+		// preview drawn under the cursor (looks only; a torch has no random styles).
+		if (onlyCheck && type == 4) return false;
 		Stub.Hit("TileObject.CanPlace");
 		return false;
 	}
@@ -39,7 +42,7 @@ public partial class TileObject
  */
 public partial class Player
 {
-	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 0; // 0: used up
+	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 8 or 0; // 0: used up
 
 	static void Only(Item item, string what)
 	{
@@ -88,14 +91,16 @@ public partial class TileObjectData
 	public static bool CustomPlace(int type, int style)
 	{
 		// (No item: the pickaxe's createTile is -1.)
-		if (type < 0 || type is 0 or 1 or 2 or 40) return false;
+		if (type < 0 || type == 0 || type == 1 || type == 2 || type == 40) return false;
+		// Torches have object data, but PlaceThing_Tiles_TryPlacing places them as blocks all the same.
+		if (type == 4) return true;
 		Stub.Hit("TileObjectData.CustomPlace");
 		return false;
 	}
 
 	public static TileObjectData GetTileData(int type, int style, int alternate = 0)
 	{
-		if (type is 0 or 1 or 2 or 40) return null;
+		if (type == 0 || type == 1 || type == 2 || type == 40) return null;
 		Stub.Hit("TileObjectData.GetTileData");
 		return null;
 	}

@@ -22,8 +22,9 @@ export const CLAY = 40;
 /** Trees: forest trees, and the sakura and yellow willow (VanityTreeSakura, VanityTreeYellowWillow). */
 export const TREE = 5;
 export const TREES = [TREE, 596, 616];
-/** Main.tileFrameImportant, for the tiles here: the trees. */
-const FRAME_IMPORTANT = TREES;
+export const TORCH = 4;
+/** Main.tileFrameImportant, for the tiles here: the trees, and torches. */
+export const FRAME_IMPORTANT = [...TREES, TORCH];
 
 /**
  * The game's data about these blocks (Main.tile* and TileID.Sets), as the game sets it up

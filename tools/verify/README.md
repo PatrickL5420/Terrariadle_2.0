@@ -97,19 +97,19 @@ node tools/verify/port/frame-tables.mjs
 
 ## What's verified
 
-| Port                                           | Against                                                                                 | How                                                                                                                                                                                                  |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/world/framing.ts` + `frame-tables.ts` | `WorldGen.TileFrame`, `TileFrameCosmetic`, `SquareTileFrame`                            | all 589,824 3x3 neighbourhoods; random worlds framed, then edited (place, break, grass knocked to dirt)                                                                                              |
-| `TILE_DATA` in `framing.ts`                    | `Main.tile*`, `TileID.Sets.*` after the game's own setup                                | `data.verify.ts`, via the `lookup` feature                                                                                                                                                           |
-| `src/lib/world/collision.ts`                   | `Collision.TileCollision`, `StepUp`, `StepDown`                                         | 200,000 random bodies (player- and item-sized, on grid edges and off) near random ground                                                                                                             |
-| `src/lib/world/player.ts`                      | `Player.Update` for a plain player (see below)                                          | 5,000 random walks of up to 300 frames, every frame's position, velocity, jump state, step glide and body / leg frames                                                                               |
-| `src/lib/world/item-check.ts` + `hit-tile.ts`  | `Player.ItemCheck`: the Copper Pickaxe and Axe, dirt, stone, clay, on worlds with trees | 3,000 random uses of up to 660 frames, every frame: the swing, item position and turn, mining damage, tile changes (trees falling), drops, sounds, critters, where `Main.rand` has got to, the stack |
-| `src/lib/world/gen/` (converted)               | `TerrainPass` and the surface passes of `GenerateWorld`                                 | 60 seeds, every tile, wall and liquid in a 150 x 250 window around the surface, and the heights the passes work out                                                                                  |
+| Port                                           | Against                                                                                          | How                                                                                                                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/world/framing.ts` + `frame-tables.ts` | `WorldGen.TileFrame`, `TileFrameCosmetic`, `SquareTileFrame`                                     | all 589,824 3x3 neighbourhoods; random worlds framed, then edited (place, break, grass knocked to dirt)                                                                                              |
+| `TILE_DATA` in `framing.ts`                    | `Main.tile*`, `TileID.Sets.*` after the game's own setup                                         | `data.verify.ts`, via the `lookup` feature                                                                                                                                                           |
+| `src/lib/world/collision.ts`                   | `Collision.TileCollision`, `StepUp`, `StepDown`                                                  | 200,000 random bodies (player- and item-sized, on grid edges and off) near random ground                                                                                                             |
+| `src/lib/world/player.ts`                      | `Player.Update` for a plain player (see below)                                                   | 5,000 random walks of up to 300 frames, every frame's position, velocity, jump state, step glide and body / leg frames                                                                               |
+| `src/lib/world/item-check.ts` + `hit-tile.ts`  | `Player.ItemCheck`: the Copper Pickaxe and Axe, dirt, stone, clay, torches, on worlds with trees | 3,000 random uses of up to 660 frames, every frame: the swing, item position and turn, mining damage, tile changes (trees falling), drops, sounds, critters, where `Main.rand` has got to, the stack |
+| `src/lib/world/gen/` (converted)               | `TerrainPass` and the surface passes of `GenerateWorld`                                          | 60 seeds, every tile, wall and liquid in a 150 x 250 window around the surface, and the heights the passes work out                                                                                  |
 
 Each random suite also checks that its cases really cover what they should (landing, walls,
 ceilings and steps for collision; steps up and down, ceiling bumps, full speed, turning, jumps,
 landings and stops for movement; swings, auto-reuse, blocks broken and placed, grass knocked to
-dirt, stacks used up, damage wearing off, trees hit and felled for item use), so a pass can't come from cases that
+dirt, stacks used up, damage wearing off, trees hit and felled, torches placed for item use), so a pass can't come from cases that
 never get there. `the items are the game's` checks the item stats the port assumes.
 
 Things the comparisons turned up that reading the code had missed: dirt reframes a stone
@@ -124,6 +124,8 @@ turning mirrors the item held; dirt takes twice the pick power; and using up a s
 use time short. For trees: every axe hit that doesn't fell one shakes it (once a day per tree,
 `ShakeTree`, which rolls for acorns, critters and more); and holding a block over a tree rolls
 the game's random numbers every frame, because block swapping asks what the tree would drop.
+For torches: they have their own rule for where they can go (a wall behind, or a block or tree
+trunk beside or below), and held, the player holds its arm up.
 
 ### The world generation oracle
 
@@ -197,7 +199,8 @@ oracle's answers come back as JSON text and are rounded back to singles before c
 
 - Item use draws from `Main.rand` too, seeded the same on both sides, and each frame's result
   says where it has got to, so a draw more or less shows on the frame it happens. The port's
-  `WorldGen` code (`KillTile`, `CanKillTile`, trees' `CheckTree`, drops and `ShakeTree`) is the
+  `WorldGen` code (`KillTile`, `PlaceTile`, `CanKillTile`, trees' `CheckTree`, torches'
+  `CheckTorch`, drops and `ShakeTree`) is the
   game's, converted (`port/worldgen.json`), working on the site's own tiles. Draws the oracle
   leaves out are for looks only (dust, the miner's wobble, crack patterns), and left out of the
   port alike.

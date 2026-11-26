@@ -88,6 +88,47 @@ export class Collision {
 		}
 		return false;
 	}
+
+	static EmptyTile(i: number, j: number, ignoreTiles: boolean): boolean {
+		let val: Rectangle = new Rectangle();
+		val = new Rectangle(Math.imul(i, 16), Math.imul(j, 16), 16, 16);
+		if (Rt.tile.get(i, j).active_() && !ignoreTiles) {
+			return false;
+		}
+		for (let k: number = 0; k < 255; k++) {
+			if (
+				Main.player[k].active &&
+				!Main.player[k].dead &&
+				!Main.player[k].ghost &&
+				val.Intersects(
+					new Rectangle(
+						Math.trunc(Main.player[k].position.X) | 0,
+						Math.trunc(Main.player[k].position.Y) | 0,
+						Main.player[k].width,
+						Main.player[k].height
+					)
+				)
+			) {
+				return false;
+			}
+		}
+		for (let l: number = 0; l < Main.maxNPCs; l++) {
+			if (
+				Rt.npc[l].active &&
+				val.Intersects(
+					new Rectangle(
+						Math.trunc(Rt.npc[l].position.X) | 0,
+						Math.trunc(Rt.npc[l].position.Y) | 0,
+						Rt.npc[l].width,
+						Rt.npc[l].height
+					)
+				)
+			) {
+				return false;
+			}
+		}
+		return true;
+	}
 }
 
 export class Color {
@@ -237,6 +278,15 @@ export class Rectangle {
 		);
 	}
 
+	Intersects(r: Rectangle): boolean {
+		return (
+			r.X < ((this.X + this.Width) | 0) &&
+			this.X < ((r.X + r.Width) | 0) &&
+			r.Y < ((this.Y + this.Height) | 0) &&
+			this.Y < ((r.Y + r.Height) | 0)
+		);
+	}
+
 	clone(): Rectangle {
 		const c = new Rectangle();
 		c.X = this.X;
@@ -296,6 +346,10 @@ export class GenVars {
 }
 
 export class IEntitySource {}
+
+export class InitData {
+	static MaxNPCs: number = 200;
+}
 
 export class Item {
 	type: number = 0;
@@ -597,6 +651,10 @@ export class Main {
 		'0000000000000010101100000000000000000000000000000000000000000000000000000000000000000001100000000000010000000000001000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000011111110001100000000011110000000001100000000000000000000000000001000000000000000000110111100000000000100010000000000111100000000001000000011000000000000100000001111100000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000110000100010100000110111101100000000000000000000001000000000000000011111111111111000000100000000010010000000100111000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000'
 	);
 
+	static tileNoAttach: boolean[] = $bools(
+		'0001100000100111111111000001000000000000000000000010000000000000000000000000000000000011111111111111011000000010001000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001101000000000000000000000000000000000000100000001111101000000000000000000000000011100000000000000001111100000010000000000000000000000000000000000000000000000000000000000000000001100111010000000100000000010011100000000000000000001000010000000000000000000000000000000000000000000000000000000000000000000000000000000000010010000000000000000000000000000000000000000000000'
+	);
+
 	static netMode: number = 0;
 
 	static rockLayer: number = 0;
@@ -633,6 +691,8 @@ export class Main {
 
 	static hardMode: boolean = false;
 
+	static maxNPCs: number = 0;
+
 	static maxTilesX: number = 0;
 
 	static maxTilesY: number = 0;
@@ -663,6 +723,10 @@ export class Main {
 		'0001000000000000000000001000100010000000000000000001100000000110000001010110000000111000000000000000000000000010010100000000000000000000000000000000000000000000000000000000000000000000100000000000000001000100000000000000000000000001000010000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000100000000000000000000000000000000000000000000000000000000000001000000000100000000000000000000000000000110000000000000000000000000000000011000000001100000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000001110000000000000001100000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000'
 	);
 
+	static tileTable: boolean[] = $bools(
+		'0000000000000010001100000000000000000000000000000000000000000000000000000000000000000001100000000000010000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011111110001100000000011110000000001100000000000000000000000000001000000000000000000110111100000000000100010000000000111100000000001000000011000000000000100000001111100000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000110000100010100000110111101100000000000000000000001000000000000000011111111111111000000100000000010010000000100111000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000'
+	);
+
 	static time: number = 13500;
 
 	static worldSurface: number = 0;
@@ -670,6 +734,7 @@ export class Main {
 	CameraModifiers: any = null!;
 
 	static {
+		Main.maxNPCs = InitData.MaxNPCs;
 		Main.maxTilesX = ((((Math.trunc(Main.rightWorld) | 0) / 16) | 0) + 1) | 0;
 		Main.maxTilesY = ((((Math.trunc(Main.bottomWorld) | 0) / 16) | 0) + 1) | 0;
 		Main.player = Array.from({ length: 256 }, (): GamePlayer => null!);
@@ -1194,12 +1259,24 @@ export class TileID_Sets {
 		'0000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000100000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
 
+	static ResetsHalfBrickPlacementAttempt: boolean[] = $bools(
+		'1101111111111111111111101111111111111111111111111111111111110111111111011111111111111111111111111111111111111011111111111111111111111111111111111111111111111111111111111111111111100000111111111111111011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110111111111111110111111111111111111100000011111111111111110000100111111111111111111111111111111111111111111111111111111111111111111111111111111111111000011110111111111111111111111111111001111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111'
+	);
+
 	static Boulders: boolean[] = $bools(
 		'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000001111110000000000000000000000000000000000000'
 	);
 
 	static IsVine: boolean[] = $bools(
 		'0000000000000000000000000000000000000000000000000000100000000010000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
+	static IsBeam: boolean[] = $bools(
+		'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000111110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
+	static Platforms: boolean[] = $bools(
+		'0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000001111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
 
 	static Ices: boolean[] = $bools(
@@ -1226,12 +1303,20 @@ export class TileID_Sets {
 		'1111111111111111111111111111111111111111101001111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111011111111110111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111001111111111111111111111111110000001101111111111111111111111111111111111111111111111111111111111111111111111111111000111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111'
 	);
 
+	static NotReallySolid: boolean[] = $bools(
+		'0000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
 	static TruncatesWalls: boolean[] = $bools(
 		'0000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000'
 	);
 
 	static FrameImportantEchoCulling: boolean[] = $bools(
 		'0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000100000001111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
+	static BreakableWhenPlacing: boolean[] = $bools(
+		'0000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000011100000000000000000000000000000000000000010000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
 
 	static Falling: boolean[] = $bools(
@@ -1256,9 +1341,23 @@ export class TileID_Sets_Conversion {
 		'0100000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
 
+	static Sand: boolean[] = $bools(
+		'0000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000100010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
 	static Moss: boolean[] = $bools(
 		'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010010000000000000000000000000000000000000000000000000000000000000000000000000000000000000101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
+}
+
+export class TileObjectData {
+	static GetTileData(type: number, style: number, alternate: number): TileObjectData {
+		if (type === 0 || type === 1 || type === 2 || type === 40) {
+			return null!;
+		}
+		$hit('TileObjectData.GetTileData');
+		return null!;
+	}
 }
 
 export class UnifiedRandom {
@@ -4700,6 +4799,1100 @@ export class WorldGen {
 					break;
 			}
 		}
+	}
+
+	static PlaceTile(
+		i: number,
+		j: number,
+		Type: number,
+		mute: boolean,
+		forced: boolean,
+		plr: number,
+		style: number
+	): boolean {
+		let num: number = Type;
+		if (
+			WorldGen.isGeneratingOrLoadingWorld &&
+			Rt.tile.get(i, j).active_() &&
+			Rt.tile.get(i, j).type === 488
+		) {
+			return false;
+		}
+		if (num >= TileID.Count) {
+			return false;
+		}
+		let result: boolean = false;
+		if (i >= 0 && j >= 0 && i < Main.maxTilesX && j < Main.maxTilesY) {
+			let tile: Tile = Rt.tile.get(i, j);
+			if (tile === null!) {
+				tile = new Tile();
+				Rt.tile.set(i, j, tile);
+			}
+			if (tile.active_()) {
+				if (num === 23 && tile.type === 59) {
+					num = 661;
+				}
+				if (num === 199 && tile.type === 59) {
+					num = 662;
+				}
+			}
+			if (
+				forced ||
+				Collision.EmptyTile(i, j, false) ||
+				!Main.tileSolid[num] ||
+				(num === 23 && tile.type === 0 && tile.active_()) ||
+				(num === 199 && tile.type === 0 && tile.active_()) ||
+				(num === 2 && tile.type === 0 && tile.active_()) ||
+				(num === 109 && tile.type === 0 && tile.active_()) ||
+				(num === 60 && tile.type === 59 && tile.active_()) ||
+				(num === 661 && tile.type === 59 && tile.active_()) ||
+				(num === 662 && tile.type === 59 && tile.active_()) ||
+				(num === 70 && tile.type === 59 && tile.active_()) ||
+				(num === 633 && tile.type === 57 && tile.active_()) ||
+				(Main.tileMoss[num] && (tile.type === 1 || tile.type === 38) && tile.active_())
+			) {
+				if (num === 23 && (tile.type !== 0 || !tile.active_())) {
+					return false;
+				}
+				if (num === 199 && (tile.type !== 0 || !tile.active_())) {
+					return false;
+				}
+				if (num === 2 && (tile.type !== 0 || !tile.active_())) {
+					return false;
+				}
+				if (num === 109 && (tile.type !== 0 || !tile.active_())) {
+					return false;
+				}
+				if (num === 60 && (tile.type !== 59 || !tile.active_())) {
+					return false;
+				}
+				if (num === 661 && (tile.type !== 59 || !tile.active_())) {
+					return false;
+				}
+				if (num === 662 && (tile.type !== 59 || !tile.active_())) {
+					return false;
+				}
+				if (num === 70 && (tile.type !== 59 || !tile.active_())) {
+					return false;
+				}
+				if (num === 633 && (tile.type !== 57 || !tile.active_())) {
+					return false;
+				}
+				if (Main.tileMoss[num]) {
+					if ((tile.type !== 1 && tile.type !== 38) || !tile.active_()) {
+						return false;
+					}
+					if (tile.type === 38) {
+						num = (($v) =>
+							$v === 381
+								? 517
+								: $v === 534
+									? 535
+									: $v === 536
+										? 537
+										: $v === 539
+											? 540
+											: $v === 625
+												? 626
+												: $v === 627
+													? 628
+													: (((512 + num) | 0) - 179) | 0)(num);
+					}
+				}
+				if (num === 81) {
+					if (Rt.tile.get(i, (j - 1) | 0) === null!) {
+						Rt.tile.set(i, (j - 1) | 0, new Tile());
+					}
+					if (Rt.tile.get(i, (j + 1) | 0) === null!) {
+						Rt.tile.set(i, (j + 1) | 0, new Tile());
+					}
+					if (Rt.tile.get(i, (j - 1) | 0).active_()) {
+						return false;
+					}
+					if (
+						!Rt.tile.get(i, (j + 1) | 0).active_() ||
+						!Main.tileSolid[Rt.tile.get(i, (j + 1) | 0).type] ||
+						Rt.tile.get(i, (j + 1) | 0).halfBrick_() ||
+						Rt.tile.get(i, (j + 1) | 0).slope_() !== 0
+					) {
+						return false;
+					}
+				}
+				if (
+					TileID_Sets.IsADripTile[num] &&
+					(Rt.tile.get(i, (j - 1) | 0) === null! || Rt.tile.get(i, (j - 1) | 0).bottomSlope())
+				) {
+					return false;
+				}
+				if (tile.liquid > 0 || tile.checkingLiquid_()) {
+					if (TileID_Sets.Torches[num]) {
+						if (num === 4 && style !== 8 && style !== 11 && style !== 17) {
+							return false;
+						}
+						let tileData: TileObjectData = TileObjectData.GetTileData(num, style, 0);
+						if (!!(tileData !== null! && $hole('Terraria.TileObjectData.WaterPlacement') !== 0)) {
+							return false;
+						}
+					} else if (
+						num === 3 ||
+						num === 20 ||
+						num === 24 ||
+						num === 27 ||
+						num === 32 ||
+						num === 51 ||
+						num === 69 ||
+						num === 72 ||
+						num === 201 ||
+						num === 352 ||
+						num === 529 ||
+						num === 624 ||
+						num === 700 ||
+						num === 637 ||
+						num === 656 ||
+						num === 701 ||
+						num === 697
+					) {
+						return false;
+					}
+				}
+				if (!tile.active_()) {
+					tile.Clear(131);
+				} else if (
+					TileID_Sets.ResetsHalfBrickPlacementAttempt[num] &&
+					(!tile.active_() || !Main.tileFrameImportant[tile.type])
+				) {
+					tile.halfBrick_Boolean(false);
+					tile.frameY = 0;
+					tile.frameX = 0;
+				}
+				if (num === 624 || num === 700) {
+					if (
+						(!tile.active_() ||
+							Main.tileCut[tile.type] ||
+							TileID_Sets.BreakableWhenPlacing[tile.type]) &&
+						WorldGen.HasValidGroundForAbigailsFlowerBelowSpot(i, j)
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						tile.halfBrick_Boolean(false);
+						tile.slope_Byte(0);
+						tile.frameX = 0;
+						tile.frameY = 0;
+					}
+				} else if (num === 656 || num === 701) {
+					if (
+						(!tile.active_() ||
+							Main.tileCut[tile.type] ||
+							TileID_Sets.BreakableWhenPlacing[tile.type]) &&
+						WorldGen.HasValidGroundForGlowTulipBelowSpot(i, j)
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						tile.halfBrick_Boolean(false);
+						tile.slope_Byte(0);
+						tile.frameX = 0;
+						tile.frameY = 0;
+					}
+				} else if (num === 3 || num === 24 || num === 110 || num === 201 || num === 637) {
+					if (WorldGen.IsFitToPlaceFlowerIn(i, j, num)) {
+						if (num === 24 && WorldGen.genRand.Next_Int32(13) === 0) {
+							tile.active_Boolean(true);
+							tile.type = 32;
+							WorldGen.SquareTileFrame(i, j, true);
+						} else if (num === 201 && WorldGen.genRand.Next_Int32(13) === 0) {
+							tile.active_Boolean(true);
+							tile.type = 352;
+							WorldGen.SquareTileFrame(i, j, true);
+						} else if (
+							Rt.tile.get(i, (j + 1) | 0).type === 78 ||
+							Rt.tile.get(i, (j + 1) | 0).type === 380 ||
+							Rt.tile.get(i, (j + 1) | 0).type === 579
+						) {
+							tile.active_Boolean(true);
+							tile.type = num & 0xffff;
+							let num2: number = Utils.NextFromList(
+								WorldGen.genRand,
+								[
+									6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 27, 30, 33, 36, 39,
+									42
+								]
+							);
+							switch (num2) {
+								case 21:
+								case 24:
+								case 27:
+								case 30:
+								case 33:
+								case 36:
+								case 39:
+								case 42:
+									num2 = (num2 + WorldGen.genRand.Next_Int32(3)) | 0;
+									break;
+							}
+							tile.frameX = (Math.imul(num2, 18) << 16) >> 16;
+						} else if (
+							tile.wall >= 0 &&
+							tile.wall < WallID.Count &&
+							WallID_Sets.AllowsPlantsToGrow[tile.wall] &&
+							Rt.tile.get(i, (j + 1) | 0).wall >= 0 &&
+							Rt.tile.get(i, (j + 1) | 0).wall < WallID.Count &&
+							WallID_Sets.AllowsPlantsToGrow[Rt.tile.get(i, (j + 1) | 0).wall]
+						) {
+							if (
+								WorldGen.genRand.Next_Int32(50) === 0 ||
+								((num === 24 || num === 201) && WorldGen.genRand.Next_Int32(40) === 0)
+							) {
+								tile.active_Boolean(true);
+								tile.type = num & 0xffff;
+								if (num === 201) {
+									tile.frameX = 270;
+								} else {
+									tile.frameX = 144;
+								}
+							} else if (
+								WorldGen.genRand.Next_Int32(35) === 0 ||
+								(Rt.tile.get(i, j).wall >= 63 && Rt.tile.get(i, j).wall <= 70)
+							) {
+								tile.active_Boolean(true);
+								tile.type = num & 0xffff;
+								let num3: number = Utils.NextFromList(
+									WorldGen.genRand,
+									[6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+								);
+								if (num === 201) {
+									num3 = Utils.NextFromList(
+										WorldGen.genRand,
+										[6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22]
+									);
+								}
+								if (num === 637) {
+									num3 = Utils.NextFromList(WorldGen.genRand, [6, 7, 8, 9, 10]);
+								}
+								tile.frameX = (Math.imul(num3, 18) << 16) >> 16;
+							} else {
+								tile.active_Boolean(true);
+								tile.type = num & 0xffff;
+								tile.frameX = (Math.imul(WorldGen.genRand.Next_Int32(6), 18) << 16) >> 16;
+							}
+						}
+					}
+				} else if (num === 61) {
+					if (
+						((j + 1) | 0) < Main.maxTilesY &&
+						Rt.tile.get(i, (j + 1) | 0).active_() &&
+						Rt.tile.get(i, (j + 1) | 0).slope_() === 0 &&
+						!Rt.tile.get(i, (j + 1) | 0).halfBrick_() &&
+						(Rt.tile.get(i, (j + 1) | 0).type === 60 || Rt.tile.get(i, (j + 1) | 0).type === 226)
+					) {
+						let flag: boolean = Rt.tile.get(i, (j + 1) | 0).type === 226;
+						let flag2: boolean = j > Main.rockLayer || Main.remixWorld || WorldGen.remixWorldGen;
+						if (flag) {
+							flag2 = false;
+						}
+						if (WorldGen.genRand.Next_Int32(16) === 0 && j > Main.worldSurface && !flag) {
+							tile.active_Boolean(true);
+							tile.type = 69;
+							WorldGen.SquareTileFrame(i, j, true);
+						} else if (WorldGen.genRand.Next_Int32(60) === 0 && flag2) {
+							tile.active_Boolean(true);
+							tile.type = num & 0xffff;
+							tile.frameX = 144;
+						} else if (WorldGen.genRand.Next_Int32(230) === 0 && flag2) {
+							tile.active_Boolean(true);
+							tile.type = num & 0xffff;
+							tile.frameX = 162;
+						} else if (WorldGen.genRand.Next_Int32(15) === 0 && !flag) {
+							tile.active_Boolean(true);
+							tile.type = num & 0xffff;
+							if (WorldGen.genRand.Next_Int32(3) !== 0) {
+								tile.frameX =
+									(((Math.imul(WorldGen.genRand.Next_Int32(2), 18) + 108) | 0) << 16) >> 16;
+							} else {
+								tile.frameX =
+									(((Math.imul(WorldGen.genRand.Next_Int32(13), 18) + 180) | 0) << 16) >> 16;
+							}
+						} else {
+							tile.active_Boolean(true);
+							tile.type = num & 0xffff;
+							tile.frameX = (Math.imul(WorldGen.genRand.Next_Int32(6), 18) << 16) >> 16;
+						}
+					}
+				} else if (num === 518) {
+					WorldGen.PlaceLilyPad(i, j);
+				} else if (num === 519) {
+					WorldGen.PlaceCatTail(i, j);
+				} else if (num === 529) {
+					WorldGen.PlantSeaOat(i, j);
+				} else if (num === 571) {
+					WorldGen.PlaceBamboo(i, j);
+				} else if (num === 549) {
+					WorldGen.PlaceUnderwaterPlant(549, i, j);
+				} else if (num === 71) {
+					if (
+						((j + 1) | 0) < Main.maxTilesY &&
+						Rt.tile.get(i, (j + 1) | 0).active_() &&
+						Rt.tile.get(i, (j + 1) | 0).slope_() === 0 &&
+						!Rt.tile.get(i, (j + 1) | 0).halfBrick_() &&
+						Rt.tile.get(i, (j + 1) | 0).type === 70
+					) {
+						let val: Point = new Point();
+						val = new Point(-1, -1);
+						if (j > Main.worldSurface) {
+							val = WorldGen.PlaceCatTail(i, j);
+						}
+						if (WorldGen.InWorld_Int32_Int32_Int32(val.X, val.Y, 0)) {
+							if (WorldGen.isGeneratingOrLoadingWorld) {
+								let num4: number = WorldGen.genRand.Next_Int32(14);
+								for (let k: number = 0; k < num4; k++) {
+									WorldGen.GrowCatTail(val.X, val.Y);
+								}
+								WorldGen.SquareTileFrame(val.X, val.Y, true);
+							}
+						} else {
+							tile.active_Boolean(true);
+							tile.type = num & 0xffff;
+							tile.frameX = (Math.imul(WorldGen.genRand.Next_Int32(5), 18) << 16) >> 16;
+						}
+					}
+				} else if (num === 129) {
+					let newFrameDirection: number = 0;
+					if (
+						WorldGen.CheckAndAdjustMultiDirectionalTile(i, j, num, {
+							get v() {
+								return newFrameDirection;
+							},
+							set v($v: number) {
+								newFrameDirection = $v;
+							}
+						})
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						tile.frameX = (Math.imul(style, 18) << 16) >> 16;
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+				} else if (num === 178) {
+					let newFrameDirection2: number = 0;
+					if (
+						WorldGen.CheckAndAdjustMultiDirectionalTile(i, j, num, {
+							get v() {
+								return newFrameDirection2;
+							},
+							set v($v: number) {
+								newFrameDirection2 = $v;
+							}
+						})
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						tile.frameX = (Math.imul(style, 18) << 16) >> 16;
+						tile.frameY = (Math.imul(WorldGen.genRand.Next_Int32(3), 18) << 16) >> 16;
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+				} else if (num === 184) {
+					if (
+						(Main.tileMoss[Rt.tile.get((i - 1) | 0, j).type] &&
+							WorldGen.SolidTile_Int32_Int32_Boolean((i - 1) | 0, j, false)) ||
+						(Main.tileMoss[Rt.tile.get((i + 1) | 0, j).type] &&
+							WorldGen.SolidTile_Int32_Int32_Boolean((i + 1) | 0, j, false)) ||
+						(Main.tileMoss[Rt.tile.get(i, (j - 1) | 0).type] &&
+							WorldGen.SolidTile_Int32_Int32_Boolean(i, (j - 1) | 0, false)) ||
+						(Main.tileMoss[Rt.tile.get(i, (j + 1) | 0).type] &&
+							WorldGen.SolidTile_Int32_Int32_Boolean(i, (j + 1) | 0, false))
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						tile.frameX = (Math.imul(style, 18) << 16) >> 16;
+						tile.frameY = (Math.imul(WorldGen.genRand.Next_Int32(3), 18) << 16) >> 16;
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+					if (
+						(TileID_Sets.tileMossBrick[Rt.tile.get((i - 1) | 0, j).type] &&
+							WorldGen.SolidTile_Int32_Int32_Boolean((i - 1) | 0, j, false)) ||
+						(TileID_Sets.tileMossBrick[Rt.tile.get((i + 1) | 0, j).type] &&
+							WorldGen.SolidTile_Int32_Int32_Boolean((i + 1) | 0, j, false)) ||
+						(TileID_Sets.tileMossBrick[Rt.tile.get(i, (j - 1) | 0).type] &&
+							WorldGen.SolidTile_Int32_Int32_Boolean(i, (j - 1) | 0, false)) ||
+						(TileID_Sets.tileMossBrick[Rt.tile.get(i, (j + 1) | 0).type] &&
+							WorldGen.SolidTile_Int32_Int32_Boolean(i, (j + 1) | 0, false))
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						tile.frameX = (Math.imul(style, 18) << 16) >> 16;
+						tile.frameY = (Math.imul(WorldGen.genRand.Next_Int32(3), 18) << 16) >> 16;
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+				} else if (num === 485) {
+					WorldGen.PlaceObject(i, j, num, mute, style, 0, -1, -1);
+				} else if (num === 171) {
+					WorldGen.PlaceXmasTree(i, j, 171);
+				} else if (num === 254) {
+					WorldGen.Place2x2Style(i, j, num & 0xffff, style);
+				} else if (num === 335 || num === 564 || num === 594) {
+					WorldGen.Place2x2(i, j, num & 0xffff, 0);
+				} else if (
+					num === 654 ||
+					num === 319 ||
+					num === 132 ||
+					num === 484 ||
+					num === 138 ||
+					num === 664 ||
+					num === 711 ||
+					num === 712 ||
+					num === 142 ||
+					num === 143 ||
+					num === 282 ||
+					(num >= 288 && num <= 295) ||
+					(num >= 316 && num <= 318) ||
+					num === 713 ||
+					num === 714 ||
+					num === 715 ||
+					num === 716
+				) {
+					WorldGen.Place2x2(i, j, num & 0xffff, 0);
+				} else if (num === 411) {
+					WorldGen.Place2x2(i, j, num & 0xffff, 0);
+				} else if (num === 457) {
+					WorldGen.Place2x2Horizontal(i, j, 457, style);
+				} else if (num === 137) {
+					tile.active_Boolean(true);
+					tile.type = num & 0xffff;
+					tile.frameY = (Math.imul(18, style) << 16) >> 16;
+				} else if (num === 136) {
+					if (Rt.tile.get((i - 1) | 0, j) === null!) {
+						Rt.tile.set((i - 1) | 0, j, new Tile());
+					}
+					if (Rt.tile.get((i + 1) | 0, j) === null!) {
+						Rt.tile.set((i + 1) | 0, j, new Tile());
+					}
+					if (Rt.tile.get(i, (j + 1) | 0) === null!) {
+						Rt.tile.set(i, (j + 1) | 0, new Tile());
+					}
+					if (
+						(Rt.tile.get((i - 1) | 0, j).nactive() &&
+							!Rt.tile.get((i - 1) | 0, j).halfBrick_() &&
+							!TileID_Sets.NotReallySolid[Rt.tile.get((i - 1) | 0, j).type] &&
+							Rt.tile.get((i - 1) | 0, j).slope_() === 0 &&
+							(WorldGen.SolidTile_Int32_Int32_Boolean((i - 1) | 0, j, false) ||
+								TileID_Sets.IsBeam[Rt.tile.get((i - 1) | 0, j).type] ||
+								(Rt.tile.get((i - 1) | 0, j).type === 5 &&
+									Rt.tile.get((i - 1) | 0, (j - 1) | 0).type === 5 &&
+									Rt.tile.get((i - 1) | 0, (j + 1) | 0).type === 5))) ||
+						(Rt.tile.get((i + 1) | 0, j).nactive() &&
+							!Rt.tile.get((i + 1) | 0, j).halfBrick_() &&
+							!TileID_Sets.NotReallySolid[Rt.tile.get((i + 1) | 0, j).type] &&
+							Rt.tile.get((i + 1) | 0, j).slope_() === 0 &&
+							(WorldGen.SolidTile_Int32_Int32_Boolean((i + 1) | 0, j, false) ||
+								TileID_Sets.IsBeam[Rt.tile.get((i + 1) | 0, j).type] ||
+								(Rt.tile.get((i + 1) | 0, j).type === 5 &&
+									Rt.tile.get((i + 1) | 0, (j - 1) | 0).type === 5 &&
+									Rt.tile.get((i + 1) | 0, (j + 1) | 0).type === 5))) ||
+						(Rt.tile.get(i, (j + 1) | 0).nactive() &&
+							!Rt.tile.get(i, (j + 1) | 0).halfBrick_() &&
+							WorldGen.SolidTile_Int32_Int32_Boolean(i, (j + 1) | 0, false) &&
+							Rt.tile.get(i, (j + 1) | 0).slope_() === 0) ||
+						tile.wall > 0
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+				} else if (num === 442) {
+					if (Rt.tile.get((i - 1) | 0, j) === null!) {
+						Rt.tile.set((i - 1) | 0, j, new Tile());
+					}
+					if (Rt.tile.get((i + 1) | 0, j) === null!) {
+						Rt.tile.set((i + 1) | 0, j, new Tile());
+					}
+					if (Rt.tile.get(i, (j + 1) | 0) === null!) {
+						Rt.tile.set(i, (j + 1) | 0, new Tile());
+					}
+					if (
+						(Rt.tile.get((i - 1) | 0, j).nactive() &&
+							!Rt.tile.get((i - 1) | 0, j).halfBrick_() &&
+							!TileID_Sets.NotReallySolid[Rt.tile.get((i - 1) | 0, j).type] &&
+							Rt.tile.get((i - 1) | 0, j).slope_() === 0 &&
+							(WorldGen.SolidTile_Int32_Int32_Boolean((i - 1) | 0, j, false) ||
+								TileID_Sets.IsBeam[Rt.tile.get((i - 1) | 0, j).type] ||
+								(Rt.tile.get((i - 1) | 0, j).type === 5 &&
+									Rt.tile.get((i - 1) | 0, (j - 1) | 0).type === 5 &&
+									Rt.tile.get((i - 1) | 0, (j + 1) | 0).type === 5))) ||
+						(Rt.tile.get((i + 1) | 0, j).nactive() &&
+							!Rt.tile.get((i + 1) | 0, j).halfBrick_() &&
+							!TileID_Sets.NotReallySolid[Rt.tile.get((i + 1) | 0, j).type] &&
+							Rt.tile.get((i + 1) | 0, j).slope_() === 0 &&
+							(WorldGen.SolidTile_Int32_Int32_Boolean((i + 1) | 0, j, false) ||
+								TileID_Sets.IsBeam[Rt.tile.get((i + 1) | 0, j).type] ||
+								(Rt.tile.get((i + 1) | 0, j).type === 5 &&
+									Rt.tile.get((i + 1) | 0, (j - 1) | 0).type === 5 &&
+									Rt.tile.get((i + 1) | 0, (j + 1) | 0).type === 5))) ||
+						(Rt.tile.get(i, (j + 1) | 0).nactive() &&
+							!Rt.tile.get(i, (j + 1) | 0).halfBrick_() &&
+							WorldGen.SolidTile_Int32_Int32_Boolean(i, (j + 1) | 0, false) &&
+							Rt.tile.get(i, (j + 1) | 0).slope_() === 0)
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+				} else if (num === 4) {
+					if (Rt.tile.get((i - 1) | 0, j) === null!) {
+						Rt.tile.set((i - 1) | 0, j, new Tile());
+					}
+					if (Rt.tile.get((i + 1) | 0, j) === null!) {
+						Rt.tile.set((i + 1) | 0, j, new Tile());
+					}
+					if (Rt.tile.get(i, (j + 1) | 0) === null!) {
+						Rt.tile.set(i, (j + 1) | 0, new Tile());
+					}
+					if (Rt.tile.get((i - 1) | 0, (j - 1) | 0) === null!) {
+						Rt.tile.set((i - 1) | 0, (j - 1) | 0, new Tile());
+					}
+					if (Rt.tile.get((i + 1) | 0, (j - 1) | 0) === null!) {
+						Rt.tile.set((i + 1) | 0, (j - 1) | 0, new Tile());
+					}
+					if (Rt.tile.get((i - 1) | 0, (j + 1) | 0) === null!) {
+						Rt.tile.set((i - 1) | 0, (j + 1) | 0, new Tile());
+					}
+					if (Rt.tile.get((i + 1) | 0, (j + 1) | 0) === null!) {
+						Rt.tile.set((i + 1) | 0, (j + 1) | 0, new Tile());
+					}
+					let tile2: Tile = Rt.tile.get((i - 1) | 0, j);
+					let tile3: Tile = Rt.tile.get((i + 1) | 0, j);
+					let tile4: Tile = Rt.tile.get(i, (j + 1) | 0);
+					let tile5: Tile = Rt.tile.get((i - 1) | 0, (j + 1) | 0);
+					let tile6: Tile = Rt.tile.get((i + 1) | 0, (j + 1) | 0);
+					let tile7: Tile = Rt.tile.get((i - 1) | 0, (j - 1) | 0);
+					let tile8: Tile = Rt.tile.get((i + 1) | 0, (j - 1) | 0);
+					if (
+						tile.wall > 0 ||
+						(tile2.active_() &&
+							(tile2.slope_() === 0 || ((tile2.slope_() % 2) | 0) !== 1) &&
+							((Main.tileSolid[tile2.type] &&
+								!Main.tileSolidTop[tile2.type] &&
+								!TileID_Sets.NotReallySolid[tile2.type]) ||
+								TileID_Sets.IsBeam[tile2.type] ||
+								(WorldGen.IsTreeType(tile2.type) &&
+									WorldGen.IsTreeType(tile7.type) &&
+									WorldGen.IsTreeType(tile5.type)))) ||
+						(tile3.active_() &&
+							(tile3.slope_() === 0 || ((tile3.slope_() % 2) | 0) !== 0) &&
+							((Main.tileSolid[tile3.type] &&
+								!Main.tileSolidTop[tile3.type] &&
+								!TileID_Sets.NotReallySolid[tile3.type]) ||
+								TileID_Sets.IsBeam[tile3.type] ||
+								(WorldGen.IsTreeType(tile3.type) &&
+									WorldGen.IsTreeType(tile8.type) &&
+									WorldGen.IsTreeType(tile6.type)))) ||
+						(tile4.active_() &&
+							Main.tileSolid[tile4.type] &&
+							((TileID_Sets.Platforms[tile4.type] &&
+								WorldGen.TopEdgeCanBeAttachedTo(i, (j + 1) | 0)) ||
+								((!Main.tileSolidTop[tile4.type] || (tile4.type === 380 && tile4.slope_() === 0)) &&
+									!TileID_Sets.NotReallySolid[tile4.type] &&
+									!tile4.halfBrick_() &&
+									tile4.slope_() === 0)))
+					) {
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						tile.frameY = (Math.imul(22, style) << 16) >> 16;
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+				} else if (num === 10) {
+					if (Rt.tile.get(i, (j - 1) | 0) === null!) {
+						Rt.tile.set(i, (j - 1) | 0, new Tile());
+					}
+					if (Rt.tile.get(i, (j - 2) | 0) === null!) {
+						Rt.tile.set(i, (j - 2) | 0, new Tile());
+					}
+					if (Rt.tile.get(i, (j - 3) | 0) === null!) {
+						Rt.tile.set(i, (j - 3) | 0, new Tile());
+					}
+					if (Rt.tile.get(i, (j + 1) | 0) === null!) {
+						Rt.tile.set(i, (j + 1) | 0, new Tile());
+					}
+					if (Rt.tile.get(i, (j + 2) | 0) === null!) {
+						Rt.tile.set(i, (j + 2) | 0, new Tile());
+					}
+					if (Rt.tile.get(i, (j + 3) | 0) === null!) {
+						Rt.tile.set(i, (j + 3) | 0, new Tile());
+					}
+					if (
+						!Rt.tile.get(i, (j - 1) | 0).active_() &&
+						!Rt.tile.get(i, (j - 2) | 0).active_() &&
+						Rt.tile.get(i, (j - 3) | 0).active_() &&
+						Main.tileSolid[Rt.tile.get(i, (j - 3) | 0).type]
+					) {
+						WorldGen.PlaceDoor(i, (j - 1) | 0, num, style);
+						WorldGen.SquareTileFrame(i, j, true);
+					} else {
+						if (
+							Rt.tile.get(i, (j + 1) | 0).active_() ||
+							Rt.tile.get(i, (j + 2) | 0).active_() ||
+							!Rt.tile.get(i, (j + 3) | 0).active_() ||
+							!Main.tileSolid[Rt.tile.get(i, (j + 3) | 0).type]
+						) {
+							return false;
+						}
+						WorldGen.PlaceDoor(i, (j + 1) | 0, num, style);
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+				} else if (
+					(num >= 275 && num <= 281) ||
+					num === 296 ||
+					num === 297 ||
+					num === 309 ||
+					num === 358 ||
+					num === 359 ||
+					num === 413 ||
+					num === 414 ||
+					num === 542
+				) {
+					WorldGen.Place6x3(i, j, num & 0xffff, -1, 0);
+				} else if (
+					num === 237 ||
+					num === 244 ||
+					num === 285 ||
+					num === 286 ||
+					num === 298 ||
+					num === 299 ||
+					num === 310 ||
+					num === 339 ||
+					num === 538 ||
+					(num >= 361 && num <= 364) ||
+					num === 532 ||
+					num === 533 ||
+					num === 486 ||
+					num === 488 ||
+					num === 544 ||
+					num === 582 ||
+					num === 619 ||
+					num === 629
+				) {
+					WorldGen.Place3x2(i, j, num & 0xffff, 0);
+				} else if (num === 128) {
+					WorldGen.PlaceMan(i, j, style);
+					WorldGen.SquareTileFrame(i, j, true);
+				} else if (num === 269) {
+					WorldGen.PlaceWoman(i, j, style);
+					WorldGen.SquareTileFrame(i, j, true);
+				} else if (num === 334) {
+					let style2: number = 0;
+					if (style === -1) {
+						style2 = 1;
+					}
+					WorldGen.Place3x3Wall(i, j, 334, style2);
+					WorldGen.SquareTileFrame(i, j, true);
+				} else if (num === 149) {
+					let newFrameDirection3: number = 0;
+					if (
+						WorldGen.CheckAndAdjustMultiDirectionalTile(i, j, num, {
+							get v() {
+								return newFrameDirection3;
+							},
+							set v($v: number) {
+								newFrameDirection3 = $v;
+							}
+						})
+					) {
+						tile.frameX = (Math.imul(18, style) << 16) >> 16;
+						tile.active_Boolean(true);
+						tile.type = num & 0xffff;
+						WorldGen.SquareTileFrame(i, j, true);
+					}
+				} else if (num === 139 || num === 35) {
+					WorldGen.PlaceMB(i, j, num & 0xffff, style);
+					WorldGen.SquareTileFrame(i, j, true);
+				} else if (num === 165) {
+					WorldGen.PlaceTight(i, j, false);
+					WorldGen.SquareTileFrame(i, j, true);
+				} else if (num === 235) {
+					WorldGen.Place3x1(i, j, num & 0xffff, 0);
+					WorldGen.SquareTileFrame(i, j, true);
+				} else if (num === 240) {
+					WorldGen.Place3x3Wall(i, j, num & 0xffff, style);
+				} else if (num === 440) {
+					WorldGen.Place3x3Wall(i, j, num & 0xffff, style);
+				} else if (num === 245) {
+					WorldGen.Place2x3Wall(i, j, num & 0xffff, style);
+				} else if (num === 246) {
+					WorldGen.Place3x2Wall(i, j, num & 0xffff, style);
+				} else if (num === 241) {
+					WorldGen.Place4x3Wall(i, j, num & 0xffff, style);
+				} else if (num === 242) {
+					WorldGen.Place6x4Wall(i, j, num & 0xffff, style);
+				} else if (num === 34) {
+					WorldGen.PlaceChand(i, j, num & 0xffff, style);
+					WorldGen.SquareTileFrame(i, j, true);
+				} else if (
+					num === 106 ||
+					num === 212 ||
+					num === 219 ||
+					num === 220 ||
+					num === 228 ||
+					num === 231 ||
+					num === 243 ||
+					num === 247 ||
+					num === 283 ||
+					(num >= 300 && num <= 308) ||
+					num === 354 ||
+					num === 355 ||
+					num === 491 ||
+					num === 642 ||
+					num === 733 ||
+					num === 753
+				) {
+					WorldGen.Place3x3(i, j, num & 0xffff, style);
+					WorldGen.SquareTileFrame(i, j, true);
+				} else {
+					switch (num) {
+						case 13:
+						case 33:
+						case 49:
+						case 50:
+						case 78:
+						case 174:
+						case 372:
+						case 646:
+							WorldGen.PlaceOnTable1x1(i, j, num, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 14:
+						case 26:
+						case 86:
+						case 87:
+						case 88:
+						case 89:
+						case 114:
+						case 186:
+						case 187:
+						case 215:
+						case 217:
+						case 218:
+						case 377:
+						case 469:
+							WorldGen.Place3x2(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 236:
+						case 702:
+							WorldGen.PlaceJunglePlant(
+								i,
+								j,
+								num & 0xffff,
+								WorldGen.genRand.Next_Int32(3),
+								0,
+								num !== 702
+							);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 238:
+							WorldGen.PlaceJunglePlant(i, j, num & 0xffff, 0, 0, true);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 20: {
+							if (Rt.tile.get(i, (j + 1) | 0) === null!) {
+								Rt.tile.set(i, (j + 1) | 0, new Tile());
+							}
+							let type: number = Rt.tile.get(i, (j + 1) | 0).type;
+							if (
+								Rt.tile.get(i, (j + 1) | 0).active_() &&
+								(type === 2 ||
+									type === 109 ||
+									type === 147 ||
+									type === 60 ||
+									type === 23 ||
+									type === 199 ||
+									type === 661 ||
+									type === 662 ||
+									type === 53 ||
+									type === 234 ||
+									type === 116 ||
+									type === 112 ||
+									type === 633)
+							) {
+								WorldGen.Place1x2(i, j, num & 0xffff, style);
+								WorldGen.SquareTileFrame(i, j, true);
+							}
+							break;
+						}
+						case 15:
+						case 216:
+						case 338:
+						case 390:
+							if (Rt.tile.get(i, (j - 1) | 0) === null!) {
+								Rt.tile.set(i, (j - 1) | 0, new Tile());
+							}
+							if (Rt.tile.get(i, j) === null!) {
+								Rt.tile.set(i, j, new Tile());
+							}
+							WorldGen.Place1x2(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 227:
+							WorldGen.PlaceDye(i, j, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 567:
+							WorldGen.PlaceGnome(i, j, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 16:
+						case 18:
+						case 29:
+						case 103:
+						case 134:
+						case 462:
+							WorldGen.Place2x1(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 92:
+						case 93:
+						case 453:
+							WorldGen.Place1xX(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 104:
+						case 105:
+						case 320:
+						case 337:
+						case 349:
+						case 356:
+						case 378:
+						case 456:
+						case 506:
+						case 545:
+						case 663:
+							WorldGen.Place2xX(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 17:
+						case 77:
+						case 133:
+							WorldGen.Place3x2(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 207:
+							WorldGen.Place2xX(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 410:
+						case 480:
+						case 509:
+						case 657:
+						case 658:
+						case 720:
+						case 721:
+						case 725:
+							WorldGen.Place2xX(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						case 465:
+						case 531:
+						case 591:
+						case 592:
+							WorldGen.Place2xX(i, j, num & 0xffff, style);
+							WorldGen.SquareTileFrame(i, j, true);
+							break;
+						default:
+							if (TileID_Sets.BasicChest[num]) {
+								WorldGen.PlaceChest(i, j, num & 0xffff, false, style);
+								WorldGen.SquareTileFrame(i, j, true);
+								break;
+							}
+							switch (num) {
+								case 91:
+									WorldGen.PlaceBanner(i, j, num & 0xffff, style);
+									WorldGen.SquareTileFrame(i, j, true);
+									break;
+								case 419:
+								case 420:
+								case 423:
+								case 424:
+								case 429:
+								case 445:
+									WorldGen.PlaceLogicTiles(i, j, num, style);
+									WorldGen.SquareTileFrame(i, j, true);
+									break;
+								case 36:
+								case 135:
+								case 141:
+								case 144:
+								case 210:
+								case 239:
+								case 324:
+								case 476:
+								case 494:
+									WorldGen.Place1x1(i, j, num, style);
+									WorldGen.SquareTileFrame(i, j, true);
+									break;
+								case 101:
+								case 102:
+								case 463:
+									WorldGen.Place3x4(i, j, num & 0xffff, style);
+									WorldGen.SquareTileFrame(i, j, true);
+									break;
+								case 464:
+								case 466:
+									WorldGen.Place5x4(i, j, num & 0xffff, style);
+									WorldGen.SquareTileFrame(i, j, true);
+									break;
+								case 27:
+									WorldGen.PlaceSunflower(i, j, 27);
+									WorldGen.SquareTileFrame(i, j, true);
+									break;
+								case 28:
+									WorldGen.PlacePot(i, j, 28, WorldGen.genRand.Next_Int32(4));
+									WorldGen.SquareTileFrame(i, j, true);
+									break;
+								case 42:
+								case 270:
+								case 271:
+									WorldGen.Place1x2Top(i, j, num & 0xffff, style);
+									WorldGen.SquareTileFrame(i, j, true);
+									break;
+								case 55:
+								case 425:
+								case 510:
+								case 511:
+									WorldGen.PlaceSign(i, j, num & 0xffff, style);
+									break;
+								case 85:
+								case 376:
+									WorldGen.Place2x2Horizontal(i, j, num & 0xffff, style);
+									break;
+								default:
+									if (Main.tileAlch[num]) {
+										WorldGen.PlaceAlch(i, j, style);
+										break;
+									}
+									switch (num) {
+										case 94:
+										case 95:
+										case 97:
+										case 98:
+										case 99:
+										case 100:
+										case 125:
+										case 126:
+										case 172:
+										case 173:
+										case 287:
+										case 751:
+										case 752:
+											WorldGen.Place2x2(i, j, num & 0xffff, style);
+											break;
+										case 96:
+											WorldGen.Place2x2Style(i, j, num & 0xffff, style);
+											break;
+										case 79:
+										case 90: {
+											let direction: number = 1;
+											if (plr > -1) {
+												direction = Main.player[plr].direction;
+											}
+											WorldGen.Place4x2(i, j, num & 0xffff, direction, style);
+											break;
+										}
+										case 209:
+											WorldGen.PlaceCannon(i, j, num & 0xffff, style);
+											break;
+										case 81:
+											tile.frameX = (Math.imul(26, WorldGen.genRand.Next_Int32(6)) << 16) >> 16;
+											tile.active_Boolean(true);
+											tile.type = num & 0xffff;
+											break;
+										case 19:
+											tile.frameY = (Math.imul(18, style) << 16) >> 16;
+											tile.active_Boolean(true);
+											tile.type = num & 0xffff;
+											break;
+										case 380:
+											tile.frameY = (Math.imul(18, style) << 16) >> 16;
+											tile.active_Boolean(true);
+											tile.type = num & 0xffff;
+											break;
+										case 314:
+											$hole('Terraria.Minecart.PlaceTrack');
+											break;
+										default:
+											tile.active_Boolean(true);
+											tile.type = num & 0xffff;
+											if (num === 53 || num === 396 || num === 397) {
+												if (SpecialSeedFeatures.RainbowSandAndBlackSandWalls) {
+													tile.color_Byte(WorldGen.GetRainbowPaintIDForPosition(i, j, true));
+												} else if (
+													Main.tenthAnniversaryWorld &&
+													!Main.remixWorld &&
+													!Main.notTheBeesWorld &&
+													!Main.dontStarveWorld
+												) {
+													tile.color_Byte(7);
+												}
+											}
+											break;
+									}
+									break;
+							}
+							break;
+					}
+				}
+				if (tile.active_()) {
+					if (TileID_Sets.TruncatesWalls[tile.type]) {
+						WorldGen.SquareWallFrame(i, j, true);
+					}
+					WorldGen.SquareTileFrame(i, j, true);
+					result = true;
+					if (!mute) {
+						switch (num) {
+							case 127:
+								$hole('SoundEngine.PlaySound(SoundID.Item30, i * 16, j * 16)');
+								break;
+							case 314:
+								$hole('SoundEngine.PlaySound(SoundID.Item52, i * 16, j * 16)');
+								break;
+							case 330:
+							case 331:
+							case 332:
+							case 333:
+								$sound(18, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+								break;
+							default:
+								$sound(0, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+								break;
+						}
+						if (num === 22 || num === 140) {
+							for (let l: number = 0; l < 3; l++) {
+								$hole('Terraria.Dust.NewDust');
+							}
+						}
+					}
+				}
+			}
+		}
+		return result;
+	}
+
+	static SolidTile2_Int32_Int32(i: number, j: number): boolean {
+		try {
+			if (Rt.tile.get(i, j) === null!) {
+				return true;
+			}
+			if (
+				Rt.tile.get(i, j).active_() &&
+				Main.tileSolid[Rt.tile.get(i, j).type] &&
+				((TileID_Sets.Platforms[Rt.tile.get(i, j).type] &&
+					(Rt.tile.get(i, j).halfBrick_() || Rt.tile.get(i, j).topSlope())) ||
+					Rt.tile.get(i, j).slope_() === 0) &&
+				!Rt.tile.get(i, j).halfBrick_() &&
+				!Rt.tile.get(i, j).inActive_()
+			) {
+				return true;
+			}
+		} catch (__caught) {
+			$caught(__caught);
+		}
+		return false;
 	}
 
 	static TileRunner(
@@ -8589,6 +9782,118 @@ export class WorldGen {
 		WorldGen.numTreeShakes = 0;
 	}
 
+	static CheckTorch(x: number, y: number): void {
+		for (let i: number = (x - 1) | 0; i <= ((x + 1) | 0); i++) {
+			for (let j: number = (y - 1) | 0; j <= ((y + 1) | 0); j++) {
+				if (Rt.tile.get(i, j) === null!) {
+					return;
+				}
+			}
+		}
+		let tile: Tile = Rt.tile.get(x, y);
+		let tile2: Tile = Rt.tile.get(x, (y - 1) | 0);
+		let tile3: Tile = Rt.tile.get(x, (y + 1) | 0);
+		let tile4: Tile = Rt.tile.get((x - 1) | 0, y);
+		let tile5: Tile = Rt.tile.get((x + 1) | 0, y);
+		let tile6: Tile = Rt.tile.get((x - 1) | 0, (y + 1) | 0);
+		let tile7: Tile = Rt.tile.get((x + 1) | 0, (y + 1) | 0);
+		let tile8: Tile = Rt.tile.get((x - 1) | 0, (y - 1) | 0);
+		let tile9: Tile = Rt.tile.get((x + 1) | 0, (y - 1) | 0);
+		let num: number = 0;
+		if (tile.frameX >= 66) {
+			num = 66;
+		}
+		let num2: number = -1;
+		let num3: number = -1;
+		let num4: number = -1;
+		let tree: number = -1;
+		let tree2: number = -1;
+		let tree3: number = -1;
+		let tree4: number = -1;
+		if (tile2 !== null! && tile2.active_() && !tile2.bottomSlope()) {
+			void tile2.type;
+		}
+		if (
+			tile3 !== null! &&
+			tile3.active_() &&
+			((TileID_Sets.Platforms[tile3.type] && WorldGen.TopEdgeCanBeAttachedTo(x, (y + 1) | 0)) ||
+				(!tile3.halfBrick_() && !tile3.topSlope()))
+		) {
+			num2 = tile3.type;
+		}
+		if (
+			tile4 !== null! &&
+			tile4.active_() &&
+			(tile4.slope_() === 0 || ((tile4.slope_() % 2) | 0) !== 1)
+		) {
+			num3 = tile4.type;
+		}
+		if (
+			tile5 !== null! &&
+			tile5.active_() &&
+			(tile5.slope_() === 0 || ((tile5.slope_() % 2) | 0) !== 0)
+		) {
+			num4 = tile5.type;
+		}
+		if (tile6 !== null! && tile6.active_()) {
+			tree = tile6.type;
+		}
+		if (tile7 !== null! && tile7.active_()) {
+			tree2 = tile7.type;
+		}
+		if (tile8 !== null! && tile8.active_()) {
+			tree3 = tile8.type;
+		}
+		if (tile9 !== null! && tile9.active_()) {
+			tree4 = tile9.type;
+		}
+		if (
+			num2 >= 0 &&
+			Main.tileSolid[num2] &&
+			(!Main.tileNoAttach[num2] || TileID_Sets.Platforms[num2])
+		) {
+			tile.frameX = num;
+		} else if (
+			(num3 >= 0 && Main.tileSolid[num3] && !Main.tileNoAttach[num3]) ||
+			(num3 >= 0 && TileID_Sets.IsBeam[num3]) ||
+			(WorldGen.IsTreeType(num3) && WorldGen.IsTreeType(tree3) && WorldGen.IsTreeType(tree))
+		) {
+			tile.frameX = (((22 + num) | 0) << 16) >> 16;
+		} else if (
+			(num4 >= 0 && Main.tileSolid[num4] && !Main.tileNoAttach[num4]) ||
+			(num4 >= 0 && TileID_Sets.IsBeam[num4]) ||
+			(WorldGen.IsTreeType(num4) && WorldGen.IsTreeType(tree4) && WorldGen.IsTreeType(tree2))
+		) {
+			tile.frameX = (((44 + num) | 0) << 16) >> 16;
+		} else if (tile.wall > 0) {
+			tile.frameX = num;
+		} else {
+			WorldGen.KillTile(x, y, false, false, false);
+		}
+	}
+
+	static TopEdgeCanBeAttachedTo(i: number, j: number): boolean {
+		try {
+			let tile: Tile = Rt.tile.get(i, j);
+			if (tile === null!) {
+				return true;
+			}
+			if (
+				tile.active_() &&
+				(Main.tileSolid[tile.type] || Main.tileSolidTop[tile.type]) &&
+				(!tile.topSlope() ||
+					(TileID_Sets.Platforms[tile.type] && WorldGen.PlatformProperTopFrame(tile.frameX))) &&
+				!tile.halfBrick_() &&
+				!tile.inActive_()
+			) {
+				return true;
+			}
+		} catch (__caught) {
+			$caught(__caught);
+		}
+		return false;
+	}
+
 	static AshTreeGroundTest(tileType: number): boolean {
 		if (tileType < 0) {
 			return false;
@@ -8644,6 +9949,44 @@ export class WorldGen {
 			return false;
 		}
 		return TileID_Sets.CanBeClearedDuringGeneration[tileType];
+	}
+
+	static CanUnderwaterPlantGrowHere(
+		type: number,
+		x: number,
+		y: number,
+		ignoreSelf: boolean
+	): boolean {
+		if (!WorldGen.InWorld_Int32_Int32_Int32(x, y, 50)) {
+			return false;
+		}
+		let tileSafely: Tile = Framing.GetTileSafely(x, y);
+		if (!ignoreSelf && tileSafely.active_()) {
+			return false;
+		}
+		for (let i: number = 0; i < 3; i++) {
+			tileSafely = Framing.GetTileSafely(x, (y - i) | 0);
+			if (tileSafely.liquid === 0 || tileSafely.liquidType_() !== 0) {
+				return false;
+			}
+		}
+		let tileSafely2: Tile = Framing.GetTileSafely(x, (y + 1) | 0);
+		if (!tileSafely2.nactive()) {
+			return false;
+		}
+		if (
+			(!TileID_Sets_Conversion.Sand[tileSafely2.type] ||
+				!WorldGen.TopEdgeCanBeAttachedTo(x, (y + 1) | 0)) &&
+			type !== tileSafely2.type
+		) {
+			return false;
+		}
+		tileSafely = Framing.GetTileSafely(x, y);
+		let wall: number = tileSafely.wall;
+		if (wall !== 0 && ((wall - 63) | 0) >>> 0 > 6 && ((wall - 80) | 0) >>> 0 > 1) {
+			return false;
+		}
+		return true;
 	}
 
 	static CheckBoulderChest(i: number, j: number): boolean {
@@ -8860,6 +10203,26 @@ export class WorldGen {
 		return new EntitySource_TileBreak(x, y);
 	}
 
+	static GetRainbowPaintIDForPosition(x: number, y: number, wiggly: boolean): number {
+		let num: number = x;
+		let num2: number = y;
+		if (wiggly) {
+			num =
+				(num +
+					(((Math.trunc(
+						Math.sin(Math.fround(Math.fround(((y % 50) | 0) / 50) * 6.2831854820251465)) * 10
+					) |
+						0) -
+						5) |
+						0)) |
+				0;
+			num2 = 0;
+		}
+		let num3: number = (((num % 44) | 0) + ((num2 % 44) | 0)) | 0;
+		num3 = (num3 % 11) | 0;
+		return ((13 + num3) | 0) & 0xff;
+	}
+
 	static GetTreeTypeAndTreeBottom(
 		x: number,
 		y: number,
@@ -8884,6 +10247,51 @@ export class WorldGen {
 			return 1;
 		}
 		return 2;
+	}
+
+	static HasValidGroundForAbigailsFlowerBelowSpot(x: number, y: number): boolean {
+		if (!WorldGen.InWorld_Int32_Int32_Int32(x, y, 2)) {
+			return false;
+		}
+		let tile: Tile = Rt.tile.get(x, (y + 1) | 0);
+		if (tile === null! || !tile.active_()) {
+			return false;
+		}
+		let type: number = tile.type;
+		if (type < 0 || type >= TileID.Count) {
+			return false;
+		}
+		if (type !== 70 && type !== 633 && !TileID_Sets_Conversion.Grass[type]) {
+			return false;
+		}
+		return WorldGen.SolidTileAllowBottomSlope(x, (y + 1) | 0);
+	}
+
+	static HasValidGroundForGlowTulipBelowSpot(x: number, y: number): boolean {
+		if (!WorldGen.InWorld_Int32_Int32_Int32(x, y, 2)) {
+			return false;
+		}
+		let tile: Tile = Rt.tile.get(x, (y + 1) | 0);
+		if (tile === null! || !tile.active_()) {
+			return false;
+		}
+		let type: number = tile.type;
+		if (type < 0 || type >= TileID.Count) {
+			return false;
+		}
+		if (
+			type !== 0 &&
+			type !== 70 &&
+			type !== 633 &&
+			type !== 59 &&
+			type !== 225 &&
+			!TileID_Sets_Conversion.Grass[type] &&
+			!TileID_Sets_Conversion.Stone[type] &&
+			!Main.tileMoss[type]
+		) {
+			return false;
+		}
+		return WorldGen.SolidTileAllowBottomSlope(x, (y + 1) | 0);
 	}
 
 	static InWorld_Int32_Int32_Int32(x: number, y: number, fluff: number): boolean {
@@ -8932,6 +10340,33 @@ export class WorldGen {
 			if ((!Main.raining || flag) && Main.time > 40500) {
 				return true;
 			}
+		}
+		return false;
+	}
+
+	static IsFitToPlaceFlowerIn(x: number, y: number, typeAttemptedToPlace: number): boolean {
+		if (y < 1 || y > ((Main.maxTilesY - 1) | 0)) {
+			return false;
+		}
+		let tile: Tile = Rt.tile.get(x, (y + 1) | 0);
+		if (tile.active_() && tile.slope_() === 0 && !tile.halfBrick_()) {
+			if (
+				((tile.type !== 2 &&
+					tile.type !== 78 &&
+					tile.type !== 380 &&
+					tile.type !== 477 &&
+					tile.type !== 579) ||
+					typeAttemptedToPlace !== 3) &&
+				((tile.type !== 23 && tile.type !== 661) || typeAttemptedToPlace !== 24) &&
+				((tile.type !== 109 && tile.type !== 492) || typeAttemptedToPlace !== 110) &&
+				((tile.type !== 199 && tile.type !== 662) || typeAttemptedToPlace !== 201)
+			) {
+				if (tile.type === 633) {
+					return typeAttemptedToPlace === 637;
+				}
+				return false;
+			}
+			return true;
 		}
 		return false;
 	}
@@ -9109,6 +10544,423 @@ export class WorldGen {
 		return false;
 	}
 
+	static Place1x2(x: number, y: number, type: number, style: number): void {
+		let frameX: number = 0;
+		if (type === 20) {
+			frameX = (Math.imul(WorldGen.genRand.Next_Int32(3), 18) << 16) >> 16;
+		}
+		if (Rt.tile.get(x, (y - 1) | 0) === null!) {
+			Rt.tile.set(x, (y - 1) | 0, new Tile());
+		}
+		if (Rt.tile.get(x, (y + 1) | 0) === null!) {
+			Rt.tile.set(x, (y + 1) | 0, new Tile());
+		}
+		if (
+			$and(WorldGen.SolidTile2_Int32_Int32(x, (y + 1) | 0), !Rt.tile.get(x, (y - 1) | 0).active_())
+		) {
+			let num: number = (Math.imul(style, 40) << 16) >> 16;
+			Rt.tile.get(x, (y - 1) | 0).active_Boolean(true);
+			Rt.tile.get(x, (y - 1) | 0).frameY = num;
+			Rt.tile.get(x, (y - 1) | 0).frameX = frameX;
+			Rt.tile.get(x, (y - 1) | 0).type = type;
+			Rt.tile.get(x, y).active_Boolean(true);
+			Rt.tile.get(x, y).frameY = (((num + 18) | 0) << 16) >> 16;
+			Rt.tile.get(x, y).frameX = frameX;
+			Rt.tile.get(x, y).type = type;
+		}
+	}
+
+	static Place1x2Top(x: number, y: number, type: number, style: number): void {
+		let frameX: number = 0;
+		if (Rt.tile.get(x, (y - 1) | 0) === null!) {
+			Rt.tile.set(x, (y - 1) | 0, new Tile());
+		}
+		if (Rt.tile.get(x, (y + 1) | 0) === null!) {
+			Rt.tile.set(x, (y + 1) | 0, new Tile());
+		}
+		if (
+			Rt.tile.get(x, (y - 1) | 0).nactive() &&
+			Main.tileSolid[Rt.tile.get(x, (y - 1) | 0).type] &&
+			!Main.tileSolidTop[Rt.tile.get(x, (y - 1) | 0).type] &&
+			!Rt.tile.get(x, (y + 1) | 0).active_()
+		) {
+			let num: number = (Math.imul(style, 36) << 16) >> 16;
+			Rt.tile.get(x, y).active_Boolean(true);
+			Rt.tile.get(x, y).frameY = num;
+			Rt.tile.get(x, y).frameX = frameX;
+			Rt.tile.get(x, y).type = type;
+			Rt.tile.get(x, (y + 1) | 0).active_Boolean(true);
+			Rt.tile.get(x, (y + 1) | 0).frameY = (((num + 18) | 0) << 16) >> 16;
+			Rt.tile.get(x, (y + 1) | 0).frameX = frameX;
+			Rt.tile.get(x, (y + 1) | 0).type = type;
+		}
+	}
+
+	static Place1xX(x: number, y: number, type: number, style: number): void {
+		let num: number = Math.imul(style, 18);
+		let num2: number = 3;
+		if (type === 92) {
+			num2 = 6;
+		}
+		let flag: boolean = true;
+		for (let i: number = (((y - num2) | 0) + 1) | 0; i < ((y + 1) | 0); i++) {
+			if (Rt.tile.get(x, i) === null!) {
+				Rt.tile.set(x, i, new Tile());
+			}
+			if (Rt.tile.get(x, i).active_()) {
+				flag = false;
+			}
+			if (type === 93 && Rt.tile.get(x, i).liquid > 0) {
+				flag = false;
+			}
+		}
+		if (flag && WorldGen.SolidTile2_Int32_Int32(x, (y + 1) | 0)) {
+			for (let j: number = 0; j < num2; j++) {
+				Rt.tile.get(x, (((((y - num2) | 0) + 1) | 0) + j) | 0).active_Boolean(true);
+				Rt.tile.get(x, (((((y - num2) | 0) + 1) | 0) + j) | 0).frameY =
+					(((Math.imul(j, 18) + Math.imul(num2, num)) | 0) << 16) >> 16;
+				Rt.tile.get(x, (((((y - num2) | 0) + 1) | 0) + j) | 0).frameX = 0;
+				Rt.tile.get(x, (((((y - num2) | 0) + 1) | 0) + j) | 0).type = type;
+			}
+		}
+	}
+
+	static Place2x1(x: number, y: number, type: number, style: number): void {
+		if (Rt.tile.get(x, y) === null!) {
+			Rt.tile.set(x, y, new Tile());
+		}
+		if (Rt.tile.get((x + 1) | 0, y) === null!) {
+			Rt.tile.set((x + 1) | 0, y, new Tile());
+		}
+		if (Rt.tile.get(x, (y + 1) | 0) === null!) {
+			Rt.tile.set(x, (y + 1) | 0, new Tile());
+		}
+		if (Rt.tile.get((x + 1) | 0, (y + 1) | 0) === null!) {
+			Rt.tile.set((x + 1) | 0, (y + 1) | 0, new Tile());
+		}
+		let flag: boolean = false;
+		if (
+			type !== 29 &&
+			type !== 103 &&
+			WorldGen.SolidTile2_Int32_Int32(x, (y + 1) | 0) &&
+			WorldGen.SolidTile2_Int32_Int32((x + 1) | 0, (y + 1) | 0) &&
+			!Rt.tile.get(x, y).active_() &&
+			!Rt.tile.get((x + 1) | 0, y).active_()
+		) {
+			flag = true;
+		} else if (
+			(type === 29 || type === 103) &&
+			Rt.tile.get(x, (y + 1) | 0).active_() &&
+			Rt.tile.get((x + 1) | 0, (y + 1) | 0).active_() &&
+			Main.tileTable[Rt.tile.get(x, (y + 1) | 0).type] &&
+			Main.tileTable[Rt.tile.get((x + 1) | 0, (y + 1) | 0).type] &&
+			!Rt.tile.get(x, y).active_() &&
+			!Rt.tile.get((x + 1) | 0, y).active_()
+		) {
+			flag = true;
+		}
+		if (flag) {
+			Rt.tile.get(x, y).active_Boolean(true);
+			Rt.tile.get(x, y).frameY = 0;
+			Rt.tile.get(x, y).frameX = (Math.imul(36, style) << 16) >> 16;
+			Rt.tile.get(x, y).type = type;
+			Rt.tile.get((x + 1) | 0, y).active_Boolean(true);
+			Rt.tile.get((x + 1) | 0, y).frameY = 0;
+			Rt.tile.get((x + 1) | 0, y).frameX = (((Math.imul(36, style) + 18) | 0) << 16) >> 16;
+			Rt.tile.get((x + 1) | 0, y).type = type;
+		}
+	}
+
+	static Place2x3Wall(x: number, y: number, type: number, style: number): void {
+		let num: number = (y - 1) | 0;
+		let flag: boolean = true;
+		for (let i: number = x; i < ((x + 2) | 0); i++) {
+			for (let j: number = num; j < ((num + 3) | 0); j++) {
+				if (Rt.tile.get(i, j).active_() || Rt.tile.get(i, j).wall === 0) {
+					flag = false;
+					break;
+				}
+			}
+		}
+		if (!flag) {
+			return;
+		}
+		let num2: number = Math.imul(style, 36);
+		let num3: number = 0;
+		for (let k: number = x; k < ((x + 2) | 0); k++) {
+			for (let l: number = num; l < ((num + 3) | 0); l++) {
+				Rt.tile.get(k, l).active_Boolean(true);
+				Rt.tile.get(k, l).type = type;
+				Rt.tile.get(k, l).frameX = (((num2 + Math.imul(18, (k - x) | 0)) | 0) << 16) >> 16;
+				Rt.tile.get(k, l).frameY = (((num3 + Math.imul(18, (l - num) | 0)) | 0) << 16) >> 16;
+			}
+		}
+	}
+
+	static Place3x2Wall(x: number, y: number, type: number, style: number): void {
+		let num: number = (x - 1) | 0;
+		let flag: boolean = true;
+		for (let i: number = num; i < ((num + 3) | 0); i++) {
+			for (let j: number = y; j < ((y + 2) | 0); j++) {
+				if (Rt.tile.get(i, j).active_() || Rt.tile.get(i, j).wall === 0) {
+					flag = false;
+					break;
+				}
+			}
+		}
+		if (!flag) {
+			return;
+		}
+		let num2: number = 0;
+		let num3: number = Math.imul(style, 36);
+		for (let k: number = num; k < ((num + 3) | 0); k++) {
+			for (let l: number = y; l < ((y + 2) | 0); l++) {
+				Rt.tile.get(k, l).active_Boolean(true);
+				Rt.tile.get(k, l).type = type;
+				Rt.tile.get(k, l).frameX = (((num2 + Math.imul(18, (k - num) | 0)) | 0) << 16) >> 16;
+				Rt.tile.get(k, l).frameY = (((num3 + Math.imul(18, (l - y) | 0)) | 0) << 16) >> 16;
+			}
+		}
+	}
+
+	static Place3x3Wall(x: number, y: number, type: number, style: number): void {
+		let num: number = (x - 1) | 0;
+		let num2: number = (y - 1) | 0;
+		let flag: boolean = true;
+		for (let i: number = num; i < ((num + 3) | 0); i++) {
+			for (let j: number = num2; j < ((num2 + 3) | 0); j++) {
+				if (Rt.tile.get(i, j).active_() || Rt.tile.get(i, j).wall === 0) {
+					flag = false;
+					break;
+				}
+			}
+		}
+		if (!flag) {
+			return;
+		}
+		let num3: number = 0;
+		while (style > 35) {
+			num3++;
+			style = (style - 36) | 0;
+		}
+		let num4: number = Math.imul(style, 54);
+		let num5: number = Math.imul(num3, 54);
+		for (let k: number = num; k < ((num + 3) | 0); k++) {
+			for (let l: number = num2; l < ((num2 + 3) | 0); l++) {
+				Rt.tile.get(k, l).active_Boolean(true);
+				Rt.tile.get(k, l).type = type;
+				Rt.tile.get(k, l).frameX = (((num4 + Math.imul(18, (k - num) | 0)) | 0) << 16) >> 16;
+				Rt.tile.get(k, l).frameY = (((num5 + Math.imul(18, (l - num2) | 0)) | 0) << 16) >> 16;
+			}
+		}
+	}
+
+	static Place4x3Wall(x: number, y: number, type: number, style: number): void {
+		let num: number = (x - 1) | 0;
+		let num2: number = (y - 1) | 0;
+		let flag: boolean = true;
+		for (let i: number = num; i < ((num + 4) | 0); i++) {
+			for (let j: number = num2; j < ((num2 + 3) | 0); j++) {
+				if (Rt.tile.get(i, j).active_() || Rt.tile.get(i, j).wall === 0) {
+					flag = false;
+					break;
+				}
+			}
+		}
+		if (!flag) {
+			return;
+		}
+		let num3: number = 0;
+		let num4: number = Math.imul(style, 54);
+		for (let k: number = num; k < ((num + 4) | 0); k++) {
+			for (let l: number = num2; l < ((num2 + 3) | 0); l++) {
+				Rt.tile.get(k, l).active_Boolean(true);
+				Rt.tile.get(k, l).type = type;
+				Rt.tile.get(k, l).frameX = (((num3 + Math.imul(18, (k - num) | 0)) | 0) << 16) >> 16;
+				Rt.tile.get(k, l).frameY = (((num4 + Math.imul(18, (l - num2) | 0)) | 0) << 16) >> 16;
+			}
+		}
+	}
+
+	static Place6x4Wall(x: number, y: number, type: number, style: number): void {
+		let num: number = (x - 2) | 0;
+		let num2: number = (y - 2) | 0;
+		let flag: boolean = true;
+		for (let i: number = num; i < ((num + 6) | 0); i++) {
+			for (let j: number = num2; j < ((num2 + 4) | 0); j++) {
+				if (Rt.tile.get(i, j).active_() || Rt.tile.get(i, j).wall === 0) {
+					flag = false;
+					break;
+				}
+			}
+		}
+		if (!flag) {
+			return;
+		}
+		let num3: number = 27;
+		let num4: number = Math.imul((style / num3) | 0, 108);
+		let num5: number = Math.imul((style % num3) | 0, 72);
+		for (let k: number = num; k < ((num + 6) | 0); k++) {
+			for (let l: number = num2; l < ((num2 + 4) | 0); l++) {
+				Rt.tile.get(k, l).active_Boolean(true);
+				Rt.tile.get(k, l).type = type;
+				Rt.tile.get(k, l).frameX = (((num4 + Math.imul(18, (k - num) | 0)) | 0) << 16) >> 16;
+				Rt.tile.get(k, l).frameY = (((num5 + Math.imul(18, (l - num2) | 0)) | 0) << 16) >> 16;
+			}
+		}
+	}
+
+	static PlaceDoor(i: number, j: number, type: number, style: number): boolean {
+		let num: number = (style / 36) | 0;
+		let num2: number = (style % 36) | 0;
+		let num3: number = Math.imul(54, num);
+		let num4: number = Math.imul(54, num2);
+		try {
+			if (
+				Rt.tile.get(i, (j - 2) | 0).nactive() &&
+				Main.tileSolid[Rt.tile.get(i, (j - 2) | 0).type] &&
+				WorldGen.SolidTile_Int32_Int32_Boolean(i, (j + 2) | 0, false)
+			) {
+				Rt.tile.get(i, (j - 1) | 0).active_Boolean(true);
+				Rt.tile.get(i, (j - 1) | 0).type = 10;
+				Rt.tile.get(i, (j - 1) | 0).frameY = (num4 << 16) >> 16;
+				Rt.tile.get(i, (j - 1) | 0).frameX =
+					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
+				Rt.tile.get(i, j).active_Boolean(true);
+				Rt.tile.get(i, j).type = 10;
+				Rt.tile.get(i, j).frameY = (((num4 + 18) | 0) << 16) >> 16;
+				Rt.tile.get(i, j).frameX =
+					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
+				Rt.tile.get(i, (j + 1) | 0).active_Boolean(true);
+				Rt.tile.get(i, (j + 1) | 0).type = 10;
+				Rt.tile.get(i, (j + 1) | 0).frameY = (((num4 + 36) | 0) << 16) >> 16;
+				Rt.tile.get(i, (j + 1) | 0).frameX =
+					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
+				return true;
+			}
+			return false;
+		} catch (_e) {
+			return false;
+		}
+	}
+
+	static PlaceGnome(x: number, y: number, style: number): void {
+		WorldGen.PlaceObject(x, y, 567, false, style, 0, -1, -1);
+	}
+
+	static PlaceLogicTiles(x: number, y: number, type: number, style: number): void {
+		let tile: Tile = Rt.tile.get(x, y);
+		if (Rt.tile.get(x, y) === null!) {
+			tile = new Tile();
+			Rt.tile.set(x, y, tile);
+		}
+		if (Rt.tile.get(x, (y + 1) | 0) === null!) {
+			Rt.tile.set(x, (y + 1) | 0, new Tile());
+		}
+		if (type === 419) {
+			if (
+				Rt.tile.get(x, (y + 1) | 0).active_() &&
+				(Rt.tile.get(x, (y + 1) | 0).type === 419 || Rt.tile.get(x, (y + 1) | 0).type === 420)
+			) {
+				tile.active_Boolean(true);
+				tile.type = type & 0xffff;
+				tile.frameX = (Math.imul(style, 18) << 16) >> 16;
+				tile.frameY = 0;
+			}
+		} else if (!tile.active_()) {
+			tile.active_Boolean(true);
+			tile.type = type & 0xffff;
+			tile.frameX = 0;
+			tile.frameY = (Math.imul(18, style) << 16) >> 16;
+		}
+	}
+
+	static PlaceOnTable1x1(x: number, y: number, type: number, style: number): void {
+		let flag: boolean = false;
+		if (Rt.tile.get(x, y) === null!) {
+			Rt.tile.set(x, y, new Tile());
+		}
+		if (Rt.tile.get(x, (y + 1) | 0) === null!) {
+			Rt.tile.set(x, (y + 1) | 0, new Tile());
+		}
+		if (
+			!Rt.tile.get(x, y).active_() &&
+			Rt.tile.get(x, (y + 1) | 0).nactive() &&
+			Main.tileTable[Rt.tile.get(x, (y + 1) | 0).type]
+		) {
+			flag = true;
+		}
+		if (
+			type === 78 &&
+			!Rt.tile.get(x, y).active_() &&
+			Rt.tile.get(x, (y + 1) | 0).nactive() &&
+			Main.tileSolid[Rt.tile.get(x, (y + 1) | 0).type] &&
+			!Rt.tile.get(x, (y + 1) | 0).halfBrick_() &&
+			Rt.tile.get(x, (y + 1) | 0).slope_() === 0
+		) {
+			flag = true;
+		}
+		if (flag) {
+			Rt.tile.get(x, y).active_Boolean(true);
+			Rt.tile.get(x, y).type = type & 0xffff;
+			if (type === 33) {
+				Rt.tile.get(x, y).frameX = 0;
+				Rt.tile.get(x, y).frameY = (Math.imul(style, 22) << 16) >> 16;
+			} else {
+				Rt.tile.get(x, y).frameX = (Math.imul(style, 18) << 16) >> 16;
+				Rt.tile.get(x, y).frameY = 0;
+			}
+			if (type === 50) {
+				Rt.tile.get(x, y).frameX = (Math.imul(18, WorldGen.genRand.Next_Int32(5)) << 16) >> 16;
+			}
+		}
+	}
+
+	static PlaceTight(x: number, y: number, spiders: boolean): void {
+		if (Rt.tile.get(x, (y - 1) | 0) === null!) {
+			Rt.tile.set(x, (y - 1) | 0, new Tile());
+		}
+		if (Rt.tile.get(x, y) === null!) {
+			Rt.tile.set(x, y, new Tile());
+		}
+		if (Rt.tile.get(x, (y + 1) | 0) === null!) {
+			Rt.tile.set(x, (y + 1) | 0, new Tile());
+		}
+		if (
+			!Rt.tile.get(x, y).anyShimmer() &&
+			(!Rt.tile.get(x, y).active_() || Rt.tile.get(x, y).type !== 231)
+		) {
+			WorldGen.PlaceUncheckedStalactite(
+				x,
+				y,
+				WorldGen.genRand.Next_Int32(2) === 0,
+				WorldGen.genRand.Next_Int32(3),
+				spiders
+			);
+			if (Rt.tile.get(x, y).active_() && Rt.tile.get(x, y).type === 165) {
+				WorldGen.CheckStalactite(x, y);
+			}
+		}
+	}
+
+	static PlaceUnderwaterPlant(type: number, x: number, y: number): void {
+		if (WorldGen.CanUnderwaterPlantGrowHere(type, x, y, false)) {
+			let tileSafely: Tile = Framing.GetTileSafely(x, (y + 1) | 0);
+			tileSafely.slope_Byte(0);
+			tileSafely.halfBrick_Boolean(false);
+			let cache: TileColorCache = tileSafely.BlockColorAndCoating();
+			let tileSafely2: Tile = Framing.GetTileSafely(x, y);
+			tileSafely2.active_Boolean(true);
+			tileSafely2.type = type;
+			tileSafely2.frameX = 0;
+			tileSafely2.frameY = 0;
+			tileSafely2.slope_Byte(0);
+			tileSafely2.halfBrick_Boolean(false);
+			tileSafely2.UseBlockColors(cache.clone());
+			WorldGen.SquareTileFrame(x, y, true);
+		}
+	}
+
 	static PlaceWall(i: number, j: number, type: number, mute: boolean): void {
 		if (i <= 1 || j <= 1 || i >= ((Main.maxTilesX - 2) | 0) || j >= ((Main.maxTilesY - 2) | 0)) {
 			return;
@@ -9123,6 +10975,48 @@ export class WorldGen {
 				$sound(0, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
 			}
 		}
+	}
+
+	static PlantSeaOat(x: number, y: number): boolean {
+		if (
+			Rt.tile.get(x, y).wall > 0 ||
+			Rt.tile.get(x, y).active_() ||
+			Rt.tile.get(x, y).liquid > 0 ||
+			!WorldGen.SolidTileAllowBottomSlope(x, (y + 1) | 0) ||
+			!TileID_Sets_Conversion.Sand[Rt.tile.get(x, (y + 1) | 0).type]
+		) {
+			return false;
+		}
+		if (!WorldGen.SeaOatWaterCheck(x, y)) {
+			return false;
+		}
+		if (Rt.tile.get(x, (y + 1) | 0) === null!) {
+			return false;
+		}
+		let cache: TileColorCache = Rt.tile.get(x, (y + 1) | 0).BlockColorAndCoating();
+		Rt.tile.get(x, y).active_Boolean(true);
+		Rt.tile.get(x, y).slope_Byte(0);
+		Rt.tile.get(x, y).halfBrick_Boolean(false);
+		Rt.tile.get(x, y).type = 529;
+		Rt.tile.get(x, y).UseBlockColors(cache.clone());
+		Rt.tile.get(x, y).frameX = (Math.imul(WorldGen.genRand.Next_Int32(5), 18) << 16) >> 16;
+		let num: number = 0;
+		Rt.tile.get(x, y).frameY = (Math.imul(num, 34) << 16) >> 16;
+		if (Main.netMode === 2) {
+			NetMessage.SendTileSquare_Int32_Int32_Int32_Int32_TileChangeType(-1, x, y, 1, 0);
+		}
+		return true;
+	}
+
+	static PlatformProperTopFrame(frameX: number): boolean {
+		let num: number = $hole('frameX / TileObjectData.PlatformFrameWidth()');
+		if ((num < 0 || num > 7) && (num < 12 || num > 16)) {
+			if (num >= 25) {
+				return num <= 26;
+			}
+			return false;
+		}
+		return true;
 	}
 
 	static RangeFrame(startX: number, startY: number, endX: number, endY: number): void {
@@ -9159,6 +11053,31 @@ export class WorldGen {
 		if (tileCache.frameX >= 22 && tileCache.frameY >= 198 && Main.rand.Next_Int32(2) === 0) {
 			secondaryItem.v = seedType;
 		}
+	}
+
+	static SolidTileAllowBottomSlope(i: number, j: number): boolean {
+		try {
+			if (!WorldGen.InWorld_Int32_Int32_Int32(i, j, 0)) {
+				return true;
+			}
+			let tile: Tile = Rt.tile.get(i, j);
+			if (tile === null!) {
+				return true;
+			}
+			if (
+				tile.active_() &&
+				(Main.tileSolid[tile.type] || Main.tileSolidTop[tile.type]) &&
+				(!tile.topSlope() ||
+					(TileID_Sets.Platforms[tile.type] && WorldGen.PlatformProperTopFrame(tile.frameX))) &&
+				!tile.halfBrick_() &&
+				!tile.inActive_()
+			) {
+				return true;
+			}
+		} catch (__caught) {
+			$caught(__caught);
+		}
+		return false;
 	}
 
 	static SquareWallFrame(i: number, j: number, resetFrame: boolean): void {
@@ -10160,7 +12079,7 @@ export class WorldGen {
 							!Rt.tile.get(num471, (num472 - 1) | 0).active_() &&
 							WorldGen.genRand.Next_Int32(20) === 0
 						) {
-							$hole('Terraria.WorldGen.PlaceTile');
+							WorldGen.PlaceTile(num471, (num472 - 1) | 0, 27, true, false, -1, 0);
 						}
 					}
 				}
@@ -10253,6 +12172,21 @@ export class WorldGen {
 		}
 	}
 
+	static CheckAndAdjustMultiDirectionalTile(
+		i: number,
+		j: number,
+		type: number,
+		newFrameDirection: { v: number }
+	): boolean {
+		newFrameDirection.v = 0;
+		$hit('WorldGen.CheckAndAdjustMultiDirectionalTile');
+		return false;
+	}
+
+	static CheckStalactite(x: number, j: number): void {
+		$hit('WorldGen.CheckStalactite');
+	}
+
 	static GetItemDrop_Candles(style: number): number {
 		$hit('WorldGen.GetItemDrop_Candles');
 		return 0;
@@ -10278,8 +12212,178 @@ export class WorldGen {
 		return 0;
 	}
 
+	static GrowCatTail(x: number, j: number): void {
+		$hit('WorldGen.GrowCatTail');
+	}
+
+	static Place1x1(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place1x1');
+	}
+
+	static Place2x2(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place2x2');
+	}
+
+	static Place2x2Horizontal(x: number, y: number, type: number, Style: number): boolean {
+		$hit('WorldGen.Place2x2Horizontal');
+		return false;
+	}
+
+	static Place2x2Style(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place2x2Style');
+	}
+
+	static Place2xX(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place2xX');
+	}
+
+	static Place3x1(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place3x1');
+	}
+
+	static Place3x2(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place3x2');
+	}
+
+	static Place3x3(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place3x3');
+	}
+
+	static Place3x4(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place3x4');
+	}
+
+	static Place4x2(x: number, y: number, type: number, direction: number, style: number): void {
+		$hit('WorldGen.Place4x2');
+	}
+
+	static Place5x4(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.Place5x4');
+	}
+
+	static Place6x3(x: number, y: number, type: number, direction: number, style: number): void {
+		$hit('WorldGen.Place6x3');
+	}
+
+	static PlaceAlch(x: number, y: number, style: number): boolean {
+		$hit('WorldGen.PlaceAlch');
+		return false;
+	}
+
+	static PlaceBamboo(x: number, y: number): boolean {
+		$hit('WorldGen.PlaceBamboo');
+		return false;
+	}
+
+	static PlaceBanner(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.PlaceBanner');
+	}
+
+	static PlaceCannon(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.PlaceCannon');
+	}
+
+	static PlaceCatTail(x: number, j: number): Point {
+		$hit('WorldGen.PlaceCatTail');
+		return new Point();
+	}
+
+	static PlaceChand(x: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.PlaceChand');
+	}
+
+	static PlaceDye(x: number, y: number, style: number): void {
+		$hit('WorldGen.PlaceDye');
+	}
+
+	static PlaceJunglePlant(
+		X2: number,
+		Y2: number,
+		type: number,
+		styleX: number,
+		styleY: number,
+		inheritPaint: boolean
+	): void {
+		$hit('WorldGen.PlaceJunglePlant');
+	}
+
+	static PlaceLilyPad(x: number, j: number): boolean {
+		$hit('WorldGen.PlaceLilyPad');
+		return false;
+	}
+
+	static PlaceMB(X: number, y: number, type: number, style: number): void {
+		$hit('WorldGen.PlaceMB');
+	}
+
+	static PlaceMan(i: number, j: number, dir: number): void {
+		$hit('WorldGen.PlaceMan');
+	}
+
+	static PlacePot(x: number, y: number, type: number, style: number): boolean {
+		$hit('WorldGen.PlacePot');
+		return false;
+	}
+
+	static PlaceSign(x: number, y: number, type: number, Style: number): boolean {
+		$hit('WorldGen.PlaceSign');
+		return false;
+	}
+
+	static PlaceSunflower(x: number, y: number, type: number): void {
+		$hit('WorldGen.PlaceSunflower');
+	}
+
+	static PlaceUncheckedStalactite(
+		x: number,
+		y: number,
+		preferSmall: boolean,
+		variation: number,
+		spiders: boolean
+	): void {
+		$hit('WorldGen.PlaceUncheckedStalactite');
+	}
+
+	static PlaceWoman(i: number, j: number, dir: number): void {
+		$hit('WorldGen.PlaceWoman');
+	}
+
+	static PlaceXmasTree(x: number, y: number, type: number): void {
+		$hit('WorldGen.PlaceXmasTree');
+	}
+
+	static SeaOatWaterCheck(x: number, y: number): boolean {
+		$hit('WorldGen.SeaOatWaterCheck');
+		return false;
+	}
+
 	static dropXmasTree(x: number, y: number, obj: number): void {
 		$hit('WorldGen.dropXmasTree');
+	}
+
+	static PlaceChest(
+		x: number,
+		y: number,
+		type: number,
+		notNearOtherChests: boolean,
+		style: number
+	): number {
+		$hit('WorldGen.PlaceChest');
+		return 0;
+	}
+
+	static PlaceObject(
+		x: number,
+		y: number,
+		type: number,
+		mute: boolean,
+		style: number,
+		alternate: number,
+		random: number,
+		direction: number
+	): boolean {
+		$hit('WorldGen.PlaceObject');
+		return false;
 	}
 
 	static KillTile_DropBait(i: number, j: number, tileCache: Tile): void {}
@@ -10325,7 +12429,11 @@ export class WorldGen {
 		tileCache: Tile,
 		resetFrame: boolean
 	): void {
-		if (TileID_Sets.Torches[type] || TileID_Sets.IsADripTile[type]) {
+		if (TileID_Sets.Torches[type]) {
+			WorldGen.CheckTorch(i, j);
+			return;
+		}
+		if (TileID_Sets.IsADripTile[type]) {
 			$hit('');
 			return;
 		}

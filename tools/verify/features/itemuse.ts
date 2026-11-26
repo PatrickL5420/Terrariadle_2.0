@@ -1,5 +1,6 @@
 /**
- * A player using an item (the Copper Pickaxe or Axe, or a stack of dirt, stone or clay blocks) in
+ * A player using an item (the Copper Pickaxe or Axe, a stack of dirt, stone or clay blocks, or
+ * torches) in
  * a small world with trees, frame by frame. The oracle runs the game's Player.Update movement and ItemCheck
  * (oracle/features/ItemUse.cs); this runs the port ($lib/world/player, $lib/world/item-check).
  */
@@ -104,12 +105,6 @@ export function runItemUse(c: ItemUseCase): ItemFrame[] {
 		variant: () => rand.Next_Int32_Int32(0, 3),
 		sound: (s) => sounds.push(s)
 	};
-	play(t, rand, {
-		sound: ({ type, x, y, style }) => sounds.push({ type, style, x, y }),
-		drop: (d) => drops.push(d),
-		critter: (n) => npcs.push(n)
-	});
-	for (const [x, y] of c.trees) WorldGen.GrowTree(x, y, 0, false);
 	// Collision against the blocks as they are now (mining and placing change them).
 	const m = {
 		maxTilesX: c.w,
@@ -117,6 +112,13 @@ export function runItemUse(c: ItemUseCase): ItemFrame[] {
 		solid: (i: number, j: number) => isSolid(t.at(i, j))
 	};
 	const p = new Player(c.x, c.y);
+	play(t, rand, {
+		player: p,
+		sound: ({ type, x, y, style }) => sounds.push({ type, style, x, y }),
+		drop: (d) => drops.push(d),
+		critter: (n) => npcs.push(n)
+	});
+	for (const [x, y] of c.trees) WorldGen.GrowTree(x, y, 0, false);
 	p.vx = c.vx;
 	p.vy = c.vy;
 	p.direction = c.direction;
@@ -238,7 +240,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		for (let k = 0; k < 1 + rand(3); k++) if (!taken.has(j * w + i + k)) walls.push([i + k, j]);
 	}
 	const trees: ItemUseCase['trees'] = treeAt.map((t) => [t, tops[t]]);
-	const item = [3509, 3509, 3509, 3506, 3506, 2, 3, 133][rand(8)];
+	const item = [3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8][rand(9)];
 	// With an axe, mostly beside a tree.
 	const tree = item === 3506 && trees.length && rand(4) ? trees[rand(trees.length)] : null;
 	const i = tree ? Math.max(10, Math.min(w - 11, tree[0] + rand(5) - 2)) : 10 + rand(w - 20);
@@ -291,7 +293,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		direction: rand(2) ? 1 : -1,
 		releaseJump: rand(4) !== 0,
 		item,
-		stack: item === 3509 || item === 3506 ? 1 : 1 + rand(6),
+		stack: item === 3509 || item === 3506 ? 1 : 1 + rand(item === 8 ? 20 : 6),
 		frames: frames.slice(0, length)
 	};
 }

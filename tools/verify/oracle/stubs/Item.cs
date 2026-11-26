@@ -47,6 +47,8 @@ public partial class Item
 			case 3:
 			case 133: // (the Clay Block's icon is 16x16 too)
 				return new Rectangle(0, 0, 16, 16);
+			case 8: // a Torch
+				return new Rectangle(0, 0, 14, 16);
 			case 3506: // the Copper Axe
 				return new Rectangle(0, 0, 32, 28);
 			case 3509:

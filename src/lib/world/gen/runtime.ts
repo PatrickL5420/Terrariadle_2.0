@@ -130,6 +130,37 @@ export class Tile {
 		if (v) $hole('Tile.slope');
 	}
 	ClearSlope() {}
+	topSlope() {
+		return false;
+	}
+	bottomSlope() {
+		return false;
+	}
+	checkingLiquid_() {
+		return false;
+	}
+	liquidType_() {
+		return this.g.liquidType[this.k];
+	}
+	anyShimmer() {
+		return this.liquid > 0 && this.liquidType_() === 3;
+	}
+	/** Tile.Clear(TileDataType): the parts kept here (paint, slopes and wiring aren't). */
+	Clear(types: number) {
+		const g = this.g;
+		const k = this.k;
+		if (types & 1) {
+			g.type[k] = 0;
+			g.active[k] = 0;
+			g.frameX[k] = 0;
+			g.frameY[k] = 0;
+		}
+		if (types & 4) g.wall[k] = 0;
+		if (types & 16) {
+			g.liquid[k] = 0;
+			g.liquidType[k] = 0;
+		}
+	}
 	/** No paint or coatings here. */
 	color_Byte(_v: number) {}
 	wallColor_Byte(_v: number) {}
@@ -197,6 +228,10 @@ export interface Sound {
  * free, so what's set on it goes nowhere. tools/verify's oracle does the same.
  */
 export class GameNPC {
+	active = false;
+	position = { X: 0, Y: 0 };
+	width = 0;
+	height = 0;
 	velocity = { X: 0, Y: 0 };
 	ai = [0, 0, 0, 0];
 	netUpdate = false;
@@ -249,6 +284,33 @@ export const Rt = {
  * there's one player). Its axe and accessories are set by the site.
  */
 export class GamePlayer {
+	/** The player it stands for (where it is, for Collision.EmptyTile), or none: an empty slot. */
+	constructor(
+		private readonly me?: () =>
+			{ x: number; y: number; w: number; h: number; direction: number } | undefined
+	) {}
+
+	private get body() {
+		return this.me?.();
+	}
+	get active() {
+		return !!this.body;
+	}
+	dead = false;
+	ghost = false;
+	get position() {
+		return { X: this.body?.x ?? 0, Y: this.body?.y ?? 0 };
+	}
+	get width() {
+		return this.body?.w ?? 0;
+	}
+	get height() {
+		return this.body?.h ?? 0;
+	}
+	get direction() {
+		return this.body?.direction ?? 1;
+	}
+
 	/** The held item (its axe power, for a tree's bonus wood). */
 	inventory = [{ axe: 0 }];
 	selectedItem = 0;

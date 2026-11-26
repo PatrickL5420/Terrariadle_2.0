@@ -6,7 +6,7 @@
  * is applied afterwards by the caller (see MiniWorld.svelte): per tile for walls and blocks, one
  * colour each for everything else. Textures are the game's (static/world).
  */
-import { CLAY, DIRT, GRASS, isSolid, STONE, TREES } from './framing';
+import { CLAY, DIRT, GRASS, isSolid, STONE, TORCH, TREES } from './framing';
 import { stats } from './item-check';
 import type { RGB } from './light';
 import type { World } from './sim';
@@ -77,6 +77,8 @@ export interface Textures {
 	/** Tree_Tops_N and Tree_Branches_N, by tree style. */
 	tops: Record<number, Img>;
 	branches: Record<number, Img>;
+	/** Flame_0: a torch's flame, drawn over it. */
+	flame: Img;
 	wall: Img;
 	cracks: Img;
 	dust: Img;
@@ -135,29 +137,43 @@ export async function loadTextures(): Promise<Textures> {
 		]);
 	const sheets = Object.keys(SHEETS).map(Number);
 	const player = await Promise.all(sheets.map((n) => w(`Player_0_${n}`)));
-	const [clay, clayItem, trunk, sakura, willow, wood, acorn, axe] = await Promise.all(
-		[
-			'Tiles_40',
-			'Item_133',
-			'Tiles_5',
-			'Tiles_596',
-			'Tiles_616',
-			'Item_9',
-			'Item_27',
-			'Item_3506'
-		].map(w)
-	);
+	const [clay, clayItem, trunk, sakura, willow, wood, acorn, axe, torch, torchItem, flame] =
+		await Promise.all(
+			[
+				'Tiles_40',
+				'Item_133',
+				'Tiles_5',
+				'Tiles_596',
+				'Tiles_616',
+				'Item_9',
+				'Item_27',
+				'Item_3506',
+				'Tiles_4',
+				'Item_8',
+				'Flame_0'
+			].map(w)
+		);
 	const tops = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Tops_${n}`)));
 	const branches = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Branches_${n}`)));
 	return {
-		tiles: { [DIRT]: tiles0, [STONE]: tiles1, [GRASS]: tiles2, [CLAY]: clay },
+		tiles: { [DIRT]: tiles0, [STONE]: tiles1, [GRASS]: tiles2, [CLAY]: clay, [TORCH]: torch },
+		flame,
 		trunks: { 5: trunk, 596: sakura, 616: willow },
 		tops: Object.fromEntries(TREE_STYLES.map((n, i) => [n, tops[i]])),
 		branches: Object.fromEntries(TREE_STYLES.map((n, i) => [n, branches[i]])),
 		wall,
 		cracks,
 		dust,
-		items: { 2: item2, 3: item3, 9: wood, 27: acorn, 133: clayItem, 3506: axe, 3509: pickaxe },
+		items: {
+			2: item2,
+			3: item3,
+			8: torchItem,
+			9: wood,
+			27: acorn,
+			133: clayItem,
+			3506: axe,
+			3509: pickaxe
+		},
 		player: Object.fromEntries(sheets.map((n, i) => [n, tint(player[i], COLORS[SHEETS[n]])])),
 		hair: tint(hair, COLORS.hair)
 	};
@@ -236,6 +252,22 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 		}
 	}
 
+	// Torches: 20x20, 2 px over each side, 4 px lower under a block (TileDrawing.GetTileDrawData).
+	for (let j = j0; j < j1; j++) {
+		for (let i = i0; i < i1; i++) {
+			if (tiles.at(i, j) !== TORCH) continue;
+			const k = j * tiles.width + i;
+			const top = isSolid(tiles.at(i, j - 1)) ? 4 : 0;
+			sprite(
+				ctx,
+				t.tiles[TORCH],
+				[tiles.frameX[k], tiles.frameY[k], 20, 20],
+				i * 16 - 2,
+				j * 16 + top
+			);
+		}
+	}
+
 	// Blocks.
 	for (let j = j0; j < j1; j++) {
 		for (let i = i0; i < i1; i++) {
@@ -291,6 +323,65 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 		);
 		ctx.globalAlpha = 1;
 	}
+}
+
+/**
+ * Torches' flames (TileDrawing's tileFlame drawing for a Torch): 7 copies of Flame_0, each
+ * nudged by Utils.RandomInt from a seed per torch that changes 12 times a second
+ * (Main.TileFrameSeed), added on at 100/255, unlit (drawn after the lighting).
+ */
+export function drawFlames(
+	ctx: CanvasRenderingContext2D,
+	world: World,
+	t: Textures,
+	view: View,
+	frameSeed: bigint
+) {
+	const { tiles } = world;
+	ctx.save();
+	ctx.globalCompositeOperation = 'lighter';
+	ctx.globalAlpha = 100 / 255;
+	for (let j = Math.max(0, view.j0); j < Math.min(tiles.height, view.j1); j++)
+		for (let i = Math.max(0, view.i0); i < Math.min(tiles.width, view.i1); i++) {
+			if (tiles.at(i, j) !== TORCH) continue;
+			const k = j * tiles.width + i;
+			const top = isSolid(tiles.at(i, j - 1)) ? 4 : 0;
+			const seed = { s: (frameSeed ^ ((BigInt(i) << 32n) | BigInt(j))) & MASK48 };
+			for (let n = 0; n < 7; n++) {
+				const dx = randomInt(seed, -10, 11) * 0.15;
+				const dy = randomInt(seed, -10, 1) * 0.35;
+				sprite(
+					ctx,
+					t.flame,
+					[tiles.frameX[k], tiles.frameY[k], 20, 20],
+					i * 16 - 2 + dx,
+					j * 16 + top + dy
+				);
+			}
+		}
+	ctx.restore();
+}
+
+const MASK48 = 0xffffffffffffn;
+
+/** Utils.RandomNextSeed: a 48-bit linear congruential step (like java.util.Random). */
+export const nextSeed = (seed: bigint) => (seed * 25214903917n + 11n) & MASK48;
+
+/** Utils.RandomInt(ref seed, min, max). */
+function randomInt(seed: { s: bigint }, min: number, max: number): number {
+	const range = max - min;
+	const next31 = () => {
+		seed.s = nextSeed(seed.s);
+		return Number(seed.s >> 17n);
+	};
+	if ((range & -range) === range) return Number((BigInt(range) * BigInt(next31())) >> 31n) + min;
+	let num: number;
+	let num2: number;
+	do {
+		num = next31();
+		num2 = num % range;
+	} while (num - num2 + (range - 1) > 0x7fffffff);
+	return num2 + min;
 }
 
 /**

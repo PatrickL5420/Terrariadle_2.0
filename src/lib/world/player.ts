@@ -243,6 +243,9 @@ export class Player {
 			const t = this.itemAnimation;
 			const max = this.itemAnimationMax;
 			this.bodyFrame = t < max * 0.333 ? 3 : t < max * 0.666 ? 2 : 1;
+		} else if (stats(this.item.type).holdStyle === 1 && this.item.stack > 0) {
+			// Holding a torch up (holdStyle 1).
+			this.bodyFrame = 3;
 		} else if (this.vy !== 0) {
 			this.bodyFrame = 5;
 			this.bodyFrameCounter = 0;

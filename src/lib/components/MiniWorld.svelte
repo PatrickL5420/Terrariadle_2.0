@@ -3,10 +3,12 @@
 	import { skyLight } from '$lib/sky/light';
 	import { play } from '$lib/sound.svelte';
 	import {
+		drawFlames,
 		drawThings,
 		drawTiles,
 		drawTrees,
 		loadTextures,
+		nextSeed,
 		type Lit,
 		type Textures
 	} from '$lib/world/draw';
@@ -100,8 +102,14 @@
 			return { x: Math.round(x), y: Math.round(y) };
 		};
 
+		/** Main.TileFrameSeed: torch flames' flicker, moved on every 5th draw. */
+		let frameSeed = BigInt(Math.floor(Math.random() * 2 ** 32));
+		let drawCycle = 0;
+
 		const draw = () => {
 			if (!world || !textures) return;
+			if (drawCycle === 0) frameSeed = nextSeed(frameSeed);
+			drawCycle = (drawCycle + 1) % 5;
 			const w = vw;
 			const h = vh;
 			const cam = camera(world);
@@ -146,6 +154,10 @@
 			l.imageSmoothingEnabled = true;
 			l.drawImage(lightTiles, -cam.x, -cam.y, world.width * 16, world.height * 16);
 			applyLight(scene);
+			// Torch flames, unlit.
+			ctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
+			drawFlames(ctx, world, textures, view, frameSeed);
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 			// Trees' tops and branches, then items, the player and dust: each in its own tile's
 			// light, drawn on a layer of its own and lit there.

@@ -65,11 +65,17 @@ namespace Terraria
 		}
 
 		/// WorldGen.TileFrameImportant dispatches on the tile's type (a chain of switches and type
-		/// sets); for the trees here that's all it does: CheckTree for a forest tree (5), and for the
-		/// sakura and yellow willow (596, 616) CheckTreeWithSettings with VanityTreeGroundTest.
+		/// sets); for the tiles here that's all it does: CheckTree for a forest tree (5), for the
+		/// sakura and yellow willow (596, 616) CheckTreeWithSettings with VanityTreeGroundTest, and
+		/// CheckTorch for a torch.
 		private static void TileFrameImportant(int i, int j, int type, Tile tileCache, bool resetFrame)
 		{
-			if (TileID.Sets.Torches[type] || TileID.Sets.IsADripTile[type])
+			if (TileID.Sets.Torches[type])
+			{
+				CheckTorch(i, j);
+				return;
+			}
+			if (TileID.Sets.IsADripTile[type])
 			{
 				Stub.Hit($"WorldGen.TileFrameImportant({type})");
 				return;
