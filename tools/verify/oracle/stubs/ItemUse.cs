@@ -15,7 +15,7 @@ namespace Terraria;
  */
 public partial class Player
 {
-	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 8 or 9 or 36 or 32 or 34 or 93 or 0; // 0: used up
+	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 8 or 9 or 36 or 32 or 34 or 93 or 25 or 0; // 0: used up
 
 	static void Only(Item item, string what)
 	{

@@ -10,13 +10,22 @@
  * as tall as a small world (the passes place things by fractions of its height), with no beaches.
  */
 import { TileGrid } from '../framing';
-import { GenVars, Main, TerrainPass, TileObjectData, UnifiedRandom, WorldGen } from './game';
+import {
+	GenVars,
+	Main,
+	Rectangle,
+	TerrainPass,
+	TileObjectData,
+	UnifiedRandom,
+	WorldGen
+} from './game';
 import {
 	GameConfiguration,
 	GamePlayer,
 	Progress,
 	Rt,
 	TileView,
+	type Body,
 	type Critter,
 	type Drop,
 	type Sound,
@@ -95,8 +104,8 @@ let objectData = false;
 
 /** Where the game's code, run on a world being played, sends what it makes. */
 export interface PlayHooks {
-	/** The player (Main.player[0]): where it is, so nothing's placed on it. */
-	player?: { x: number; y: number; w: number; h: number; direction: number };
+	/** The player (Main.player[0]): where it is and how it moves. */
+	player?: Body;
 	drop(d: Drop): void;
 	sound(s: Sound): void;
 	/** NPC.NewNPC: a critter let out of a shaken tree (not simulated). */
@@ -136,6 +145,7 @@ export function play(grid: TileGrid, rand: UnifiedRandom, hooks: PlayHooks) {
 	Rt.sound = (s) => hooks.sound(s);
 	Rt.critter = (c) => hooks.critter?.(c);
 	Rt.wallVariant = (i, j, v) => hooks.wallVariant?.(i, j, v);
+	Rt.rect = (x, y, w, h) => new Rectangle(x, y, w, h);
 	Rt.tileDust = (i: number, j: number, t: Tile) => {
 		hooks.tileDust?.(i, j, t.type);
 		return 0;

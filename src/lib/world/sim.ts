@@ -22,6 +22,7 @@ import {
 import { tileCollision } from './collision';
 import { AIR, DIRT, GRASS, isSolid, STONE, TORCH, TREE, TREES } from './framing';
 import { generate, play, UnifiedRandom } from './gen';
+import { DoorOpeningHelper, Main } from './gen/game';
 import {
 	canPlaceAt,
 	canPlaceTorch,
@@ -110,6 +111,7 @@ export class World implements ItemWorld {
 	surface: number[];
 
 	#task: Task = { kind: 'idle', frames: 60 };
+	readonly #doors = new DoorOpeningHelper();
 	#follow: Follower | null = null;
 	#failures = 0;
 	/** Blocks the plans dug out and put in (as tile indexes), to tidy up. */
@@ -195,6 +197,8 @@ export class World implements ItemWorld {
 	update(sky: RGB, sound: (s: Sound, at: { x: number; y: number }) => void) {
 		this.#sound = sound;
 		this.#think();
+		// Player.Update: doors walked into open, and close behind (DoorOpeningHelper).
+		this.#doors.Update(Main.player[0]);
 		this.player.update(this.tiles, this);
 		this.#grow();
 		this.#updateDrops();

@@ -10,6 +10,7 @@ import type { DropCall, ItemWorld, SoundCall } from '$lib/world/item-check';
 import { Player } from '$lib/world/player';
 import { Tiles } from '$lib/world/tiles';
 import { play, UnifiedRandom, WorldGen } from '$lib/world/gen';
+import { DoorOpeningHelper, Main } from '$lib/world/gen/game';
 import type { Critter } from '$lib/world/gen/runtime';
 
 export interface ItemUseCase {
@@ -21,6 +22,8 @@ export interface ItemUseCase {
 	walls: [number, number][];
 	/** Trees grown (WorldGen.GrowTree) on the grass at [x, y], before the player starts. */
 	trees: [number, number][];
+	/** Closed doors put in (WorldGen.PlaceTile), their bottom tile at [x, y]. */
+	doors: [number, number][];
 	x: number;
 	y: number;
 	vx: number;
@@ -128,6 +131,9 @@ export function runItemUse(c: ItemUseCase): ItemFrame[] {
 		critter: (n) => npcs.push(n)
 	});
 	for (const [x, y] of c.trees) WorldGen.GrowTree(x, y, 0, false);
+	for (const [x, y] of c.doors) WorldGen.PlaceTile(x, y, 10, false, false, -1, 0);
+	// Player.Update's DoorOpeningHelper (doors walked into open, and close behind).
+	const doors = new DoorOpeningHelper();
 	p.vx = c.vx;
 	p.vy = c.vy;
 	p.direction = c.direction;
@@ -148,6 +154,7 @@ export function runItemUse(c: ItemUseCase): ItemFrame[] {
 		sounds = [];
 		drops = [];
 		npcs = [];
+		doors.Update(Main.player[0]);
 		p.update(m, w);
 		const after = snapshot(t);
 		const tiles = after.filter((a, k) => a.some((v, n) => v !== before[k][n]));
@@ -221,7 +228,13 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		const t = 8 + rand(w - 16);
 		if (!treeAt.some((a) => Math.abs(a - t) < 6)) treeAt.push(t);
 	}
-	const nearTree = (i: number) => treeAt.some((a) => Math.abs(a - i) <= 2);
+	// Doors: closed, on flat ground with a block over them (what holds a door up and down).
+	const doorAt: number[] = [];
+	for (let n = rand(3); n > 0; n--) {
+		const d = 8 + rand(w - 16);
+		if (![...treeAt, ...doorAt].some((a) => Math.abs(a - d) < 5)) doorAt.push(d);
+	}
+	const nearTree = (i: number) => [...treeAt, ...doorAt].some((a) => Math.abs(a - i) <= 2);
 	let top = 18 + rand(4);
 	const tops: number[] = [];
 	for (let i = 0; i < w; i++) {
@@ -249,9 +262,14 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		for (let k = 0; k < 1 + rand(3); k++) if (!taken.has(j * w + i + k)) walls.push([i + k, j]);
 	}
 	const trees: ItemUseCase['trees'] = treeAt.map((t) => [t, tops[t]]);
-	const item = [3509, 3509, 3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8, 9, 36, 32, 34, 93, 93][
-		rand(17)
-	];
+	for (const d of doorAt) {
+		put(d, tops[d] - 4, 0);
+		for (let j = tops[d] - 3; j < tops[d]; j++) taken.add(j * w + d);
+	}
+	const doors: ItemUseCase['doors'] = doorAt.map((d) => [d, tops[d] - 1]);
+	const item = [
+		3509, 3509, 3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8, 8, 8, 9, 36, 32, 34, 93, 93, 25
+	][rand(20)];
 	// With an axe, mostly beside a tree.
 	const tree = item === 3506 && trees.length && rand(4) ? trees[rand(trees.length)] : null;
 	const i = tree ? Math.max(10, Math.min(w - 11, tree[0] + rand(5) - 2)) : 10 + rand(w - 20);
@@ -297,6 +315,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		cells,
 		walls,
 		trees,
+		doors,
 		x,
 		y,
 		vx: 0,

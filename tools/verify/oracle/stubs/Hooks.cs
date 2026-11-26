@@ -122,3 +122,10 @@ public partial class TEWeaponsRack
 		return 0;
 	}
 }
+/// Wiring: none here (no wires to run, none to skip).
+public partial class Wiring
+{
+	public static bool running;
+
+	public static void SkipWire(int x, int y) { }
+}

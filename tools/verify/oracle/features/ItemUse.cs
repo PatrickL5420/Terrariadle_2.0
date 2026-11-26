@@ -11,7 +11,7 @@ namespace Oracle;
 
 /**
  * A case: a world (see WorldSetup), "trees": [[x, y], ...] grown there (WorldGen.GrowTree, on
- * grass at y), the player's start {"x", "y", "vx", "vy", "direction",
+ * grass at y), "doors": [[x, y], ...] put in (WorldGen.PlaceTile, closed), the player's start {"x", "y", "vx", "vy", "direction",
  * "releaseJump"},
  * the item {"item": type, "stack"}, and "frames": [bits, tileX, tileY] per frame, bits 1 = left,
  * 2 = right, 4 = jump, 8 = use (the mouse button); tileX / tileY is the tile under the cursor
@@ -65,9 +65,16 @@ public class ItemUseFeature : IFeature
 		};
 		Main.player[0] = p;
 		p.oldPosition = p.position;
+		p.gravDir = 1f;
 		p.inventory[0].SetDefaults(c.GetProperty("item").GetInt32());
 		if (c.TryGetProperty("stack", out var st)) p.inventory[0].stack = st.GetInt32();
 		p.lastVisualizedSelectedItem = p.inventory[0].Clone();
+		p.doorHelper = new Terraria.GameContent.DoorOpeningHelper();
+		// Doors, put in by the game's PlaceTile (a closed Wooden Door, its bottom tile at [x, y]).
+		if (c.TryGetProperty("doors", out var doors))
+			foreach (var door in doors.EnumerateArray())
+				WorldGen.PlaceTile(door[0].GetInt32(), door[1].GetInt32(), 10);
+
 		Main.screenPosition = Vector2.Zero;
 
 		int w = Main.maxTilesX, h = Main.maxTilesY;
@@ -85,6 +92,9 @@ public class ItemUseFeature : IFeature
 			Main.mouseX = Player.tileTargetX * 16 + 8;
 			Main.mouseY = Player.tileTargetY * 16 + 8;
 			Recorder.Clear();
+			// Player.Update: doors walked into open, and close behind (DoorOpeningHelper, on by
+			// default for everyone), before moving.
+			p.doorHelper.Update(p);
 			p.Move_Defaults();
 			p.Move_Jump_Gravity(0);
 			p.Move_Glide();

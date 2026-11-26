@@ -303,7 +303,8 @@
 				"PlaceChest",
 				"PlaceObject",
 				"Convert",
-				"SmashAltar"
+				"SmashAltar",
+				"ShiftTallGate"
 			],
 			"noop": ["KillTile_DropBait", "KillTile_MakeTileDust", "TreeGrowFX", "KillWall_MakeWallDust"],
 			"passes": [
@@ -706,7 +707,9 @@
 				"ItemCheck_UseMiningTools_TryFindingWallToHammer",
 				"hostile",
 				"ItemCheckContext",
-				"PlaceThing_Walls_FillEmptySpace"
+				"PlaceThing_Walls_FillEmptySpace",
+				"GetAutoDoorVelocityContribution",
+				"doorHelper"
 			],
 			"slices": [
 				{
@@ -2016,6 +2019,9 @@
 				"centerWallFrameLookup",
 				"BlockStyle"
 			]
+		},
+		{
+			"file": "Terraria.GameContent/DoorOpeningHelper.cs"
 		}
 	],
 	"autostubs": {
@@ -2129,7 +2135,6 @@
 			"GetTrackItem:staticmethod",
 			"PlaceTrack:staticmethod"
 		],
-		"DoorOpeningHelper": ["AllowOpeningDoorsByVelocityAloneForATime:method"],
 		"PortableStoolUsage": ["IsInUse:field", "HeightBoost:field", "VisualYOffset:field"],
 		"RabbitOrderFrameHelper": ["Update:method"],
 		"PlayerSittingHelper": ["isSitting:field", "SitUp:method", "GetSittingOffsetInfo:method"],

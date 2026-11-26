@@ -148,6 +148,14 @@ public struct Rectangle
 	public static bool operator ==(Rectangle a, Rectangle b) =>
 		a.X == b.X && a.Y == b.Y && a.Width == b.Width && a.Height == b.Height;
 	public static bool operator !=(Rectangle a, Rectangle b) => !(a == b);
+
+	/// The smallest rectangle round both.
+	public static Rectangle Union(Rectangle a, Rectangle b)
+	{
+		int x = System.Math.Min(a.X, b.X), y = System.Math.Min(a.Y, b.Y);
+		int r = System.Math.Max(a.X + a.Width, b.X + b.Width), btm = System.Math.Max(a.Y + a.Height, b.Y + b.Height);
+		return new Rectangle(x, y, r - x, btm - y);
+	}
 	public override bool Equals(object o) => o is Rectangle r && r == this;
 	public override int GetHashCode() => X ^ (Y << 8) ^ (Width << 16) ^ (Height << 24);
 

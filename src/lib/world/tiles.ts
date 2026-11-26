@@ -1,5 +1,5 @@
 import type { TileMap } from './collision';
-import { AIR, isSolid, SOLID_TOP, TileGrid } from './framing';
+import { AIR, DOOR_CLOSED, isSolid, SOLID_TOP, TileGrid } from './framing';
 
 /**
  * Columns of real ground kept beyond each side of what's shown, and rows below it. The game
@@ -45,6 +45,11 @@ export class Tiles extends TileGrid implements TileMap {
 	solid(i: number, j: number): boolean {
 		if (i < MARGIN || i >= this.width - MARGIN || j >= this.height - MARGIN) return true;
 		return isSolid(this.at(i, j));
+	}
+
+	/** Whether (i, j) is a closed door (getting about, it's walked through: it opens). */
+	door(i: number, j: number) {
+		return this.at(i, j) === DOOR_CLOSED;
 	}
 
 	/** Collision's solid tops (tables, work benches): 2 on their top row, 1 below it, 0 if none. */

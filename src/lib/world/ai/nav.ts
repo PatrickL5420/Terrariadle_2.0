@@ -49,6 +49,8 @@ export interface NavMap extends TileMap {
 	inView(i: number, j: number): boolean;
 	/** Whether (i, j) is to be kept (part of something built): not dug through. */
 	kept?(i: number, j: number): boolean;
+	/** Whether (i, j) is a closed door (which opens when walked into). */
+	door?(i: number, j: number): boolean;
 	/** Whether (i, j) is to be kept clear (inside something built): not built in. */
 	keepClear?(i: number, j: number): boolean;
 }
@@ -186,6 +188,8 @@ class View {
 	solid(i: number, j: number): boolean {
 		const k = j * 4096 + i;
 		for (let c = this.changes; c; c = c.next) if (c.k === k) return c.solid;
+		// A closed door: walked through (it opens when walked into).
+		if (this.m.door?.(i, j)) return false;
 		return this.m.solid(i, j);
 	}
 

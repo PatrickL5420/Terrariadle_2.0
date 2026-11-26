@@ -22,7 +22,8 @@ import {
 	GameNPC,
 	$clear,
 	$cloneArray,
-	$arrayCopy
+	$arrayCopy,
+	$tryGetValue
 } from './runtime';
 
 export class AEntitySource_Tile {
@@ -282,6 +283,481 @@ export class Color {
 	}
 }
 
+export class DoorOpeningHelper {
+	static PreferenceSettings: number = 0;
+
+	_handlerByTileType: Map<number, DoorOpeningHelper_DoorAutoHandler> = new Map([
+		[10, new DoorOpeningHelper_CommonDoorOpeningInfoProvider()],
+		[388, new DoorOpeningHelper_TallGateOpeningInfoProvider()]
+	]);
+
+	_ongoingOpenDoors: DoorOpeningHelper_DoorOpenCloseTogglingInfo[] = [];
+
+	_timeWeCanOpenDoorsUsingVelocityAlone: number = 0;
+
+	AllowOpeningDoorsByVelocityAloneForATime(timeInFramesToAllow: number): void {
+		this._timeWeCanOpenDoorsUsingVelocityAlone = timeInFramesToAllow;
+	}
+
+	Update(player: GamePlayer): void {
+		this.LookForDoorsToClose(player);
+		if (this.ShouldTryOpeningDoors()) {
+			this.LookForDoorsToOpen(player);
+		}
+		if (this._timeWeCanOpenDoorsUsingVelocityAlone > 0) {
+			this._timeWeCanOpenDoorsUsingVelocityAlone--;
+		}
+	}
+
+	ShouldTryOpeningDoors(): boolean {
+		return (($v) => ($v === 2 ? true : $v === 1 ? PlayerInput.UsingGamepad : false))(
+			DoorOpeningHelper.PreferenceSettings
+		);
+	}
+
+	static CyclePreferences(): void {
+		switch (DoorOpeningHelper.PreferenceSettings) {
+			case 0:
+				DoorOpeningHelper.PreferenceSettings = 2;
+				break;
+			case 2:
+				DoorOpeningHelper.PreferenceSettings = 1;
+				break;
+			case 1:
+				DoorOpeningHelper.PreferenceSettings = 0;
+				break;
+		}
+	}
+
+	LookForDoorsToClose(player: GamePlayer): void {
+		let playerInfoForClosingDoor: DoorOpeningHelper_PlayerInfoForClosingDoors =
+			this.GetPlayerInfoForClosingDoor(player);
+		for (let num: number = (this._ongoingOpenDoors.length - 1) | 0; num >= 0; num--) {
+			let info: DoorOpeningHelper_DoorOpenCloseTogglingInfo = this._ongoingOpenDoors[num].clone();
+			if (info.handler.TryCloseDoor(info.clone(), playerInfoForClosingDoor.clone()) !== 0) {
+				this._ongoingOpenDoors.splice(num, 1);
+			}
+		}
+	}
+
+	GetPlayerInfoForClosingDoor(player: GamePlayer): DoorOpeningHelper_PlayerInfoForClosingDoors {
+		let result: DoorOpeningHelper_PlayerInfoForClosingDoors =
+			new DoorOpeningHelper_PlayerInfoForClosingDoors();
+		result.hitboxToNotCloseDoor = player.Hitbox.clone();
+		return result.clone();
+	}
+
+	LookForDoorsToOpen(player: GamePlayer): void {
+		let playerInfoForOpeningDoor: DoorOpeningHelper_PlayerInfoForOpeningDoors =
+			this.GetPlayerInfoForOpeningDoor(player);
+		if (playerInfoForOpeningDoor.intendedOpeningDirection === 0 && player.velocity.X === 0) {
+			return;
+		}
+		let tileCoords: Point = new Point();
+		for (
+			let i: number = playerInfoForOpeningDoor.tileCoordSpaceForCheckingForDoors.Left;
+			i <= playerInfoForOpeningDoor.tileCoordSpaceForCheckingForDoors.Right;
+			i++
+		) {
+			for (
+				let j: number = playerInfoForOpeningDoor.tileCoordSpaceForCheckingForDoors.Top;
+				j <= playerInfoForOpeningDoor.tileCoordSpaceForCheckingForDoors.Bottom;
+				j++
+			) {
+				tileCoords.X = i;
+				tileCoords.Y = j;
+				this.TryAutoOpeningDoor(tileCoords.clone(), playerInfoForOpeningDoor.clone());
+			}
+		}
+	}
+
+	GetPlayerInfoForOpeningDoor(player: GamePlayer): DoorOpeningHelper_PlayerInfoForOpeningDoors {
+		let num: number = (Utils.ToInt(player.controlRight) - Utils.ToInt(player.controlLeft)) | 0;
+		let playerGravityDirection: number = Math.trunc(player.gravDir) | 0;
+		let hitbox: Rectangle = player.Hitbox.clone();
+		hitbox.Y = (hitbox.Y - -1) | 0;
+		hitbox.Height = (hitbox.Height + -2) | 0;
+		let num2: number = player.GetAutoDoorVelocityContribution();
+		if (num === 0 && this._timeWeCanOpenDoorsUsingVelocityAlone === 0) {
+			num2 = 0;
+		}
+		let value: number = Math.fround(num + num2);
+		let num3: number = Math.imul(Math.sign(value), Math.trunc(Math.ceil(Math.abs(value))) | 0);
+		hitbox.X = (hitbox.X + num3) | 0;
+		if (num === 0) {
+			num = Math.sign(value);
+		}
+		let hitbox2: Rectangle = new Rectangle();
+		let val: Rectangle = (hitbox2 = player.Hitbox.clone());
+		hitbox2.X = (hitbox2.X + num3) | 0;
+		let r: Rectangle = Rectangle.Union(val.clone(), hitbox2.clone());
+		let val2: Point = Utils.ToTileCoordinates_Vector2(Utils.TopLeft(r.clone()));
+		let val3: Point = Utils.ToTileCoordinates_Vector2(Utils.BottomRight(r.clone()));
+		let tileCoordSpaceForCheckingForDoors: Rectangle = new Rectangle();
+		tileCoordSpaceForCheckingForDoors = new Rectangle(
+			val2.X,
+			val2.Y,
+			(val3.X - val2.X) | 0,
+			(val3.Y - val2.Y) | 0
+		);
+		let result: DoorOpeningHelper_PlayerInfoForOpeningDoors =
+			new DoorOpeningHelper_PlayerInfoForOpeningDoors();
+		result.hitboxToOpenDoor = hitbox.clone();
+		result.intendedOpeningDirection = num;
+		result.playerGravityDirection = playerGravityDirection;
+		result.tileCoordSpaceForCheckingForDoors = tileCoordSpaceForCheckingForDoors.clone();
+		return result.clone();
+	}
+
+	TryAutoOpeningDoor(
+		tileCoords: Point,
+		playerInfo: DoorOpeningHelper_PlayerInfoForOpeningDoors
+	): void {
+		let infoProvider: DoorOpeningHelper_DoorAutoHandler = null!;
+		if (
+			this.TryGetHandler(tileCoords.clone(), {
+				get v() {
+					return infoProvider;
+				},
+				set v($v: DoorOpeningHelper_DoorAutoHandler) {
+					infoProvider = $v;
+				}
+			})
+		) {
+			let doorOpenCloseTogglingInfo: DoorOpeningHelper_DoorOpenCloseTogglingInfo =
+				infoProvider.ProvideInfo(tileCoords.clone());
+			if (infoProvider.TryOpenDoor(doorOpenCloseTogglingInfo.clone(), playerInfo.clone())) {
+				this._ongoingOpenDoors.push(doorOpenCloseTogglingInfo.clone());
+			}
+		}
+	}
+
+	TryGetHandler(
+		tileCoords: Point,
+		infoProvider: { v: DoorOpeningHelper_DoorAutoHandler }
+	): boolean {
+		infoProvider.v = null!;
+		if (!WorldGen.InWorld_Int32_Int32_Int32(tileCoords.X, tileCoords.Y, 3)) {
+			return false;
+		}
+		let tile: Tile = Rt.tile.get(tileCoords.X, tileCoords.Y);
+		if (tile === null!) {
+			return false;
+		}
+		if (!$tryGetValue(this._handlerByTileType, tile.type, infoProvider)) {
+			return false;
+		}
+		return true;
+	}
+
+	static {
+		DoorOpeningHelper.PreferenceSettings = 2;
+	}
+}
+
+export class DoorOpeningHelper_CommonDoorOpeningInfoProvider {
+	ProvideInfo(tileCoords: Point): DoorOpeningHelper_DoorOpenCloseTogglingInfo {
+		let tile: Tile = Rt.tile.get(tileCoords.X, tileCoords.Y);
+		let tileCoordsForToggling: Point = tileCoords.clone();
+		tileCoordsForToggling.Y = (tileCoordsForToggling.Y - ((((tile.frameY % 54) | 0) / 18) | 0)) | 0;
+		let result: DoorOpeningHelper_DoorOpenCloseTogglingInfo =
+			new DoorOpeningHelper_DoorOpenCloseTogglingInfo();
+		result.handler = this;
+		result.tileCoordsForToggling = tileCoordsForToggling.clone();
+		return result.clone();
+	}
+
+	TryOpenDoor(
+		doorInfo: DoorOpeningHelper_DoorOpenCloseTogglingInfo,
+		playerInfo: DoorOpeningHelper_PlayerInfoForOpeningDoors
+	): boolean {
+		let tileCoordsForToggling: Point = doorInfo.tileCoordsForToggling.clone();
+		let intendedOpeningDirection: number = playerInfo.intendedOpeningDirection;
+		let val: Rectangle = new Rectangle();
+		val = new Rectangle(
+			Math.imul(doorInfo.tileCoordsForToggling.X, 16),
+			Math.imul(doorInfo.tileCoordsForToggling.Y, 16),
+			16,
+			48
+		);
+		switch (playerInfo.playerGravityDirection) {
+			case 1:
+				val.Height = (val.Height + 16) | 0;
+				break;
+			case -1:
+				val.Y = (val.Y - 16) | 0;
+				val.Height = (val.Height + 16) | 0;
+				break;
+		}
+		if (!val.Intersects(playerInfo.hitboxToOpenDoor.clone())) {
+			return false;
+		}
+		if (
+			playerInfo.hitboxToOpenDoor.Top < val.Top ||
+			playerInfo.hitboxToOpenDoor.Bottom > val.Bottom
+		) {
+			return false;
+		}
+		WorldGen.OpenDoor(tileCoordsForToggling.X, tileCoordsForToggling.Y, intendedOpeningDirection);
+		if (Rt.tile.get(tileCoordsForToggling.X, tileCoordsForToggling.Y).type !== 10) {
+			NetMessage.SendData(
+				19,
+				-1,
+				-1,
+				null!,
+				0,
+				tileCoordsForToggling.X,
+				tileCoordsForToggling.Y,
+				intendedOpeningDirection,
+				0,
+				0,
+				0
+			);
+			return true;
+		}
+		WorldGen.OpenDoor(
+			tileCoordsForToggling.X,
+			tileCoordsForToggling.Y,
+			-intendedOpeningDirection | 0
+		);
+		if (Rt.tile.get(tileCoordsForToggling.X, tileCoordsForToggling.Y).type !== 10) {
+			NetMessage.SendData(
+				19,
+				-1,
+				-1,
+				null!,
+				0,
+				tileCoordsForToggling.X,
+				tileCoordsForToggling.Y,
+				-intendedOpeningDirection | 0,
+				0,
+				0,
+				0
+			);
+			return true;
+		}
+		return false;
+	}
+
+	TryCloseDoor(
+		info: DoorOpeningHelper_DoorOpenCloseTogglingInfo,
+		playerInfo: DoorOpeningHelper_PlayerInfoForClosingDoors
+	): number {
+		let tileCoordsForToggling: Point = info.tileCoordsForToggling.clone();
+		let tile: Tile = Rt.tile.get(tileCoordsForToggling.X, tileCoordsForToggling.Y);
+		if (!tile.active_() || tile.type !== 11) {
+			return 3;
+		}
+		let num: number = (((tile.frameX % 72) | 0) / 18) | 0;
+		let val: Rectangle = new Rectangle();
+		val = new Rectangle(
+			Math.imul(tileCoordsForToggling.X, 16),
+			Math.imul(tileCoordsForToggling.Y, 16),
+			16,
+			48
+		);
+		switch (num) {
+			case 1:
+				val.X = (val.X - 16) | 0;
+				break;
+			case 2:
+				val.X = (val.X + 16) | 0;
+				break;
+		}
+		val.Inflate(1, 0);
+		let val2: Rectangle = Rectangle.Intersect(val.clone(), playerInfo.hitboxToNotCloseDoor.clone());
+		if (val2.Width > 0 || val2.Height > 0) {
+			return 0;
+		}
+		if (WorldGen.CloseDoor(tileCoordsForToggling.X, tileCoordsForToggling.Y, false)) {
+			NetMessage.SendData(13, -1, -1, null!, Main.myPlayer, 0, 0, 0, 0, 0, 0);
+			NetMessage.SendData(
+				19,
+				-1,
+				-1,
+				null!,
+				1,
+				tileCoordsForToggling.X,
+				tileCoordsForToggling.Y,
+				1,
+				0,
+				0,
+				0
+			);
+			return 1;
+		}
+		return 2;
+	}
+}
+
+export class DoorOpeningHelper_DoorAutoHandler {
+	ProvideInfo(_tileCoords: Point): DoorOpeningHelper_DoorOpenCloseTogglingInfo {
+		throw new Error('abstract');
+	}
+
+	TryOpenDoor(
+		_info: DoorOpeningHelper_DoorOpenCloseTogglingInfo,
+		_playerInfo: DoorOpeningHelper_PlayerInfoForOpeningDoors
+	): boolean {
+		throw new Error('abstract');
+	}
+
+	TryCloseDoor(
+		_info: DoorOpeningHelper_DoorOpenCloseTogglingInfo,
+		_playerInfo: DoorOpeningHelper_PlayerInfoForClosingDoors
+	): number {
+		throw new Error('abstract');
+	}
+}
+
+export class DoorOpeningHelper_DoorOpenCloseTogglingInfo {
+	tileCoordsForToggling: Point = new Point();
+
+	handler: DoorOpeningHelper_DoorAutoHandler = null!;
+
+	clone(): DoorOpeningHelper_DoorOpenCloseTogglingInfo {
+		const c = new DoorOpeningHelper_DoorOpenCloseTogglingInfo();
+		c.tileCoordsForToggling = this.tileCoordsForToggling;
+		c.handler = this.handler;
+		return c;
+	}
+}
+
+export class DoorOpeningHelper_PlayerInfoForClosingDoors {
+	hitboxToNotCloseDoor: Rectangle = new Rectangle();
+
+	clone(): DoorOpeningHelper_PlayerInfoForClosingDoors {
+		const c = new DoorOpeningHelper_PlayerInfoForClosingDoors();
+		c.hitboxToNotCloseDoor = this.hitboxToNotCloseDoor;
+		return c;
+	}
+}
+
+export class DoorOpeningHelper_PlayerInfoForOpeningDoors {
+	hitboxToOpenDoor: Rectangle = new Rectangle();
+
+	intendedOpeningDirection: number = 0;
+
+	playerGravityDirection: number = 0;
+
+	tileCoordSpaceForCheckingForDoors: Rectangle = new Rectangle();
+
+	clone(): DoorOpeningHelper_PlayerInfoForOpeningDoors {
+		const c = new DoorOpeningHelper_PlayerInfoForOpeningDoors();
+		c.hitboxToOpenDoor = this.hitboxToOpenDoor;
+		c.intendedOpeningDirection = this.intendedOpeningDirection;
+		c.playerGravityDirection = this.playerGravityDirection;
+		c.tileCoordSpaceForCheckingForDoors = this.tileCoordSpaceForCheckingForDoors;
+		return c;
+	}
+}
+
+export class DoorOpeningHelper_TallGateOpeningInfoProvider {
+	ProvideInfo(tileCoords: Point): DoorOpeningHelper_DoorOpenCloseTogglingInfo {
+		let tile: Tile = Rt.tile.get(tileCoords.X, tileCoords.Y);
+		let tileCoordsForToggling: Point = tileCoords.clone();
+		tileCoordsForToggling.Y = (tileCoordsForToggling.Y - ((((tile.frameY % 90) | 0) / 18) | 0)) | 0;
+		let result: DoorOpeningHelper_DoorOpenCloseTogglingInfo =
+			new DoorOpeningHelper_DoorOpenCloseTogglingInfo();
+		result.handler = this;
+		result.tileCoordsForToggling = tileCoordsForToggling.clone();
+		return result.clone();
+	}
+
+	TryOpenDoor(
+		doorInfo: DoorOpeningHelper_DoorOpenCloseTogglingInfo,
+		playerInfo: DoorOpeningHelper_PlayerInfoForOpeningDoors
+	): boolean {
+		let tileCoordsForToggling: Point = doorInfo.tileCoordsForToggling.clone();
+		let val: Rectangle = new Rectangle();
+		val = new Rectangle(
+			Math.imul(doorInfo.tileCoordsForToggling.X, 16),
+			Math.imul(doorInfo.tileCoordsForToggling.Y, 16),
+			16,
+			80
+		);
+		switch (playerInfo.playerGravityDirection) {
+			case 1:
+				val.Height = (val.Height + 16) | 0;
+				break;
+			case -1:
+				val.Y = (val.Y - 16) | 0;
+				val.Height = (val.Height + 16) | 0;
+				break;
+		}
+		if (!val.Intersects(playerInfo.hitboxToOpenDoor.clone())) {
+			return false;
+		}
+		if (
+			playerInfo.hitboxToOpenDoor.Top < val.Top ||
+			playerInfo.hitboxToOpenDoor.Bottom > val.Bottom
+		) {
+			return false;
+		}
+		let flag: boolean = false;
+		if (WorldGen.ShiftTallGate(tileCoordsForToggling.X, tileCoordsForToggling.Y, flag, false)) {
+			NetMessage.SendData(
+				19,
+				-1,
+				-1,
+				null!,
+				(4 + Utils.ToInt(flag)) | 0,
+				tileCoordsForToggling.X,
+				tileCoordsForToggling.Y,
+				0,
+				0,
+				0,
+				0
+			);
+			return true;
+		}
+		return false;
+	}
+
+	TryCloseDoor(
+		info: DoorOpeningHelper_DoorOpenCloseTogglingInfo,
+		playerInfo: DoorOpeningHelper_PlayerInfoForClosingDoors
+	): number {
+		let tileCoordsForToggling: Point = info.tileCoordsForToggling.clone();
+		let tile: Tile = Rt.tile.get(tileCoordsForToggling.X, tileCoordsForToggling.Y);
+		if (!tile.active_() || tile.type !== 389) {
+			return 3;
+		}
+		void ((((tile.frameY % 90) | 0) / 18) | 0);
+		let val: Rectangle = new Rectangle();
+		val = new Rectangle(
+			Math.imul(tileCoordsForToggling.X, 16),
+			Math.imul(tileCoordsForToggling.Y, 16),
+			16,
+			80
+		);
+		val.Inflate(1, 0);
+		let val2: Rectangle = Rectangle.Intersect(val.clone(), playerInfo.hitboxToNotCloseDoor.clone());
+		if (val2.Width > 0 || val2.Height > 0) {
+			return 0;
+		}
+		let flag: boolean = true;
+		if (WorldGen.ShiftTallGate(tileCoordsForToggling.X, tileCoordsForToggling.Y, flag, false)) {
+			NetMessage.SendData(13, -1, -1, null!, Main.myPlayer, 0, 0, 0, 0, 0, 0);
+			NetMessage.SendData(
+				19,
+				-1,
+				-1,
+				null!,
+				(4 + Utils.ToInt(flag)) | 0,
+				tileCoordsForToggling.X,
+				tileCoordsForToggling.Y,
+				0,
+				0,
+				0,
+				0
+			);
+			return 1;
+		}
+		return 2;
+	}
+}
+
 export class DungeonUtils {
 	static InAnyPotentialDungeonBounds(x: number, y: number): boolean {
 		$hit('DungeonUtils.InAnyPotentialDungeonBounds');
@@ -298,6 +774,21 @@ export class Entity {
 	position: Vector2 = new Vector2();
 
 	velocity: Vector2 = new Vector2();
+
+	get Hitbox(): Rectangle {
+		return new Rectangle(
+			Math.trunc(this.position.X) | 0,
+			Math.trunc(this.position.Y) | 0,
+			this.width,
+			this.height
+		);
+	}
+
+	set Hitbox(value: Rectangle) {
+		this.position = new Vector2(value.X, value.Y);
+		this.width = value.Width;
+		this.height = value.Height;
+	}
 
 	direction: number = 1;
 
@@ -396,11 +887,29 @@ export class Rectangle {
 		return !Rectangle.op_Equality(a.clone(), b.clone());
 	}
 
+	static Union(a: Rectangle, b: Rectangle): Rectangle {
+		let x: number = Math.min(a.X, b.X);
+		let y: number = Math.min(a.Y, b.Y);
+		let r: number = Math.max((a.X + a.Width) | 0, (b.X + b.Width) | 0);
+		let btm: number = Math.max((a.Y + a.Height) | 0, (b.Y + b.Height) | 0);
+		return new Rectangle(x, y, (r - x) | 0, (btm - y) | 0);
+	}
+
 	constructor(x: number = 0, y: number = 0, w: number = 0, h: number = 0) {
 		this.X = x;
 		this.Y = y;
 		this.Width = w;
 		this.Height = h;
+	}
+
+	static Intersect(a: Rectangle, b: Rectangle): Rectangle {
+		let x: number = Math.max(a.X, b.X);
+		let y: number = Math.max(a.Y, b.Y);
+		let r: number = Math.min(a.Right, b.Right);
+		let bt: number = Math.min(a.Bottom, b.Bottom);
+		return r > x && bt > y
+			? new Rectangle(x, y, (r - x) | 0, (bt - y) | 0)
+			: new Rectangle(0, 0, 0, 0);
 	}
 
 	static get Empty(): Rectangle {
@@ -416,6 +925,22 @@ export class Rectangle {
 		);
 	}
 
+	get Left(): number {
+		return this.X;
+	}
+
+	get Right(): number {
+		return (this.X + this.Width) | 0;
+	}
+
+	get Top(): number {
+		return this.Y;
+	}
+
+	get Bottom(): number {
+		return (this.Y + this.Height) | 0;
+	}
+
 	Intersects(r: Rectangle): boolean {
 		return (
 			r.X < ((this.X + this.Width) | 0) &&
@@ -423,6 +948,13 @@ export class Rectangle {
 			r.Y < ((this.Y + this.Height) | 0) &&
 			this.Y < ((r.Y + r.Height) | 0)
 		);
+	}
+
+	Inflate(x: number, y: number): void {
+		this.X = (this.X - x) | 0;
+		this.Y = (this.Y - y) | 0;
+		this.Width = (this.Width + Math.imul(x, 2)) | 0;
+		this.Height = (this.Height + Math.imul(y, 2)) | 0;
 	}
 
 	clone(): Rectangle {
@@ -1026,6 +1558,12 @@ export class PlacementHook {
 		c.badResponse = this.badResponse;
 		c.processedCoordinates = this.processedCoordinates;
 		return c;
+	}
+}
+
+export class PlayerInput {
+	static get UsingGamepad(): boolean {
+		return false;
 	}
 }
 
@@ -8188,6 +8726,13 @@ export class UnifiedRandom {
 }
 
 export class Utils {
+	static ToInt(value: boolean): number {
+		if (!value) {
+			return 0;
+		}
+		return 1;
+	}
+
 	static NextFloat_UnifiedRandom(r: UnifiedRandom): number {
 		return Math.fround(r.NextDouble());
 	}
@@ -8198,12 +8743,20 @@ export class Utils {
 		);
 	}
 
+	static ToTileCoordinates_Vector2(vec: Vector2): Point {
+		return new Point(((Math.trunc(vec.X) | 0) >> 4) | 0, ((Math.trunc(vec.Y) | 0) >> 4) | 0);
+	}
+
 	static ToRotationVector2(f: number): Vector2 {
 		return new Vector2(Math.fround(Math.cos(f)), Math.fround(Math.sin(f)));
 	}
 
 	static NextFromList(random: UnifiedRandom, objs: ArrayLike<any>): any {
 		return objs[random.Next_Int32(objs.length)];
+	}
+
+	static TopLeft(r: Rectangle): Vector2 {
+		return new Vector2(r.X, r.Y);
 	}
 
 	static NextVector2CircularEdge(
@@ -8215,6 +8768,10 @@ export class Utils {
 			Utils.NextVector2Unit(r, 0, 6.2831854820251465),
 			new Vector2(circleHalfWidth, circleHalfHeight)
 		);
+	}
+
+	static BottomRight(r: Rectangle): Vector2 {
+		return new Vector2((r.X + r.Width) | 0, (r.Y + r.Height) | 0);
 	}
 
 	static deepCompare_Int32Array_Int32Array(
@@ -8336,6 +8893,12 @@ export class WallID_Sets {
 	static AllowsPlantsToGrow: boolean[] = $bools(
 		'1000000000000000000000000000000000000000000000000000000000000001111111100010000011000000000000000000000000110000000000000000000000000000001111000100001010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000001100100000000000000000000000000000000000000000000001010000000000000000000000000000000000000000000000000'
 	);
+}
+
+export class Wiring {
+	static running: boolean = false;
+
+	static SkipWire(x: number, y: number): void {}
 }
 
 export class WorldGen {
@@ -19681,13 +20244,13 @@ export class WorldGen {
 				WorldGen.KillTile(num7, l, false, false, false);
 			}
 		}
-		if (!!(Main.netMode !== 1 && $hole('Terraria.Wiring.running'))) {
-			$hole('Terraria.Wiring.SkipWire');
-			$hole('Terraria.Wiring.SkipWire');
-			$hole('Terraria.Wiring.SkipWire');
-			$hole('Terraria.Wiring.SkipWire');
-			$hole('Terraria.Wiring.SkipWire');
-			$hole('Terraria.Wiring.SkipWire');
+		if (Main.netMode !== 1 && Wiring.running) {
+			Wiring.SkipWire(num6, num);
+			Wiring.SkipWire(num6, (num + 1) | 0);
+			Wiring.SkipWire(num6, (num + 2) | 0);
+			Wiring.SkipWire((num6 + 1) | 0, num);
+			Wiring.SkipWire((num6 + 1) | 0, (num + 1) | 0);
+			Wiring.SkipWire((num6 + 1) | 0, (num + 2) | 0);
 		}
 		let num8: number = Math.imul((num4 % 36) | 0, 54);
 		$sound(8, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
@@ -19817,10 +20380,10 @@ export class WorldGen {
 				}
 			}
 		}
-		if (!!(Main.netMode !== 1 && $hole('Terraria.Wiring.running'))) {
-			$hole('Terraria.Wiring.SkipWire');
-			$hole('Terraria.Wiring.SkipWire');
-			$hole('Terraria.Wiring.SkipWire');
+		if (Main.netMode !== 1 && Wiring.running) {
+			Wiring.SkipWire(num2, num3);
+			Wiring.SkipWire(num2, (num3 + 1) | 0);
+			Wiring.SkipWire(num2, (num3 + 2) | 0);
 		}
 		for (let n: number = (num2 - 1) | 0; n <= ((num2 + 1) | 0); n++) {
 			for (let num8: number = (num3 - 1) | 0; num8 <= ((num3 + 2) | 0); num8++) {
@@ -24670,6 +25233,11 @@ export class WorldGen {
 
 	static SmashAltar(i: number, j: number): void {
 		$hit('WorldGen.SmashAltar');
+	}
+
+	static ShiftTallGate(x: number, y: number, closing: boolean, forced: boolean): boolean {
+		$hit('WorldGen.ShiftTallGate');
+		return false;
 	}
 
 	static KillTile_DropBait(i: number, j: number, tileCache: Tile): void {}

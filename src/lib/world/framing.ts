@@ -32,6 +32,8 @@ export const TABLE = 14;
 export const CHAIR = 15;
 export const WORK_BENCH = 18;
 export const FURNITURE = [DOOR_CLOSED, DOOR_OPEN, TABLE, CHAIR, WORK_BENCH];
+/** Main.tileNoAttach, for the tiles here: nothing (like a torch) hangs on them. */
+export const NO_ATTACH = [DOOR_CLOSED, TABLE, CHAIR, WORK_BENCH];
 /** Main.tileSolidTop: stood on, walked through. */
 export const SOLID_TOP = [TABLE, WORK_BENCH];
 /** Main.tileFrameImportant, for the tiles here: the trees, torches and furniture. */

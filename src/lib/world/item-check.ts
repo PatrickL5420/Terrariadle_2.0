@@ -27,6 +27,7 @@ import {
 	AIR,
 	FRAME_IMPORTANT,
 	GRASS,
+	NO_ATTACH,
 	isSolid,
 	TORCH,
 	TREES,
@@ -122,6 +123,8 @@ export const ITEMS: Record<number, ItemStats> = {
 	9: { ...BLOCK, createTile: 30, frame: [24, 22] },
 	/** Wood Wall. */
 	93: { ...BLOCK, useTime: 7, createWall: 4, frame: [24, 24] },
+	/** Wooden Door (no auto-reuse). */
+	25: { ...BLOCK, autoReuse: false, createTile: 10, frame: [18, 32] },
 	/** Work Bench, Wooden Table, Wooden Chair. */
 	36: { ...BLOCK, createTile: 18, frame: [32, 18] },
 	32: { ...BLOCK, createTile: 14, frame: [30, 22] },
@@ -435,7 +438,8 @@ function placeThing(p: Player, s: ItemStats, w: ItemWorld) {
 export function canPlaceTorch(w: ItemWorld, x: number, y: number): boolean {
 	const t = w.tiles;
 	if (x >= 0 && y >= 0 && x < t.width && y < t.height && t.wall[y * t.width + x] > 0) return true;
-	const solid = (i: number, j: number) => isSolid(t.at(i, j));
+	// (Main.tileSolid and not Main.tileNoAttach: not on a door.)
+	const solid = (i: number, j: number) => isSolid(t.at(i, j)) && !NO_ATTACH.includes(t.at(i, j));
 	const tree = (i: number, j: number) => WorldGen.IsTreeType(t.at(i, j));
 	if (solid(x, y + 1)) return true;
 	if (solid(x - 1, y) || (tree(x - 1, y) && tree(x - 1, y - 1) && tree(x - 1, y - 1))) return true;

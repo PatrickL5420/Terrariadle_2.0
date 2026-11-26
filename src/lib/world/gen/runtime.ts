@@ -53,6 +53,13 @@ export class Array2D<T> {
 	}
 }
 
+/** Dictionary.TryGetValue: whether `key`'s in the map, its value into `out`. */
+export function $tryGetValue<K, V>(map: Map<K, V>, key: K, out: { v: V }): boolean {
+	if (!map.has(key)) return false;
+	out.v = map.get(key)!;
+	return true;
+}
+
 /** Array.Copy / CopyTo: `n` items (all of `src` by default) from src[from] into dst[at]. */
 export function $arrayCopy(
 	src: ArrayLike<unknown> | Array2D<unknown>,
@@ -293,6 +300,18 @@ export interface Sound {
 	style: number;
 }
 
+/** What GamePlayer reads of the site's player. */
+export interface Body {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+	vx: number;
+	vy: number;
+	direction: number;
+	controls: { left: boolean; right: boolean };
+}
+
 /**
  * An NPC, as a shaken tree asks for one (NPC.NewNPC): critters aren't simulated here, just
  * reported (Rt.critter); the slot handed back is the spare one past the last, as when none is
@@ -367,6 +386,9 @@ export const Rt = {
 		Rt.wallVariant(i, j, v);
 	},
 	wallVariant: (_i: number, _j: number, _v: number) => {},
+	/** new Rectangle(x, y, w, h) (the game's, from ./game). */
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	rect: (_x: number, _y: number, _w: number, _h: number): any => null,
 	/** TileFrameCosmetic's reset: a new random variant (WorldGen.genRand.Next(3)). */
 	variant: () => 0
 };
@@ -376,11 +398,11 @@ export const Rt = {
  * there's one player). Its axe and accessories are set by the site.
  */
 export class GamePlayer {
-	/** The player it stands for (where it is, for Collision.EmptyTile), or none: an empty slot. */
-	constructor(
-		private readonly me?: () =>
-			{ x: number; y: number; w: number; h: number; direction: number } | undefined
-	) {}
+	/**
+	 * The player it stands for (where it is, for Collision.EmptyTile; how it moves, for the
+	 * doors it walks into), or none: an empty slot.
+	 */
+	constructor(private readonly me?: () => Body | undefined) {}
 
 	private get body() {
 		return this.me?.();
@@ -401,6 +423,25 @@ export class GamePlayer {
 	}
 	/** Where it's drawn below its hitbox (only for drawing). */
 	gfxOffY = 0;
+	gravDir = 1;
+	get velocity() {
+		return { X: this.body?.vx ?? 0, Y: this.body?.vy ?? 0 };
+	}
+	get controlLeft() {
+		return !!this.body?.controls.left;
+	}
+	get controlRight() {
+		return !!this.body?.controls.right;
+	}
+	/** Entity.Hitbox: its (int) rectangle. */
+	get Hitbox() {
+		const b = this.body;
+		return Rt.rect(Math.trunc(b?.x ?? 0), Math.trunc(b?.y ?? 0), b?.w ?? 0, b?.h ?? 0);
+	}
+	/** Player.GetAutoDoorVelocityContribution: its speed (no roller skates here). */
+	GetAutoDoorVelocityContribution() {
+		return this.body?.vx ?? 0;
+	}
 	get direction() {
 		return this.body?.direction ?? 1;
 	}

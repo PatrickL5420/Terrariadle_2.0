@@ -177,20 +177,45 @@ class Emitter
 			if (found.Length == 0) throw new Refused("no such root: " + root, null);
 			foreach (var m in found) Need(m);
 		}
-		while (work.Count > 0)
+		do
 		{
-			var s = work.Dequeue();
-			current = s;
-			try
+			while (work.Count > 0)
 			{
-				EmitMember(s);
+				var s = work.Dequeue();
+				current = s;
+				try
+				{
+					EmitMember(s);
+				}
+				catch (Refused r)
+				{
+					var chain = new List<string>();
+					for (var x = s; x != null && chain.Count < 12; x = neededBy.GetValueOrDefault(x)) chain.Add(Key(x));
+					throw new Refused(r.Message + "\n  in " + string.Join("\n  <- ", chain), null);
+				}
 			}
-			catch (Refused r)
-			{
-				var chain = new List<string>();
-				for (var x = s; x != null && chain.Count < 12; x = neededBy.GetValueOrDefault(x)) chain.Add(Key(x));
-				throw new Refused(r.Message + "\n  in " + string.Join("\n  <- ", chain), null);
-			}
+			NeedImplementations();
+		} while (work.Count > 0);
+	}
+
+	/// Calls through an interface or a virtual method reach its implementations: for every type
+	/// converted, the implementations of what's needed come too.
+	void NeedImplementations()
+	{
+		foreach (var t in types.Keys.ToList())
+		{
+			foreach (var iface in t.AllInterfaces)
+				foreach (var im in iface.GetMembers().OfType<IMethodSymbol>())
+					if (seen.Contains(im) || seen.Contains(im.OriginalDefinition))
+						if (t.FindImplementationForInterfaceMember(im) is IMethodSymbol impl && InSource(impl.ContainingType))
+							Need(impl);
+			foreach (var m in t.GetMembers().OfType<IMethodSymbol>().Where(m => m.IsOverride))
+				for (var b = m.OverriddenMethod; b != null; b = b.OverriddenMethod)
+					if (seen.Contains(b) || seen.Contains(b.OriginalDefinition))
+					{
+						Need(m);
+						break;
+					}
 		}
 	}
 
@@ -297,6 +322,7 @@ class Emitter
 			var od = n.OriginalDefinition.ToDisplayString();
 			if (od is "System.Collections.Generic.List<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>") return Ts(n.TypeArguments[0]) + "[]";
 			if (od == "System.Collections.Generic.HashSet<T>") return $"Set<{Ts(n.TypeArguments[0])}>";
+			if (od == "System.Collections.Generic.Dictionary<TKey, TValue>") return $"Map<{Ts(n.TypeArguments[0])}, {Ts(n.TypeArguments[1])}>";
 			if (n.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T) return Ts(n.TypeArguments[0]) + " | null";
 			if (InSource(n))
 			{
@@ -950,6 +976,8 @@ class Emitter
 			if (s.Name == "Length" && p.Instance?.Type?.SpecialType == SpecialType.System_String) return $"{Expr(p.Instance)}.length";
 			if (s.Name == "Count" && IsList(p.Instance?.Type)) return $"{Expr(p.Instance)}.length";
 			if (s.Name == "Count" && IsSet(p.Instance?.Type)) return $"{Expr(p.Instance)}.size";
+			if (s.Name == "Count" && IsDict(p.Instance?.Type)) return $"{Expr(p.Instance)}.size";
+			if (s.IsIndexer && IsDict(p.Instance?.Type)) return $"{Expr(p.Instance)}.get({Expr(p.Arguments[0].Value)})!";
 			// Nullable<T>: null, or the value.
 			if (s.ContainingType?.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
 			{
@@ -978,12 +1006,15 @@ class Emitter
 		static string Generic(ITypeSymbol t) => t is INamedTypeSymbol n ? n.OriginalDefinition.ToDisplayString() : "";
 		static bool IsList(ITypeSymbol t) => Generic(t) is "System.Collections.Generic.List<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>";
 		static bool IsSet(ITypeSymbol t) => Generic(t) == "System.Collections.Generic.HashSet<T>";
+		static bool IsDict(ITypeSymbol t) => Generic(t) == "System.Collections.Generic.Dictionary<TKey, TValue>";
 
 		string Assign(IOperation target, string value)
 		{
 			if (target is IMemberReferenceOperation mr && IsHole(mr.Member)) return $"$hole({JsonSerializer.Serialize(Key(mr.Member))})";
 			if (target is IArrayElementReferenceOperation ae && ae.Indices.Length > 1)
 				return $"{Expr(ae.ArrayReference)}.set({string.Join(", ", ae.Indices.Select(Expr))}, {value})";
+			if (target is IPropertyReferenceOperation dp && dp.Property.IsIndexer && IsDict(dp.Instance?.Type))
+				return $"{Expr(dp.Instance)}.set({Expr(dp.Arguments[0].Value)}, {value})";
 			if (target is IPropertyReferenceOperation p && p.Property.IsIndexer && !IsList(p.Instance?.Type))
 			{
 				e.Need(p.Property);
@@ -1331,6 +1362,20 @@ class Emitter
 				string a = Args(m, inv.Arguments);
 				return def.IsStatic ? $"{e.Ts(def.ContainingType)}.{e.MemberName(def)}({a})" : $"{Receiver(inv.Instance)}.{e.MemberName(def)}({a})";
 			}
+			if (IsDict(inv.Instance?.Type))
+			{
+				string recv = Expr(inv.Instance);
+				var a = inv.Arguments.Select(x => x.Value).ToArray();
+				return m.Name switch
+				{
+					"TryGetValue" => $"$tryGetValue({recv}, {Expr(a[0])}, {Box(a[1], m.Parameters[1].Type)})",
+					"ContainsKey" => $"{recv}.has({Expr(a[0])})",
+					"Add" => $"{recv}.set({Expr(a[0])}, {Expr(a[1])})",
+					"Remove" => $"{recv}.delete({Expr(a[0])})",
+					"Clear" => $"{recv}.clear()",
+					_ => throw new Refused("Dictionary." + m.Name, inv.Syntax)
+				};
+			}
 			if (IsSet(inv.Instance?.Type))
 			{
 				string recv = Expr(inv.Instance);
@@ -1359,6 +1404,15 @@ class Emitter
 			var t = (INamedTypeSymbol)oc.Type;
 			if (IsList(t)) return "[]";
 			if (IsSet(t)) return "new Set()";
+			// A Dictionary: a Map, with its { key, value } initialisers as entries.
+			if (IsDict(t))
+			{
+				if (oc.Initializer == null) return "new Map()";
+				var entries = oc.Initializer.Initializers.Select(i => i is IInvocationOperation add && add.Arguments.Length == 2
+					? $"[{Value(add.Arguments[0].Value, t.TypeArguments[0])}, {Value(add.Arguments[1].Value, t.TypeArguments[1])}]"
+					: throw new Refused("a dictionary initializer", i.Syntax));
+				return $"new Map([{string.Join(", ", entries)}])";
+			}
 			if (IsHole(t)) return $"$hole({JsonSerializer.Serialize(t.ToDisplayString())})";
 			if (e.config.externalTypes.TryGetValue(t.OriginalDefinition.ToDisplayString(), out var extType))
 				return $"new {extType}({(oc.Constructor != null && oc.Constructor.Parameters.Length > 0 ? Args(oc.Constructor, oc.Arguments) : "")})";
