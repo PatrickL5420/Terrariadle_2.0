@@ -276,6 +276,22 @@ describe('the little world', () => {
 		expect(worst).toBeLessThan(60 * 5);
 	}, 60_000);
 
+	it('builds a house: wooden floor, walls and roof, a torch inside', () => {
+		let s = 2;
+		const rnd = ((a: number, b?: number) => {
+			s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+			const v = s / 2 ** 32;
+			return b === undefined ? Math.floor(v * a) : a + Math.floor(v * (b - a));
+		}) as ConstructorParameters<typeof World>[0];
+		const w = new World(rnd);
+		for (let f = 0; f < 60 * 60 * 5 && !w.structures.length; f++) w.update([255, 255, 255], quiet);
+		const house = w.structures.find((b) => b.kind === 'house');
+		expect(house).toBeDefined();
+		const wood = house!.pieces.filter((p) => p.need === 'wood');
+		expect(wood.every((p) => w.tiles.at(p.i, p.j) === 30)).toBe(true);
+		expect(house!.pieces.some((p) => p.need === 'torch' && w.tiles.at(p.i, p.j) === 4)).toBe(true);
+	}, 60_000);
+
 	it('is made by the game’s world generation: grass over dirt and stone, clay, walls, trees', () => {
 		const w = new World();
 		const types = new Set<number>();

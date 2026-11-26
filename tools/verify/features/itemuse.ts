@@ -231,7 +231,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		const i = 4 + rand(w - 8);
 		if (nearTree(i) || nearTree(i + 3)) continue;
 		const j = tops[i] - 2 - rand(5);
-		const type = [0, 1, 2, 40][rand(4)];
+		const type = [0, 1, 2, 40, 30][rand(5)];
 		for (let k = 0; k < 1 + rand(4); k++) put(i + k, j, type);
 	}
 	for (let n = rand(4); n > 0; n--) {
@@ -240,7 +240,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		for (let k = 0; k < 1 + rand(3); k++) if (!taken.has(j * w + i + k)) walls.push([i + k, j]);
 	}
 	const trees: ItemUseCase['trees'] = treeAt.map((t) => [t, tops[t]]);
-	const item = [3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8][rand(9)];
+	const item = [3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8, 9][rand(10)];
 	// With an axe, mostly beside a tree.
 	const tree = item === 3506 && trees.length && rand(4) ? trees[rand(trees.length)] : null;
 	const i = tree ? Math.max(10, Math.min(w - 11, tree[0] + rand(5) - 2)) : 10 + rand(w - 20);

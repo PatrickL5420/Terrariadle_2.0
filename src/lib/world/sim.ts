@@ -35,6 +35,16 @@ import {
 import { LightMap, type RGB } from './light';
 import { Follower, use } from './ai/follow';
 import { open, plan, standOf, type Goal, type Stand } from './ai/nav';
+import {
+	bridgeSite,
+	houseSite,
+	needs,
+	next,
+	towerSite,
+	type Blueprint,
+	type BuildMap,
+	type Need
+} from './ai/build';
 import { Player } from './player';
 import { MARGIN, Tiles } from './tiles';
 
@@ -120,6 +130,8 @@ export class World implements ItemWorld {
 		const style = rnd(6);
 		this.treeStyle = style === 0 ? 0 : style === 5 ? 10 : 5 + style;
 		play(this.tiles, this.rand, this);
+		this.tiles.kept = (i, j) => this.#kept.has(j * this.width + i);
+		this.tiles.keepClear = (i, j) => this.#keepClear.has(j * this.width + i);
 		// In the middle, or the nearest column with ground (not a cave shaft down to the bottom).
 		let i = MARGIN + Math.trunc(COLS / 2);
 		for (let d = 0; d < COLS / 2; d++) {
@@ -381,11 +393,12 @@ export class World implements ItemWorld {
 			if (p.itemAnimation === 0) this.#give(done ? 'done' : 'took too long');
 			return;
 		}
-		if (!this.hold(task.kind === 'chop' ? 'axe' : task.kind === 'place' ? 'block' : 'pickaxe')) {
+		const need = task.kind === 'place' ? (task.need ?? 'block') : null;
+		if (!this.hold(task.kind === 'chop' ? 'axe' : (need ?? 'pickaxe'))) {
 			if (p.itemAnimation === 0) this.#give('nothing to use');
 			return;
 		}
-		if (task.kind === 'place' && !this.canPlace(i, j)) return this.#give("can't place");
+		if (need && !this.#placeable(i, j, need === 'torch')) return this.#give("can't place");
 		use(p, i, j);
 	}
 
@@ -400,6 +413,8 @@ export class World implements ItemWorld {
 	/** On to something else, after a breather. */
 	#give(why = 'done') {
 		const k = `${this.#task.kind}: ${why}`;
+		// Building and getting nowhere: after a few, it's given up (#build).
+		if (why !== 'done' && this.#project) this.#stuckOn++;
 		this.outcomes[k] = (this.outcomes[k] ?? 0) + 1;
 		this.#task = { kind: 'idle', frames: 15 + this.rnd(60) };
 		this.#follow = null;
@@ -502,15 +517,17 @@ export class World implements ItemWorld {
 	}
 
 	/** Body.hold (./ai/follow): the pickaxe, axe, torches or a stack of blocks in hand, between swings. */
-	hold(kind: 'pickaxe' | 'block' | 'axe' | 'torch'): boolean {
+	hold(kind: 'pickaxe' | 'block' | 'axe' | 'torch' | 'wood'): boolean {
 		const p = this.player;
 		const slot =
 			kind === 'pickaxe'
 				? this.inventory[0]
 				: kind === 'axe'
 					? this.inventory[1]
-					: kind === 'torch'
-						? (this.inventory.find((it) => it.type === TORCH_ITEM && it.stack > 0) ?? null)
+					: kind === 'torch' || kind === 'wood'
+						? (this.inventory.find(
+								(it) => it.type === (kind === 'torch' ? TORCH_ITEM : WOOD) && it.stack > 0
+							) ?? null)
 						: this.#blockToPlace();
 		if (!slot) return false;
 		if (p.item === slot) return true;
@@ -547,6 +564,145 @@ export class World implements ItemWorld {
 	top(i: number) {
 		for (let j = 0; j < this.height; j++) if (isSolid(this.tiles.at(i, j))) return j;
 		return this.height;
+	}
+
+	// ---- Building (./ai/build) ----------------------------------------------------------------------
+
+	/** What it's building now, and what it's built. */
+	#project: Blueprint | null = null;
+	readonly structures: Blueprint[] = [];
+	/** What it's building now (for tests). */
+	get project(): Blueprint | null {
+		return this.#project;
+	}
+	/** The next step on it (for tests). */
+	get projectNext() {
+		return this.#project && next(this.#map, this.#project, Math.trunc(this.player.center.x / 16));
+	}
+	/** Tiles that are part of what it built (not to be mined), and that must stay clear. */
+	#kept = new Set<number>();
+	#keepClear = new Set<number>();
+	#stuckOn = 0;
+
+	/** What building reads of the world (./ai/build: BuildMap). */
+	get #map(): BuildMap {
+		const t = this.tiles;
+		return {
+			width: this.width,
+			height: this.height,
+			maxTilesX: t.maxTilesX,
+			maxTilesY: t.maxTilesY,
+			solid: (i, j) => t.solid(i, j),
+			at: (i, j) => t.at(i, j),
+			inView: (i, j) => t.inView(i, j),
+			top: (i) => this.top(i),
+			placeable: (i, j, torch) => this.#placeable(i, j, torch)
+		};
+	}
+
+	/** Whether a block (or torch) could go at (i, j) now. */
+	#placeable(i: number, j: number, torch: boolean) {
+		const t = this.tiles;
+		if (!t.inView(i, j) || t.at(i, j) !== AIR) return false;
+		if (torch) return canPlaceTorch(this, i, j);
+		return canPlaceAt(this, i, j) && !overlapsPlayer(this.player, i, j);
+	}
+
+	/** How many of a thing it has. */
+	#count(need: Need) {
+		if (need === 'block') return this.blocks;
+		const type = need === 'wood' ? WOOD : TORCH_ITEM;
+		return this.inventory.reduce((n, it) => n + (it.type === type ? it.stack : 0), 0);
+	}
+
+	/**
+	 * The next task in building: what the blueprint needs done next, or getting what it needs
+	 * first (wood from trees, blocks off the bumps), or nothing (no project, and no new one).
+	 */
+	#build(r: Rand): Task | null {
+		if (!this.#project) {
+			// A house first; after that, now and then, a tower or a bridge.
+			if (r(this.structures.length ? 12 : 3) !== 0) return null;
+			const o = {
+				first: MARGIN + 1,
+				last: this.width - MARGIN - 3,
+				rows: this.rows,
+				taken: this.structures.map((b) => b.box)
+			};
+			const near = Math.trunc(this.player.center.x / 16);
+			const houses = this.structures.filter((b) => b.kind === 'house').length;
+			const site = !houses
+				? houseSite(this.#map, near, o)
+				: r(2)
+					? towerSite(this.#map, near, o)
+					: bridgeSite(this.#map, near, o);
+			if (!site) return null;
+			this.#project = site;
+			this.#stuckOn = 0;
+			for (const [i, j] of site.clear) this.#keepClear.add(j * this.width + i);
+			for (const pc of site.pieces) this.#kept.add(pc.j * this.width + pc.i);
+		}
+		const b = this.#project;
+		const near = Math.trunc(this.player.center.x / 16);
+		const n = next(this.#map, b, near);
+		if (n.kind === 'stuck') this.#stuckOn++;
+		if (n.kind === 'done' || this.#stuckOn > 8) {
+			if (n.kind === 'done') this.structures.push(b);
+			else {
+				for (const [i, j] of b.clear) this.#keepClear.delete(j * this.width + i);
+				// What got built of it comes down again (the cleaning up).
+				for (const pc of b.pieces) {
+					this.#kept.delete(pc.j * this.width + pc.i);
+					if (pc.need !== 'block' && this.tiles.at(pc.i, pc.j) !== AIR) this.built(pc.i, pc.j);
+				}
+			}
+			this.#project = null;
+			const k = `${b.kind}: ${n.kind === 'done' ? 'built' : 'abandoned'}`;
+			this.outcomes[k] = (this.outcomes[k] ?? 0) + 1;
+			return null;
+		}
+		if (n.kind === 'stuck') return null;
+		if (n.kind === 'chop') {
+			const [i, j] = n.tile;
+			return { kind: 'chop', tile: n.tile, goal: this.#reach(i, j, -1), frames: 0 };
+		}
+		if (n.kind === 'mine') {
+			const [i, j] = n.tile;
+			return { kind: 'mine', tile: n.tile, goal: this.#reach(i, j, -1), frames: 0 };
+		}
+		// Enough of what it needs? Wood from trees (and torches from wood), blocks off bumps.
+		const want = needs(this.#map, b);
+		if (n.need === 'torch' && !this.#torches()) return this.#chopTree() ?? this.#starve();
+		if (n.need === 'wood' && this.#count('wood') < Math.min(want.wood, 10)) {
+			if (this.#count('wood') === 0) return this.#chopTree() ?? this.#starve();
+			if (r(2)) return this.#chopTree();
+		}
+		if (n.need === 'block' && this.blocks === 0) return null; // the gathering below sees to it
+		const [i, j] = n.tile;
+		return { kind: 'place', tile: n.tile, need: n.need, goal: this.#reach(i, j, 0), frames: 0 };
+	}
+
+	/** Nothing to build with, and no way to get it: give the project up (bit by bit). */
+	#starve(): null {
+		this.#stuckOn++;
+		return null;
+	}
+
+	/** Chop the nearest tree down (for wood). */
+	#chopTree(): Task | null {
+		const first = MARGIN + 1;
+		const last = this.width - MARGIN - 3;
+		const pi = Math.trunc(this.player.center.x / 16);
+		const trees: { i: number; j: number }[] = [];
+		for (let i = first; i <= last; i++) {
+			const j = this.top(i) - 1;
+			if (j > 0 && this.tiles.at(i, j) === TREE && this.#isTrunk(i, j)) trees.push({ i, j });
+		}
+		trees.sort((a, b) => Math.abs(a.i - pi) - Math.abs(b.i - pi));
+		const tr = trees[this.rnd(Math.min(2, trees.length))];
+		return tr
+			? { kind: 'chop', tile: [tr.i, tr.j], goal: this.#reach(tr.i, tr.j, -1), frames: 0 }
+			: null;
 	}
 
 	// ---- Goals -------------------------------------------------------------------------------------
@@ -595,12 +751,16 @@ export class World implements ItemWorld {
 			};
 		}
 
+		// Building: on with what it's building, or now and then something new.
+		const work = this.#build(r);
+		if (work) return work;
+
 		// Cleaning up: blocks it built to get about (pillars, bridges) come down; holes it dug go
 		// back in, bottom first.
 		const built = [...this.#built]
 			.map((k) => ({ i: k % W, j: Math.trunc(k / W) }))
 			.filter(({ i, j }) => {
-				const solid = isSolid(t.at(i, j));
+				const solid = isSolid(t.at(i, j)) && !this.#kept.has(j * W + i);
 				if (!solid) this.#built.delete(j * W + i);
 				return solid;
 			});
@@ -612,7 +772,7 @@ export class World implements ItemWorld {
 		const holes = [...this.#dug]
 			.map((k) => ({ i: k % W, j: Math.trunc(k / W) }))
 			.filter(({ i, j }) => {
-				const open = t.at(i, j) === AIR;
+				const open = t.at(i, j) === AIR && !this.#keepClear.has(j * W + i);
 				if (!open) this.#dug.delete(j * W + i);
 				return open;
 			});
@@ -634,7 +794,8 @@ export class World implements ItemWorld {
 			const peaks: { i: number; j: number }[] = [];
 			for (let i = first; i <= last; i++) {
 				const j = this.top(i);
-				if (j >= this.rows - 1 || TREES.includes(t.at(i, j - 1))) continue;
+				if (j >= this.rows - 1 || TREES.includes(t.at(i, j - 1)) || this.#kept.has(j * W + i))
+					continue;
 				if (j <= this.top(i - 1) && j <= this.top(i + 1)) peaks.push({ i, j });
 			}
 			const pk = near(peaks);
@@ -669,4 +830,11 @@ export class World implements ItemWorld {
 type Task =
 	| { kind: 'idle'; frames: number }
 	| { kind: 'go'; goal: Goal }
-	| { kind: 'mine' | 'chop' | 'place'; tile: [number, number]; goal: Goal; frames: number };
+	| {
+			kind: 'mine' | 'chop' | 'place';
+			tile: [number, number];
+			goal: Goal;
+			frames: number;
+			/** What's placed (blocks by default). */
+			need?: Need;
+	  };

@@ -42,7 +42,7 @@ public partial class TileObject
  */
 public partial class Player
 {
-	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 8 or 0; // 0: used up
+	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 8 or 9 or 0; // 0: used up
 
 	static void Only(Item item, string what)
 	{
@@ -91,7 +91,7 @@ public partial class TileObjectData
 	public static bool CustomPlace(int type, int style)
 	{
 		// (No item: the pickaxe's createTile is -1.)
-		if (type < 0 || type == 0 || type == 1 || type == 2 || type == 40) return false;
+		if (type < 0 || type == 0 || type == 1 || type == 2 || type == 40 || type == 30) return false;
 		// Torches have object data, but PlaceThing_Tiles_TryPlacing places them as blocks all the same.
 		if (type == 4) return true;
 		Stub.Hit("TileObjectData.CustomPlace");
@@ -100,7 +100,7 @@ public partial class TileObjectData
 
 	public static TileObjectData GetTileData(int type, int style, int alternate = 0)
 	{
-		if (type == 0 || type == 1 || type == 2 || type == 40) return null;
+		if (type == 0 || type == 1 || type == 2 || type == 40 || type == 30) return null;
 		Stub.Hit("TileObjectData.GetTileData");
 		return null;
 	}

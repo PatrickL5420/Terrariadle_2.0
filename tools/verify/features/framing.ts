@@ -3,7 +3,7 @@
  * ($lib/world/framing). The oracle runs the same case through the game's WorldGen; see
  * oracle/features/Framing.cs for what each op does there.
  */
-import { AIR, CLAY, DIRT, GRASS, STONE, TileGrid } from '$lib/world/framing';
+import { AIR, CLAY, DIRT, GRASS, STONE, TileGrid, WOOD_BLOCK } from '$lib/world/framing';
 
 export type Op =
 	| ['frameAll']
@@ -76,8 +76,8 @@ export function runFraming(c: FramingCase): FramingResult {
 }
 
 const TYPES = [AIR, DIRT, STONE, GRASS];
-/** The random worlds have clay too (it frames like stone, but isn't a brick). */
-const ALL = [...TYPES, CLAY];
+/** The random worlds have clay and wood too (clay frames like stone, but isn't a brick). */
+const ALL = [...TYPES, CLAY, WOOD_BLOCK];
 
 /**
  * Every 3x3 neighbourhood: each block in the middle, each of air, dirt, stone or grass on each
@@ -126,14 +126,14 @@ export function randomWorld(rand: (n: number) => number, edits: number): Framing
 	}
 	// Patches and noise, so every pairing turns up.
 	for (let n = rand(6); n > 0; n--) {
-		const t = ALL[1 + rand(4)];
+		const t = ALL[1 + rand(ALL.length - 1)];
 		const ci = rand(w);
 		const cj = rand(h);
 		for (let i = ci - rand(3); i <= ci + rand(3); i++)
 			for (let j = cj - rand(3); j <= cj + rand(3); j++)
 				if (i >= 0 && j >= 0 && i < w && j < h) grid[j * w + i] = t;
 	}
-	for (let n = rand(w * h * 0.1); n > 0; n--) grid[rand(w * h)] = ALL[rand(5)];
+	for (let n = rand(w * h * 0.1); n > 0; n--) grid[rand(w * h)] = ALL[rand(ALL.length)];
 	for (let k = 0; k < w * h; k++) cells.push([k % w, Math.floor(k / w), grid[k], rand(3)]);
 	const ops: Op[] = [['frameAll']];
 	for (let e = 0; e < edits; e++) {
@@ -141,7 +141,7 @@ export function randomWorld(rand: (n: number) => number, edits: number): Framing
 		const j = 1 + rand(h - 2);
 		const t = grid[j * w + i];
 		if (t === AIR) {
-			const type = [DIRT, STONE, CLAY][rand(3)];
+			const type = [DIRT, STONE, CLAY, WOOD_BLOCK][rand(4)];
 			ops.push(['place', i, j, type, rand(3)]);
 			grid[j * w + i] = type;
 		} else if (t === GRASS && rand(2)) {

@@ -47,6 +47,10 @@ export interface NavMap extends TileMap {
 	at(i: number, j: number): number;
 	/** Whether (i, j) may be changed (the part of the world that's shown). */
 	inView(i: number, j: number): boolean;
+	/** Whether (i, j) is to be kept (part of something built): not dug through. */
+	kept?(i: number, j: number): boolean;
+	/** Whether (i, j) is to be kept clear (inside something built): not built in. */
+	keepClear?(i: number, j: number): boolean;
 }
 
 /** The blocks a pickaxe takes (and what they give: a block each). */
@@ -201,6 +205,7 @@ class View {
 		for (let c = this.changes; c; c = c.next) if (c.k === k) return false;
 		return (
 			this.m.inView(i, j) &&
+			!this.m.kept?.(i, j) &&
 			MINEABLE.includes(this.m.at(i, j)) &&
 			!TREES.includes(this.m.at(i, j - 1))
 		);
@@ -368,7 +373,7 @@ function moves(v: View, s: Stand, blocks: number, build: boolean, dig: boolean):
 				// A bridge: a block under the next column instead, and walk on.
 				if (build && blocks > 0) {
 					const t: [number, number] = [d > 0 ? i + 1 : i, j];
-					if (!v.solid(t[0], t[1]))
+					if (!v.solid(t[0], t[1]) && !v.m.keepClear?.(t[0], t[1]) && !v.m.kept?.(t[0], t[1]))
 						out.push({
 							to: { i: n, j },
 							cost: 6 + PLACE_COST,
@@ -450,9 +455,15 @@ function moves(v: View, s: Stand, blocks: number, build: boolean, dig: boolean):
 	}
 
 	// A pillar: a block under its feet, on the one it stands on.
-	if (build && blocks > 0 && v.fits(i, j - 1)) {
-		const c = v.solid(i, j) ? i : i + 1;
-		const t: [number, number] = [c, j - 1];
+	const pc = v.solid(i, j) ? i : i + 1;
+	if (
+		build &&
+		blocks > 0 &&
+		v.fits(i, j - 1) &&
+		!v.m.keepClear?.(pc, j - 1) &&
+		!v.m.kept?.(pc, j - 1)
+	) {
+		const t: [number, number] = [pc, j - 1];
 		out.push({
 			to: { i, j: j - 1 },
 			cost: 40 + PLACE_COST,

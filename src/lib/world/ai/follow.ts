@@ -14,7 +14,7 @@ export interface Body {
 	player: Player;
 	tiles: NavMap;
 	/** Holds a pickaxe, a stack of blocks or an axe (only between swings); whether it's held. */
-	hold(kind: 'pickaxe' | 'block' | 'axe' | 'torch'): boolean;
+	hold(kind: 'pickaxe' | 'block' | 'axe' | 'torch' | 'wood'): boolean;
 	/** Notes a block the plan mined, or placed (for cleaning up after). */
 	dug?(i: number, j: number): void;
 	built?(i: number, j: number): void;

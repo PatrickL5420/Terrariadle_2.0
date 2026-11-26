@@ -19,6 +19,8 @@ export const DIRT = 0;
 export const STONE = 1;
 export const GRASS = 2;
 export const CLAY = 40;
+/** Wood (the block a Wood item places). */
+export const WOOD_BLOCK = 30;
 /** Trees: forest trees, and the sakura and yellow willow (VanityTreeSakura, VanityTreeYellowWillow). */
 export const TREE = 5;
 export const TREES = [TREE, 596, 616];
@@ -32,11 +34,11 @@ export const FRAME_IMPORTANT = [...TREES, TORCH];
  */
 export const TILE_DATA = {
 	/** Main.tileSolid */
-	solid: [DIRT, STONE, GRASS, CLAY],
+	solid: [DIRT, STONE, GRASS, CLAY, WOOD_BLOCK],
 	/** Main.tileBrick: bricks join up with each other. */
-	brick: [STONE, GRASS],
+	brick: [STONE, GRASS, WOOD_BLOCK],
 	/** Main.tileMergeDirt: blends into dirt. */
-	mergeDirt: [STONE, CLAY],
+	mergeDirt: [STONE, CLAY, WOOD_BLOCK],
 	/** TileID.Sets.Dirt */
 	dirt: [DIRT],
 	/** TileID.Sets.Conversion.MergesWithDirtInASpecialWay: grass. */

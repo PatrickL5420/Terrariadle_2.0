@@ -94,7 +94,7 @@ describe.skipIf(!oracleBuilt)('item use = Player.ItemCheck', () => {
 			'tileBoost',
 			'scale'
 		] as const;
-		for (const type of [2, 3, 8, 133, 3509, 3506]) {
+		for (const type of [2, 3, 8, 9, 133, 3509, 3506]) {
 			const [game] = oracle<object, Record<string, unknown>>('item', [{ type, fields }]);
 			const port = Object.fromEntries(fields.map((k) => [k, ITEMS[type][k]]));
 			expect(port, `item ${type}`).toEqual(game);

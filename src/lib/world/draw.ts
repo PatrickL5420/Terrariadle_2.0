@@ -6,7 +6,7 @@
  * is applied afterwards by the caller (see MiniWorld.svelte): per tile for walls and blocks, one
  * colour each for everything else. Textures are the game's (static/world).
  */
-import { CLAY, DIRT, GRASS, isSolid, STONE, TORCH, TREES } from './framing';
+import { CLAY, DIRT, GRASS, isSolid, STONE, TORCH, TREES, WOOD_BLOCK } from './framing';
 import { stats } from './item-check';
 import type { RGB } from './light';
 import type { World } from './sim';
@@ -137,7 +137,7 @@ export async function loadTextures(): Promise<Textures> {
 		]);
 	const sheets = Object.keys(SHEETS).map(Number);
 	const player = await Promise.all(sheets.map((n) => w(`Player_0_${n}`)));
-	const [clay, clayItem, trunk, sakura, willow, wood, acorn, axe, torch, torchItem, flame] =
+	const [clay, clayItem, trunk, sakura, willow, wood, acorn, axe, torch, torchItem, flame, planks] =
 		await Promise.all(
 			[
 				'Tiles_40',
@@ -150,13 +150,21 @@ export async function loadTextures(): Promise<Textures> {
 				'Item_3506',
 				'Tiles_4',
 				'Item_8',
-				'Flame_0'
+				'Flame_0',
+				'Tiles_30'
 			].map(w)
 		);
 	const tops = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Tops_${n}`)));
 	const branches = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Branches_${n}`)));
 	return {
-		tiles: { [DIRT]: tiles0, [STONE]: tiles1, [GRASS]: tiles2, [CLAY]: clay, [TORCH]: torch },
+		tiles: {
+			[DIRT]: tiles0,
+			[STONE]: tiles1,
+			[GRASS]: tiles2,
+			[CLAY]: clay,
+			[TORCH]: torch,
+			[WOOD_BLOCK]: planks
+		},
 		flame,
 		trunks: { 5: trunk, 596: sakura, 616: willow },
 		tops: Object.fromEntries(TREE_STYLES.map((n, i) => [n, tops[i]])),

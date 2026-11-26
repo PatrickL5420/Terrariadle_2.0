@@ -23,7 +23,16 @@
  * this player only places into the open).
  */
 import { f } from './collision';
-import { AIR, FRAME_IMPORTANT, GRASS, isSolid, TORCH, TREES, type TileGrid } from './framing';
+import {
+	AIR,
+	FRAME_IMPORTANT,
+	GRASS,
+	isSolid,
+	TORCH,
+	TREES,
+	WOOD_BLOCK,
+	type TileGrid
+} from './framing';
 import { holding, WorldGen } from './gen';
 import { Rt } from './gen/runtime';
 import { HitTile, TILE } from './hit-tile';
@@ -105,6 +114,8 @@ export const ITEMS: Record<number, ItemStats> = {
 		useSound: [2, 1],
 		frame: [32, 32]
 	},
+	/** Wood (the item), which places wood blocks. */
+	9: { ...BLOCK, createTile: 30, frame: [24, 22] },
 	/** Torch. */
 	8: { ...BLOCK, createTile: 4, holdStyle: 1, frame: [14, 16] },
 	/** Copper Axe. */
@@ -374,7 +385,12 @@ function placeThing(p: Player, s: ItemStats, w: ItemWorld) {
 	// for a tree rolls the game's random numbers, every frame.
 	// (Not for a torch: it's frame-important, which rules swapping out before that.)
 	const there = Rt.tile.get(x, y);
-	if (there.type !== s.createTile && !FRAME_IMPORTANT.includes(s.createTile)) {
+	// (Nor wood: TileID.Sets.IgnoresTileReplacementDropCheckWhenBeingPlaced.)
+	if (
+		there.type !== s.createTile &&
+		!FRAME_IMPORTANT.includes(s.createTile) &&
+		s.createTile !== WOOD_BLOCK
+	) {
 		const box = <T>(v: T) => ({ v });
 		WorldGen.KillTile_GetItemDrops(x, y, there, box(0), box(0), box(0), box(0), box(false), false);
 	}

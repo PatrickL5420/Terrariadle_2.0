@@ -16,6 +16,10 @@ export const MARGIN = 6;
 export class Tiles extends TileGrid implements TileMap {
 	/** Each wall's random variant (the walls are TileGrid.wall: only dirt walls, 2, here). */
 	readonly wallVariant: Uint8Array;
+	/** Tiles to keep (part of something built): the player doesn't dig through them. */
+	kept?: (i: number, j: number) => boolean;
+	/** Tiles to keep clear (inside something built): the player doesn't build in them. */
+	keepClear?: (i: number, j: number) => boolean;
 
 	constructor(width: number, height: number, rand: (n: number) => number) {
 		super(width, height);
