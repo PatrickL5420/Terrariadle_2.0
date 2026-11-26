@@ -41,6 +41,7 @@ it('the random cases cover everything item use does', () => {
 			if (fr.drops.some((d) => d.type === 9)) count('tree felled');
 			if (fr.tiles.some((t) => t[2] === 4)) count('torch placed');
 			if (fr.tiles.some((t) => [14, 15, 18].includes(t[2]))) count('furniture placed');
+			if (fr.tiles.some((t) => t[6] === 4)) count('wall placed');
 			if (c.item === 3506 && fr.hits.length && !fr.drops.length && fr.sounds.length)
 				count('tree hit');
 			if (fr.sounds.some((s) => s.type === 21)) count('stone hit');
@@ -68,6 +69,7 @@ it('the random cases cover everything item use does', () => {
 		'tree felled',
 		'torch placed',
 		'furniture placed',
+		'wall placed',
 		'tree hit',
 		'stone hit',
 		'grass knocked to dirt',
@@ -91,12 +93,13 @@ describe.skipIf(!oracleBuilt)('item use = Player.ItemCheck', () => {
 			'useTurn',
 			'consumable',
 			'createTile',
+			'createWall',
 			'pick',
 			'axe',
 			'tileBoost',
 			'scale'
 		] as const;
-		for (const type of [2, 3, 8, 9, 32, 34, 36, 133, 3509, 3506]) {
+		for (const type of [2, 3, 8, 9, 32, 34, 36, 93, 133, 3509, 3506]) {
 			const [game] = oracle<object, Record<string, unknown>>('item', [{ type, fields }]);
 			const port = Object.fromEntries(fields.map((k) => [k, ITEMS[type][k]]));
 			expect(port, `item ${type}`).toEqual(game);

@@ -16,6 +16,8 @@ public partial class Main
 		Initialize_TileAndNPCData2();
 		// As Main.Initialize does after them.
 		Terraria.ID.TileID.Sets.PostSetupContent();
+		// Walls' framing tables (Main.Initialize).
+		Framing.Initialize();
 		// Multi-tile objects' placing rules (Main.Initialize).
 		Terraria.ObjectData.TileObjectData.Initialize();
 	}

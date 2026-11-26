@@ -346,8 +346,6 @@ export class FixExploitManEaters {
 }
 
 export class Framing {
-	static WallFrame(i: number, j: number, resetFrame: boolean): void {}
-
 	static GetTileSafely(i: number, j: number): Tile {
 		if (!WorldGen.InWorld_Int32_Int32_Int32(i, j, 0)) {
 			return new Tile();
@@ -902,6 +900,14 @@ export class Main {
 	);
 
 	static time: number = 13500;
+
+	static wallDungeon: boolean[] = $bools(
+		'0000000111000000000000000000000000000000000000000000000000000000000000000000000000000000000000111111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
+	static wallHouse: boolean[] = $bools(
+		'0100111000111000111111111111011111111111011111110000000000001000001110001111111000101100111111000000111111111111111111111111111111111111111111111111111111111111111111111100111111010111101000000000000000000000000000000000000011111111111111111111011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111001111111111111111'
+	);
 
 	static worldSurface: number = 0;
 
@@ -21158,6 +21164,793 @@ export class WorldGen {
 		return false;
 	}
 
+	static NearFriendlyWall(x: number, y: number): boolean {
+		try {
+			if (x < 2 || x >= ((Main.maxTilesX - 2) | 0) || y < 2 || y >= ((Main.maxTilesY - 2) | 0)) {
+				return true;
+			}
+			if (Rt.tile.get(x, y).wall === 0 || Main.wallHouse[Rt.tile.get(x, y).wall]) {
+				return true;
+			}
+			if (
+				Rt.tile.get((x - 1) | 0, y).wall === 0 ||
+				Main.wallHouse[Rt.tile.get((x - 1) | 0, y).wall]
+			) {
+				return true;
+			}
+			if (
+				Rt.tile.get((x + 1) | 0, y).wall === 0 ||
+				Main.wallHouse[Rt.tile.get((x + 1) | 0, y).wall]
+			) {
+				return true;
+			}
+			if (
+				Rt.tile.get(x, (y - 1) | 0).wall === 0 ||
+				Main.wallHouse[Rt.tile.get(x, (y - 1) | 0).wall]
+			) {
+				return true;
+			}
+			if (
+				Rt.tile.get(x, (y + 1) | 0).wall === 0 ||
+				Main.wallHouse[Rt.tile.get(x, (y + 1) | 0).wall]
+			) {
+				return true;
+			}
+		} catch (__caught) {
+			$caught(__caught);
+		}
+		return false;
+	}
+
+	static ReplaceWall(x: number, y: number, targetWall: number): boolean {
+		if (targetWall >= WallID.Count) {
+			return false;
+		}
+		let tile: Tile = Rt.tile.get(x, y);
+		if (tile.wall === 0 || targetWall === 0 || tile.wall === 350) {
+			return false;
+		}
+		if (WorldGen.KillWall_CheckFailure(false, tile)) {
+			return false;
+		}
+		let num: number = 10;
+		for (let i: number = 0; i < num; i++) {
+			WorldGen.KillWall_MakeWallDust(x, y, tile);
+		}
+		WorldGen.KillWall_PlaySounds(x, y, tile);
+		WorldGen.KillWall_DropItems(x, y, tile);
+		tile.wall = targetWall;
+		tile.ClearWallPaintAndCoating();
+		WorldGen.SquareWallFrame(x, y, true);
+		return true;
+	}
+
+	static SquareWallFrame(i: number, j: number, resetFrame: boolean): void {
+		Rt.wallFrame((i - 1) | 0, (j - 1) | 0, false);
+		Rt.wallFrame((i - 1) | 0, j, false);
+		Rt.wallFrame((i - 1) | 0, (j + 1) | 0, false);
+		Rt.wallFrame(i, (j - 1) | 0, false);
+		Rt.wallFrame(i, j, resetFrame);
+		Rt.wallFrame(i, (j + 1) | 0, false);
+		Rt.wallFrame((i + 1) | 0, (j - 1) | 0, false);
+		Rt.wallFrame((i + 1) | 0, j, false);
+		Rt.wallFrame((i + 1) | 0, (j + 1) | 0, false);
+	}
+
+	static KillWall_GetItemDrops(tileCache: Tile): number {
+		switch (tileCache.wall) {
+			case 237:
+				return 4233;
+			case 238:
+				return 4234;
+			case 239:
+				return 4235;
+			case 240:
+				return 4236;
+			case 246:
+				return 4486;
+			case 247:
+				return 4487;
+			case 248:
+				return 4488;
+			case 249:
+				return 4489;
+			case 250:
+				return 4490;
+			case 251:
+				return 4491;
+			case 252:
+				return 4492;
+			case 253:
+				return 4493;
+			case 254:
+				return 4494;
+			case 255:
+				return 4495;
+			case 314:
+				return 4647;
+			case 256:
+				return 4496;
+			case 257:
+				return 4497;
+			case 258:
+				return 4498;
+			case 259:
+				return 4499;
+			case 260:
+				return 4500;
+			case 261:
+				return 4501;
+			case 262:
+				return 4502;
+			case 263:
+				return 4503;
+			case 264:
+				return 4504;
+			case 265:
+				return 4505;
+			case 266:
+				return 4506;
+			case 267:
+				return 4507;
+			case 268:
+				return 4508;
+			case 269:
+				return 4509;
+			case 270:
+				return 4510;
+			case 271:
+				return 4511;
+			case 274:
+				return 4512;
+			case 275:
+				return 3273;
+			case 276:
+				return 4513;
+			case 277:
+				return 4514;
+			case 278:
+				return 4515;
+			case 279:
+				return 4516;
+			case 280:
+				return 4517;
+			case 281:
+				return 4518;
+			case 282:
+				return 4519;
+			case 283:
+				return 4520;
+			case 284:
+				return 4521;
+			case 285:
+				return 4522;
+			case 286:
+				return 4523;
+			case 287:
+				return 4524;
+			case 288:
+				return 4525;
+			case 289:
+				return 4526;
+			case 290:
+				return 4527;
+			case 291:
+				return 4528;
+			case 292:
+				return 4529;
+			case 293:
+				return 4530;
+			case 294:
+				return 4531;
+			case 295:
+				return 4532;
+			case 296:
+				return 4533;
+			case 297:
+				return 4534;
+			case 298:
+				return 4535;
+			case 299:
+				return 4536;
+			case 300:
+				return 4537;
+			case 301:
+				return 4538;
+			case 302:
+				return 4539;
+			case 303:
+				return 4540;
+			case 304:
+				return 3340;
+			case 305:
+				return 3341;
+			case 306:
+				return 3342;
+			case 307:
+				return 3343;
+			case 308:
+				return 3344;
+			case 309:
+				return 3345;
+			case 310:
+				return 3346;
+			case 311:
+				return 3348;
+			default: {
+				let result: number = 0;
+				if (tileCache.wall === 168) {
+					result = 2696;
+				}
+				if (tileCache.wall === 169) {
+					result = 2698;
+				}
+				if (tileCache.wall === 226) {
+					result = 3752;
+				}
+				if (tileCache.wall === 227) {
+					result = 3753;
+				}
+				if (tileCache.wall === 228) {
+					result = 3760;
+				}
+				if (tileCache.wall === 229) {
+					result = 3761;
+				}
+				if (tileCache.wall === 230) {
+					result = 3762;
+				}
+				if (tileCache.wall === 142) {
+					result = 2263;
+				}
+				if (tileCache.wall === 143) {
+					result = 2264;
+				}
+				if (tileCache.wall === 144) {
+					result = 2271;
+				}
+				if (tileCache.wall === 149) {
+					result = 2505;
+				}
+				if (tileCache.wall === 150) {
+					result = 2507;
+				}
+				if (tileCache.wall === 151) {
+					result = 2506;
+				}
+				if (tileCache.wall === 152) {
+					result = 2508;
+				}
+				if (tileCache.wall === 316) {
+					result = 5216;
+				}
+				if (tileCache.wall === 317) {
+					result = 5217;
+				}
+				if (tileCache.wall === 245) {
+					result = 4424;
+				}
+				if (tileCache.wall === 315) {
+					result = 4667;
+				}
+				if (tileCache.wall === 1) {
+					result = 26;
+				}
+				if (tileCache.wall === 4) {
+					result = 93;
+				}
+				if (tileCache.wall === 5) {
+					result = 130;
+				}
+				if (tileCache.wall === 6) {
+					result = 132;
+				}
+				if (tileCache.wall === 7) {
+					result = 135;
+				}
+				if (tileCache.wall === 8) {
+					result = 138;
+				}
+				if (tileCache.wall === 9) {
+					result = 140;
+				}
+				if (tileCache.wall === 10) {
+					result = 142;
+				}
+				if (tileCache.wall === 11) {
+					result = 144;
+				}
+				if (tileCache.wall === 12) {
+					result = 146;
+				}
+				if (tileCache.wall === 14) {
+					result = 330;
+				}
+				if (tileCache.wall === 224) {
+					result = 3472;
+				}
+				if (tileCache.wall === 323) {
+					result = 5409;
+				}
+				if (tileCache.wall === 324) {
+					result = 5410;
+				}
+				if (tileCache.wall === 325) {
+					result = 5411;
+				}
+				if (tileCache.wall === 326) {
+					result = 5412;
+				}
+				if (tileCache.wall === 327) {
+					result = 5413;
+				}
+				if (tileCache.wall === 328) {
+					result = 5414;
+				}
+				if (tileCache.wall === 329) {
+					result = 5415;
+				}
+				if (tileCache.wall === 330) {
+					result = 5416;
+				}
+				if (tileCache.wall === 331) {
+					result = 5418;
+				}
+				if (tileCache.wall === 332) {
+					result = 5420;
+				}
+				if (tileCache.wall === 333) {
+					result = 5422;
+				}
+				if (tileCache.wall === 334) {
+					result = 5424;
+				}
+				if (tileCache.wall === 335) {
+					result = 5426;
+				}
+				if (tileCache.wall === 336) {
+					result = 5428;
+				}
+				if (tileCache.wall === 337) {
+					result = 5434;
+				}
+				if (tileCache.wall === 338) {
+					result = 5436;
+				}
+				if (tileCache.wall === 339) {
+					result = 5430;
+				}
+				if (tileCache.wall === 340) {
+					result = 5432;
+				}
+				if (tileCache.wall === 341) {
+					result = 5445;
+				}
+				if (tileCache.wall === 342) {
+					result = 5446;
+				}
+				if (tileCache.wall === 343) {
+					result = 5447;
+				}
+				if (tileCache.wall === 344) {
+					result = 5448;
+				}
+				if (tileCache.wall === 345) {
+					result = 5449;
+				}
+				if (tileCache.wall === 346) {
+					result = 5450;
+				}
+				if (tileCache.wall === 177) {
+					result = 3067;
+				}
+				if (tileCache.wall === 167) {
+					result = 2691;
+				}
+				if (tileCache.wall === 60) {
+					result = 3584;
+				}
+				if (tileCache.wall === 231) {
+					result = 3952;
+				}
+				if (tileCache.wall === 232) {
+					result = 3954;
+				}
+				if (tileCache.wall === 225) {
+					result = 3751;
+				}
+				if (tileCache.wall === 233) {
+					result = 3956;
+				}
+				if (tileCache.wall === 234) {
+					result = 4052;
+				}
+				if (tileCache.wall === 235) {
+					result = 4053;
+				}
+				if (tileCache.wall === 236) {
+					result = 4140;
+				}
+				if (tileCache.wall === 312) {
+					result = 4565;
+				}
+				if (tileCache.wall === 313) {
+					result = 4548;
+				}
+				if (tileCache.wall === 319) {
+					result = 5307;
+				}
+				if (tileCache.wall === 318) {
+					result = 5291;
+				}
+				if (tileCache.wall === 179) {
+					result = 3083;
+				}
+				if (tileCache.wall === 183) {
+					result = 3082;
+				}
+				if (tileCache.wall === 321) {
+					result = 5397;
+				}
+				if (tileCache.wall === 322) {
+					result = 5399;
+				}
+				if (tileCache.wall === 181) {
+					result = 3089;
+				}
+				if (tileCache.wall === 184) {
+					result = 3088;
+				}
+				if (tileCache.wall === 186) {
+					result = 3238;
+				}
+				if (tileCache.wall === 320) {
+					result = 5396;
+				}
+				if (tileCache.wall >= 153 && tileCache.wall <= 166) {
+					switch (tileCache.wall) {
+						case 154:
+							result = 2679;
+							break;
+						case 158:
+							result = 2680;
+							break;
+						case 166:
+							result = 2689;
+							break;
+						case 163:
+							result = 2690;
+							break;
+						case 165:
+							result = 2687;
+							break;
+						case 162:
+							result = 2688;
+							break;
+						case 156:
+							result = 2683;
+							break;
+						case 160:
+							result = 2684;
+							break;
+						case 164:
+							result = 2685;
+							break;
+						case 161:
+							result = 2686;
+							break;
+						case 155:
+							result = 2681;
+							break;
+						case 159:
+							result = 2682;
+							break;
+						case 153:
+							result = 2677;
+							break;
+						case 157:
+							result = 2678;
+							break;
+					}
+				}
+				if (tileCache.wall === 136) {
+					result = 2169;
+				}
+				if (tileCache.wall === 137) {
+					result = 2170;
+				}
+				if (tileCache.wall === 172) {
+					result = 2788;
+				}
+				if (tileCache.wall === 242) {
+					result = 4279;
+				}
+				if (tileCache.wall === 243) {
+					result = 4280;
+				}
+				if (tileCache.wall === 347) {
+					result = 5494;
+				}
+				if (tileCache.wall === 348) {
+					result = 5623;
+				}
+				if (tileCache.wall === 351) {
+					result = 5711;
+				}
+				if (tileCache.wall === 352) {
+					result = 5734;
+				}
+				if (tileCache.wall === 353) {
+					result = 5919;
+				}
+				if (tileCache.wall === 354) {
+					result = 5921;
+				}
+				if (tileCache.wall === 355) {
+					result = 5923;
+				}
+				if (tileCache.wall === 356) {
+					result = 5925;
+				}
+				if (tileCache.wall === 357) {
+					result = 5927;
+				}
+				if (tileCache.wall === 358) {
+					result = 5931;
+				}
+				switch (tileCache.wall) {
+					case 359:
+						result = 5954;
+						break;
+					case 360:
+						result = 5997;
+						break;
+					case 361:
+						result = 6020;
+						break;
+					case 362:
+						result = 6043;
+						break;
+					case 363:
+						result = 6066;
+						break;
+					case 364:
+						result = 6089;
+						break;
+					case 365:
+						result = 6110;
+						break;
+					case 366:
+						result = 6133;
+						break;
+				}
+				if (tileCache.wall === 145) {
+					result = 2333;
+				}
+				if (tileCache.wall === 16) {
+					result = 30;
+				}
+				if (tileCache.wall === 17) {
+					result = 135;
+				}
+				if (tileCache.wall === 18) {
+					result = 138;
+				}
+				if (tileCache.wall === 19) {
+					result = 140;
+				}
+				if (tileCache.wall === 20) {
+					result = 330;
+				}
+				if (tileCache.wall === 21) {
+					result = 392;
+				}
+				if (tileCache.wall === 86 || tileCache.wall === 108) {
+					result = 1126;
+				}
+				if (tileCache.wall === 173) {
+					result = 2789;
+				}
+				if (tileCache.wall === 174) {
+					result = 2790;
+				}
+				if (tileCache.wall === 175) {
+					result = 2791;
+				}
+				if (tileCache.wall === 176) {
+					result = 2861;
+				}
+				if (tileCache.wall === 182) {
+					result = 3101;
+				}
+				if (tileCache.wall === 133) {
+					result = 2158;
+				}
+				if (tileCache.wall === 134) {
+					result = 2159;
+				}
+				if (tileCache.wall === 135) {
+					result = 2160;
+				} else if (tileCache.wall === 113) {
+					result = 1726;
+				} else if (tileCache.wall === 114) {
+					result = 1728;
+				} else if (tileCache.wall === 115) {
+					result = 1730;
+				} else if (tileCache.wall === 146) {
+					result = 2432;
+				} else if (tileCache.wall === 147) {
+					result = 2433;
+				} else if (tileCache.wall === 148) {
+					result = 2434;
+				}
+				if (tileCache.wall >= 116 && tileCache.wall <= 125) {
+					result = (((1948 + tileCache.wall) | 0) - 116) | 0;
+				}
+				if (tileCache.wall >= 126 && tileCache.wall <= 132) {
+					result = (((2008 + tileCache.wall) | 0) - 126) | 0;
+				}
+				if (tileCache.wall === 22) {
+					result = 417;
+				}
+				if (tileCache.wall === 23) {
+					result = 418;
+				}
+				if (tileCache.wall === 24) {
+					result = 419;
+				}
+				if (tileCache.wall === 25) {
+					result = 420;
+				}
+				if (tileCache.wall === 26) {
+					result = 421;
+				}
+				if (tileCache.wall === 29) {
+					result = 587;
+				}
+				if (tileCache.wall === 30) {
+					result = 592;
+				}
+				if (tileCache.wall === 31) {
+					result = 595;
+				}
+				if (tileCache.wall === 32) {
+					result = 605;
+				}
+				if (tileCache.wall === 33) {
+					result = 606;
+				}
+				if (tileCache.wall === 34) {
+					result = 608;
+				}
+				if (tileCache.wall === 35) {
+					result = 610;
+				}
+				if (tileCache.wall === 36) {
+					result = 615;
+				}
+				if (tileCache.wall === 37) {
+					result = 616;
+				}
+				if (tileCache.wall === 38) {
+					result = 617;
+				}
+				if (tileCache.wall === 39) {
+					result = 618;
+				}
+				if (tileCache.wall === 41) {
+					result = 622;
+				}
+				if (tileCache.wall === 42) {
+					result = 623;
+				}
+				if (tileCache.wall === 43) {
+					result = 624;
+				}
+				if (tileCache.wall === 44) {
+					result = 663;
+				}
+				if (tileCache.wall === 45) {
+					result = 720;
+				}
+				if (tileCache.wall === 46) {
+					result = 721;
+				}
+				if (tileCache.wall === 47) {
+					result = 722;
+				}
+				if (tileCache.wall === 66) {
+					result = 745;
+				}
+				if (tileCache.wall === 67) {
+					result = 746;
+				}
+				if (tileCache.wall === 68) {
+					result = 747;
+				}
+				if (tileCache.wall === 84) {
+					result = 884;
+				}
+				if (tileCache.wall === 72) {
+					result = 750;
+				}
+				if (tileCache.wall === 73) {
+					result = 752;
+				}
+				if (tileCache.wall === 74) {
+					result = 764;
+				}
+				if (tileCache.wall === 85) {
+					result = 927;
+				}
+				if (tileCache.wall === 75) {
+					result = 768;
+				}
+				if (tileCache.wall === 76) {
+					result = 769;
+				}
+				if (tileCache.wall === 77) {
+					result = 770;
+				}
+				if (tileCache.wall === 82) {
+					result = 825;
+				}
+				if (tileCache.wall === 27) {
+					result = 479;
+				}
+				if (tileCache.wall === 106) {
+					result = 1447;
+				}
+				if (tileCache.wall === 107) {
+					result = 1448;
+				}
+				if (tileCache.wall === 109) {
+					result = 1590;
+				}
+				if (tileCache.wall === 110) {
+					result = 1592;
+				}
+				if (tileCache.wall === 111) {
+					result = 1594;
+				}
+				if (tileCache.wall === 78) {
+					result = 1723;
+				}
+				if (tileCache.wall === 87 || tileCache.wall === 112) {
+					result = 1102;
+				}
+				if (tileCache.wall === 94 || tileCache.wall === 100) {
+					result = 1378;
+				}
+				if (tileCache.wall === 95 || tileCache.wall === 101) {
+					result = 1379;
+				}
+				if (tileCache.wall === 96 || tileCache.wall === 102) {
+					result = 1380;
+				}
+				if (tileCache.wall === 97 || tileCache.wall === 103) {
+					result = 1381;
+				}
+				if (tileCache.wall === 98 || tileCache.wall === 104) {
+					result = 1382;
+				}
+				if (tileCache.wall === 99 || tileCache.wall === 105) {
+					result = 1383;
+				}
+				if (tileCache.wall === 241) {
+					result = 4260;
+				}
+				if (tileCache.wall >= 88 && tileCache.wall <= 93) {
+					result = (((1267 + tileCache.wall) | 0) - 88) | 0;
+				}
+				if (tileCache.wall >= 138 && tileCache.wall <= 141) {
+					result = (((2210 + tileCache.wall) | 0) - 138) | 0;
+				}
+				return result;
+			}
+		}
+	}
+
 	static AshTreeGroundTest(tileType: number): boolean {
 		if (tileType < 0) {
 			return false;
@@ -21525,6 +22318,10 @@ export class WorldGen {
 		return new EntitySource_ShakeTree(x, y);
 	}
 
+	static GetItemSource_FromWallBreak(x: number, y: number): IEntitySource {
+		return new EntitySource_TileBreak(x, y);
+	}
+
 	static GetItemSource_ShakeTree(x: number, y: number): EntitySource_ShakeTree {
 		return new EntitySource_ShakeTree(x, y);
 	}
@@ -21882,6 +22679,69 @@ export class WorldGen {
 			return true;
 		}
 		return false;
+	}
+
+	static KillWall_CheckFailure(fail: boolean, tileCache: Tile): boolean {
+		if (Main.wallDungeon[tileCache.wall] && !GameNPC.downedBoss3) {
+			fail = true;
+		}
+		if (tileCache.wall === 87 && !GameNPC.downedGolemBoss) {
+			fail = true;
+		}
+		return fail;
+	}
+
+	static KillWall_DropItems(i: number, j: number, tileCache: Tile): void {
+		let num: number = WorldGen.KillWall_GetItemDrops(tileCache);
+		if (num > 0) {
+			$newItem(
+				WorldGen.GetItemSource_FromWallBreak(i, j),
+				Math.imul(i, 16),
+				Math.imul(j, 16),
+				16,
+				16,
+				num,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+	}
+
+	static KillWall_PlaySounds(i: number, j: number, tileCache: Tile): void {
+		if (
+			tileCache.wall === 241 ||
+			(tileCache.wall >= 88 && tileCache.wall <= 93) ||
+			tileCache.wall === 21 ||
+			tileCache.wall === 186 ||
+			tileCache.wall === 136 ||
+			tileCache.wall === 137 ||
+			tileCache.wall === 168 ||
+			tileCache.wall === 169 ||
+			tileCache.wall === 172 ||
+			tileCache.wall === 226 ||
+			tileCache.wall === 227 ||
+			tileCache.wall === 242 ||
+			tileCache.wall === 243 ||
+			tileCache.wall === 347 ||
+			tileCache.wall === 365
+		) {
+			$sound(13, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+		} else if (
+			(tileCache.wall >= 63 && tileCache.wall <= 70) ||
+			tileCache.wall === 264 ||
+			tileCache.wall === 268 ||
+			tileCache.wall === 265
+		) {
+			$sound(6, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+		} else if (tileCache.wall === 357) {
+			$hole('SoundEngine.PlaySound(SoundID.NPCHit25, i * 16, j * 16)');
+		} else {
+			$sound(0, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+		}
 	}
 
 	static Place1x2(x: number, y: number, type: number, style: number): void {
@@ -22411,7 +23271,7 @@ export class WorldGen {
 		for (let i: number = (startX - 1) | 0; i < ((num + 1) | 0); i++) {
 			for (let j: number = (startY - 1) | 0; j < ((num2 + 1) | 0); j++) {
 				WorldGen.TileFrame(i, j, false, false);
-				Framing.WallFrame(i, j, false);
+				Rt.wallFrame(i, j, false);
 			}
 		}
 	}
@@ -22506,18 +23366,6 @@ export class WorldGen {
 			$caught(__caught);
 		}
 		return false;
-	}
-
-	static SquareWallFrame(i: number, j: number, resetFrame: boolean): void {
-		Framing.WallFrame((i - 1) | 0, (j - 1) | 0, false);
-		Framing.WallFrame((i - 1) | 0, j, false);
-		Framing.WallFrame((i - 1) | 0, (j + 1) | 0, false);
-		Framing.WallFrame(i, (j - 1) | 0, false);
-		Framing.WallFrame(i, j, resetFrame);
-		Framing.WallFrame(i, (j + 1) | 0, false);
-		Framing.WallFrame((i + 1) | 0, (j - 1) | 0, false);
-		Framing.WallFrame((i + 1) | 0, j, false);
-		Framing.WallFrame((i + 1) | 0, (j + 1) | 0, false);
 	}
 
 	static get TransformingWorld(): boolean {
@@ -23833,6 +24681,8 @@ export class WorldGen {
 		treeGore: number,
 		hitTree: boolean
 	): void {}
+
+	static KillWall_MakeWallDust(i: number, j: number, tileCache: Tile): void {}
 
 	static CanPoundTile(x: number, y: number): boolean {
 		$hit('WorldGen.CanPoundTile');

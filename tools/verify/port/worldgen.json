@@ -23,7 +23,9 @@
 		"Terraria.ObjectData.TileObjectData.CustomPlace",
 		"Terraria.WorldGen.OpenDoor",
 		"Terraria.WorldGen.CloseDoor",
-		"Terraria.WorldGen.PlaceWall"
+		"Terraria.WorldGen.PlaceWall",
+		"Terraria.WorldGen.NearFriendlyWall",
+		"Terraria.WorldGen.ReplaceWall"
 	],
 	"data": ["Terraria.Main", "Terraria.ID.TileID.Sets", "Terraria.ID.WallID.Sets"],
 	"external": {
@@ -39,7 +41,8 @@
 		"Terraria.Item.NewItem": "$newItem",
 		"Terraria.WorldGen.TileFrameCosmetic": "Rt.frameCosmetic",
 		"Terraria.WorldGen.KillTile_MakeTileDust": "Rt.tileDust",
-		"Terraria.Main.npc": "Rt.npc"
+		"Terraria.Main.npc": "Rt.npc",
+		"Terraria.Framing.WallFrame": "Rt.wallFrame"
 	},
 	"exclude": [],
 	"output": "../../../src/lib/world/gen/game.ts",

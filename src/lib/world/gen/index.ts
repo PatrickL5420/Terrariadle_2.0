@@ -101,6 +101,8 @@ export interface PlayHooks {
 	sound(s: Sound): void;
 	/** NPC.NewNPC: a critter let out of a shaken tree (not simulated). */
 	critter?(c: Critter): void;
+	/** A wall's new random variant (Framing.WallFrame's reset). */
+	wallVariant?(i: number, j: number, v: number): void;
 	/** KillTile_MakeTileDust: one dust for tile (i, j) of `type`. */
 	tileDust?(i: number, j: number, type: number): void;
 }
@@ -133,6 +135,7 @@ export function play(grid: TileGrid, rand: UnifiedRandom, hooks: PlayHooks) {
 	Rt.drop = (d) => hooks.drop(d);
 	Rt.sound = (s) => hooks.sound(s);
 	Rt.critter = (c) => hooks.critter?.(c);
+	Rt.wallVariant = (i, j, v) => hooks.wallVariant?.(i, j, v);
 	Rt.tileDust = (i: number, j: number, t: Tile) => {
 		hooks.tileDust?.(i, j, t.type);
 		return 0;

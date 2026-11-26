@@ -248,6 +248,11 @@ export class World implements ItemWorld {
 		this.#newDust(i * 16, j * 16, 16, 16, dust);
 	}
 
+	/** A wall's new random variant (Framing.WallFrame's reset). */
+	wallVariant(i: number, j: number, v: number) {
+		this.tiles.wallVariant[j * this.width + i] = v;
+	}
+
 	/** Whether a block could go at (i, j) now: open, shown, built onto, nobody in the way. */
 	canPlace(i: number, j: number) {
 		const t = this.tiles;

@@ -55,6 +55,8 @@ export interface ItemStats {
 	consumable: boolean;
 	/** The block it places, or -1. */
 	createTile: number;
+	/** The wall it places, or -1. */
+	createWall: number;
 	/** Pick power. */
 	pick: number;
 	/** Axe power. */
@@ -77,6 +79,7 @@ const NONE: ItemStats = {
 	useTurn: false,
 	consumable: false,
 	createTile: -1,
+	createWall: -1,
 	pick: 0,
 	axe: 0,
 	tileBoost: 0,
@@ -117,6 +120,8 @@ export const ITEMS: Record<number, ItemStats> = {
 	},
 	/** Wood (the item), which places wood blocks. */
 	9: { ...BLOCK, createTile: 30, frame: [24, 22] },
+	/** Wood Wall. */
+	93: { ...BLOCK, useTime: 7, createWall: 4, frame: [24, 24] },
 	/** Work Bench, Wooden Table, Wooden Chair. */
 	36: { ...BLOCK, createTile: 18, frame: [32, 18] },
 	32: { ...BLOCK, createTile: 14, frame: [30, 22] },
@@ -248,6 +253,7 @@ export function itemCheck(p: Player, w?: ItemWorld) {
 	if (w) {
 		useMiningTools(p, s, w);
 		placeThing(p, s, w);
+		placeWalls(p, s, w);
 	}
 
 	if (
@@ -434,6 +440,58 @@ export function canPlaceTorch(w: ItemWorld, x: number, y: number): boolean {
 	if (solid(x, y + 1)) return true;
 	if (solid(x - 1, y) || (tree(x - 1, y) && tree(x - 1, y - 1) && tree(x - 1, y - 1))) return true;
 	return solid(x + 1, y) || (tree(x + 1, y) && tree(x + 1, y - 1) && tree(x + 1, y + 1));
+}
+
+/**
+ * PlaceThing_Walls: a wall where there's a block or wall beside it, swapping out a wall that's
+ * there (TryReplacingWalls), then any gaps it closes in (FillEmptySpace). WorldGen's own
+ * PlaceWall, ReplaceWall and NearFriendlyWall (converted) do the placing.
+ */
+function placeWalls(p: Player, s: ItemStats, w: ItemWorld) {
+	const wall = s.createWall;
+	if (wall < 0) return;
+	const x = p.tileTargetX;
+	const y = p.tileTargetY;
+	if (!inRange(p, x, y, s.tileBoost)) return;
+	if (p.itemTime !== 0 || p.itemAnimation <= 0 || !p.controls.use) return;
+	const T = Rt.tile;
+	const next = (i: number, j: number) => T.get(i, j).active_() || T.get(i, j).wall > 0;
+	if (!next(x + 1, y) && !next(x - 1, y) && !next(x, y + 1) && !next(x, y - 1)) return;
+	if (T.get(x, y).wall === wall) return;
+	// PlaceThing_TryReplacingWalls (PlaceThing_ValidWallForReplacement: a wall that's there).
+	if (
+		T.get(x, y).wall > 0 &&
+		T.get(x, y).wall !== 350 &&
+		WorldGen.NearFriendlyWall(x, y) &&
+		WorldGen.ReplaceWall(x, y, wall)
+	) {
+		p.itemTime = p.itemTimeMax = Math.trunc(f(s.useTime * 1)); // ApplyItemTime(wallSpeed)
+		return;
+	}
+	WorldGen.PlaceWall(x, y, wall, false);
+	if (T.get(x, y).wall !== wall) return;
+	p.itemTime = p.itemTimeMax = Math.trunc(f(s.useTime * 1));
+	// PlaceThing_Walls_FillEmptySpace: a gap beside it with the same wall all round, filled too.
+	if (p.item.stack <= 1) return;
+	const around: [number, number][] = [
+		[-1, 0],
+		[1, 0],
+		[0, -1],
+		[0, 1]
+	];
+	for (const [dx, dy] of around) {
+		const i = x + dx;
+		const j = y + dy;
+		if (T.get(i, j).wall !== 0) continue;
+		if (around.filter(([ax, ay]) => T.get(i + ax, j + ay).wall === wall).length !== 4) continue;
+		WorldGen.PlaceWall(i, j, wall, false);
+		if (T.get(i, j).wall === wall) {
+			p.item.stack--;
+			if (p.item.stack === 0) {
+				p.item.type = 0; // SetDefaults(0)
+			}
+		}
+	}
 }
 
 /** Whether a block can go at (x, y) by what's around it: a block or wall beside it, or a wall behind. */

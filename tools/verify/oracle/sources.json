@@ -117,7 +117,12 @@
 				"GetItemDrop_Workbenches",
 				"ValidateTileSquareIsActiveAndOfType",
 				"DropDoorItem",
-				"InvalidTileForPilesOrSpeleothems"
+				"InvalidTileForPilesOrSpeleothems",
+				"NearFriendlyWall",
+				"ReplaceWall",
+				"SquareWallFrame",
+				"KillWall",
+				"KillWall_GetItemDrops"
 			],
 			"auto": [
 				"AshTreeGroundTest",
@@ -260,9 +265,6 @@
 				"GetItemDrop_Platforms",
 				"GetStalactiteEchoDrop",
 				"GrowCatTail",
-				"KillWall",
-				"KillWall_GetItemDrops",
-				"KillWall_MakeWallDust",
 				"Place1x1",
 				"Place2x2",
 				"Place2x2Horizontal",
@@ -303,7 +305,7 @@
 				"Convert",
 				"SmashAltar"
 			],
-			"noop": ["KillTile_DropBait", "KillTile_MakeTileDust", "TreeGrowFX"],
+			"noop": ["KillTile_DropBait", "KillTile_MakeTileDust", "TreeGrowFX", "KillWall_MakeWallDust"],
 			"passes": [
 				"DirtWallBackgrounds",
 				"RocksInDirt",
@@ -703,7 +705,8 @@
 				"SpecialToolUsageSettings",
 				"ItemCheck_UseMiningTools_TryFindingWallToHammer",
 				"hostile",
-				"ItemCheckContext"
+				"ItemCheckContext",
+				"PlaceThing_Walls_FillEmptySpace"
 			],
 			"slices": [
 				{
@@ -1444,7 +1447,6 @@
 				"MagicConch",
 				"MowGrassTile",
 				"PlaceThing_PaintScraper_LongMoss",
-				"PlaceThing_Walls_FillEmptySpace",
 				"ProcessHitAgainstNPC",
 				"SetOrRequestSpectating",
 				"ShootFromCannon",
@@ -1994,6 +1996,26 @@
 		},
 		{
 			"file": "Terraria.DataStructures/TileObjectPreviewData.cs"
+		},
+		{
+			"file": "Terraria/Framing.cs",
+			"class": "Framing",
+			"static": true,
+			"members": [
+				"WallFrame",
+				"Initialize",
+				"Add8WayLookup",
+				"AddWallFrameLookup",
+				"selfFrame8WayLookup",
+				"wallFrameLookup",
+				"frameSize8Way",
+				"wallFrameSize",
+				"blockStyleLookup",
+				"phlebasTileFrameNumberLookup",
+				"lazureTileFrameNumberLookup",
+				"centerWallFrameLookup",
+				"BlockStyle"
+			]
 		}
 	],
 	"autostubs": {
@@ -2552,7 +2574,8 @@
 			"PlacementPreviewHook_CheckIfCanPlace:staticfield",
 			"PlacementPreviewHook_AfterPlacement:staticfield"
 		],
-		"MysticLogFairiesEvent": ["FallenLogDestroyed:method"]
+		"MysticLogFairiesEvent": ["FallenLogDestroyed:method"],
+		"BlockStyle": []
 	},
 	"neverReal": ["CrashDump", "TileEntityType"],
 	"realNamespaces": ["Terraria.ID", "Terraria.Enums", "Terraria.DataStructures"]

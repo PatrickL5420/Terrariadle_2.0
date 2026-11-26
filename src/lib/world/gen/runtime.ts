@@ -235,6 +235,7 @@ export class Tile {
 	color_Byte(_v: number) {}
 	wallColor_Byte(_v: number) {}
 	ClearBlockPaintAndCoating() {}
+	ClearWallPaintAndCoating() {}
 	UseBlockColors(_cache: unknown) {}
 	/** The paint to copy onto another tile (UseBlockColors, which keeps none): nothing. */
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -307,6 +308,9 @@ export class GameNPC {
 	netUpdate = false;
 	CanBeReplacedByOtherNPCs = false;
 	static goldCritterChance = 400;
+	/** A fresh world: no bosses down (dungeon and temple walls can't be broken yet). */
+	static downedBoss3 = false;
+	static downedGolemBoss = false;
 	/** No wind here. */
 	static TooWindyForButterflies = false;
 
@@ -330,7 +334,10 @@ export interface Critter {
 export const Rt = {
 	tile: null as unknown as TileView,
 	/** Main.rand. */
-	rand: null as unknown as { Next_Int32(n: number): number },
+	rand: null as unknown as {
+		Next_Int32(n: number): number;
+		Next_Int32_Int32(a: number, b: number): number;
+	},
 	/** Main.npc: only the spare slot NPC.NewNPC hands back here is ever written to. */
 	npc: Array.from({ length: 201 }, () => new GameNPC()),
 	drop: (_d: Drop) => {},
@@ -345,6 +352,21 @@ export const Rt = {
 	},
 	/** KillTile_MakeTileDust: one dust for the tile. */
 	tileDust: (_i: number, _j: number, _tile: Tile) => 0,
+	/**
+	 * Framing.WallFrame: the site draws walls' frames itself (Tiles.wallFrame); what's kept is
+	 * the game's random variant when a wall's frame is reset (genRand.Next(0, 3)), into
+	 * `wallVariant`.
+	 */
+	wallFrame: (i: number, j: number, resetFrame = false) => {
+		const g = Rt.tile.grid;
+		if (i <= 0 || j <= 0 || i >= g.width - 1 || j >= g.height - 1) return;
+		const w = g.wall[j * g.width + i];
+		if (w === 0 || !resetFrame) return;
+		let v = Rt.rand.Next_Int32_Int32(0, 3);
+		if (w === 21 && Rt.rand.Next_Int32(2) === 0) v = 2;
+		Rt.wallVariant(i, j, v);
+	},
+	wallVariant: (_i: number, _j: number, _v: number) => {},
 	/** TileFrameCosmetic's reset: a new random variant (WorldGen.genRand.Next(3)). */
 	variant: () => 0
 };

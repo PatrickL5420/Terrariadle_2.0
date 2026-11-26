@@ -34,8 +34,8 @@ export interface ItemUseCase {
 	frames: [number, number, number][];
 }
 
-/** A tile that changed: [i, j, type (-1 for none), frameX, frameY, variant]. */
-export type TileChange = [number, number, number, number, number, number];
+/** A tile that changed: [i, j, type (-1 for none), frameX, frameY, variant, wall]. */
+export type TileChange = [number, number, number, number, number, number, number];
 
 export interface ItemFrame {
 	x: number;
@@ -83,7 +83,15 @@ const snapshot = (t: Tiles): TileChange[] => {
 	for (let j = 0; j < t.height; j++)
 		for (let i = 0; i < t.width; i++) {
 			const k = j * t.width + i;
-			all.push([i, j, t.active[k] ? t.type[k] : -1, t.frameX[k], t.frameY[k], t.frameNumber[k]]);
+			all.push([
+				i,
+				j,
+				t.active[k] ? t.type[k] : -1,
+				t.frameX[k],
+				t.frameY[k],
+				t.frameNumber[k],
+				t.wall[k]
+			]);
 		}
 	return all;
 };
@@ -241,7 +249,9 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		for (let k = 0; k < 1 + rand(3); k++) if (!taken.has(j * w + i + k)) walls.push([i + k, j]);
 	}
 	const trees: ItemUseCase['trees'] = treeAt.map((t) => [t, tops[t]]);
-	const item = [3509, 3509, 3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8, 9, 36, 32, 34][rand(15)];
+	const item = [3509, 3509, 3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8, 9, 36, 32, 34, 93, 93][
+		rand(17)
+	];
 	// With an axe, mostly beside a tree.
 	const tree = item === 3506 && trees.length && rand(4) ? trees[rand(trees.length)] : null;
 	const i = tree ? Math.max(10, Math.min(w - 11, tree[0] + rand(5) - 2)) : 10 + rand(w - 20);

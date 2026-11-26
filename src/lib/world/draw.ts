@@ -95,7 +95,8 @@ export interface Textures {
 	branches: Record<number, Img>;
 	/** Flame_0: a torch's flame, drawn over it. */
 	flame: Img;
-	wall: Img;
+	/** Walls by type: dirt (Wall_2), wood (Wall_4). */
+	walls: Record<number, Img>;
 	cracks: Img;
 	dust: Img;
 	items: Record<number, Img>;
@@ -170,20 +171,22 @@ export async function loadTextures(): Promise<Textures> {
 				'Tiles_30'
 			].map(w)
 		);
-	const [doorClosed, doorOpen, table, chair, bench, ...furnitureItems] = await Promise.all(
-		[
-			'Tiles_10',
-			'Tiles_11',
-			'Tiles_14',
-			'Tiles_15',
-			'Tiles_18',
-			'Item_25',
-			'Item_32',
-			'Item_34',
-			'Item_36',
-			'Item_93'
-		].map(w)
-	);
+	const [woodWall, doorClosed, doorOpen, table, chair, bench, ...furnitureItems] =
+		await Promise.all(
+			[
+				'Wall_4',
+				'Tiles_10',
+				'Tiles_11',
+				'Tiles_14',
+				'Tiles_15',
+				'Tiles_18',
+				'Item_25',
+				'Item_32',
+				'Item_34',
+				'Item_36',
+				'Item_93'
+			].map(w)
+		);
 	const tops = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Tops_${n}`)));
 	const branches = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Branches_${n}`)));
 	return {
@@ -204,7 +207,7 @@ export async function loadTextures(): Promise<Textures> {
 		trunks: { 5: trunk, 596: sakura, 616: willow },
 		tops: Object.fromEntries(TREE_STYLES.map((n, i) => [n, tops[i]])),
 		branches: Object.fromEntries(TREE_STYLES.map((n, i) => [n, branches[i]])),
-		wall,
+		walls: { 2: wall, 4: woodWall },
 		cracks,
 		dust,
 		items: {
@@ -280,9 +283,10 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 	// Walls (Main.DrawWalls): 32x32, overhanging their tile by 8 px a side.
 	for (let j = j0; j < j1; j++) {
 		for (let i = i0; i < i1; i++) {
-			if (!tiles.wall[j * tiles.width + i]) continue;
+			const wall = tiles.wall[j * tiles.width + i];
+			if (!wall) continue;
 			const [fx, fy] = tiles.wallFrame(i, j);
-			sprite(ctx, t.wall, [fx, fy, 32, 32], i * 16 - 8, j * 16 - 8);
+			sprite(ctx, t.walls[wall] ?? t.walls[2], [fx, fy, 32, 32], i * 16 - 8, j * 16 - 8);
 		}
 	}
 

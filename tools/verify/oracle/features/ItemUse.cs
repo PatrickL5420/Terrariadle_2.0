@@ -23,7 +23,7 @@ namespace Oracle;
  *
  * Result per frame: the player (as MovementFeature), the item use (itemAnimation, itemTime,
  * toolTime, rotation, location, the stack left), the tiles that changed since the last frame
- * ([i, j, type or -1, frameX, frameY, variant]), the pickaxe damage cached per tile
+ * ([i, j, type or -1, frameX, frameY, variant, wall]), the pickaxe damage cached per tile
  * (Player.hitTile: [x, y, damage, timeToLive] for each), the drops, sounds and critters asked
  * for, and where Main.rand has got to ([inext, SeedArray[inext]]).
  */
@@ -149,7 +149,7 @@ public class ItemUseFeature : IFeature
 			for (int i = 0; i < w; i++)
 			{
 				var t = Main.tile[i, j];
-				all[j * w + i] = new[] { i, j, t.active() ? t.type : -1, t.frameX, t.frameY, t.frameNumber() };
+				all[j * w + i] = new[] { i, j, t.active() ? t.type : -1, t.frameX, t.frameY, t.frameNumber(), t.wall };
 			}
 		return all;
 	}

@@ -20,11 +20,8 @@ namespace Terraria
 		}
 	}
 
-	public static class Framing
+	public static partial class Framing
 	{
-		// Walls aren't compared (only blocks): reframing them does nothing here.
-		public static void WallFrame(int i, int j, bool resetFrame = false) { }
-
 		public static Tile GetTileSafely(int i, int j)
 		{
 			if (!WorldGen.InWorld(i, j)) return new Tile();
