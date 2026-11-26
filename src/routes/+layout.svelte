@@ -46,7 +46,8 @@
 
 	let title = $derived(titles[page.url.pathname] ?? 'terraGauntlet');
 
-	// The little world starts closed, and isn't even loaded until it's opened.
+	// The little world starts closed, and isn't even loaded until it's opened; closing it again
+	// pauses it.
 	let worldOpen = $state(false);
 	let miniWorld: ReturnType<typeof loadWorld> | null = $state(null);
 	const loadWorld = () => import('$lib/components/MiniWorld.svelte');
@@ -92,8 +93,9 @@
 			data-sound={worldOpen ? 'close' : undefined}
 			onclick={toggleWorld}>World Sim</button
 		>
-		{#if worldOpen && miniWorld}
-			<aside class="world-column">
+		{#if miniWorld}
+			<!-- Closed, it's hidden and paused (MiniWorld stops when it has no size), and kept. -->
+			<aside class="world-column" class:closed={!worldOpen}>
 				{#await miniWorld then { default: MiniWorld }}
 					<MiniWorld />
 				{/await}
@@ -178,6 +180,10 @@
 		.world-column,
 		.world-toggle {
 			display: block;
+		}
+
+		.world-column.closed {
+			display: none;
 		}
 	}
 
