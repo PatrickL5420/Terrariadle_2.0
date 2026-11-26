@@ -3,7 +3,6 @@
 	import Footer from './Footer.svelte';
 	import Sky from '$lib/sky/Sky.svelte';
 	import CoinDrop from '$lib/components/CoinDrop.svelte';
-	import MiniWorld from '$lib/components/MiniWorld.svelte';
 	import Cursor from '$lib/components/Cursor.svelte';
 	import { play } from '$lib/sound.svelte';
 	import '../app.css';
@@ -46,6 +45,15 @@
 	};
 
 	let title = $derived(titles[page.url.pathname] ?? 'terraGauntlet');
+
+	// The little world starts closed, and isn't even loaded until it's opened.
+	let worldOpen = $state(false);
+	let miniWorld: ReturnType<typeof loadWorld> | null = $state(null);
+	const loadWorld = () => import('$lib/components/MiniWorld.svelte');
+	function toggleWorld() {
+		worldOpen = !worldOpen;
+		if (worldOpen) miniWorld ??= loadWorld();
+	}
 </script>
 
 <svelte:window onpointerover={onPointerOver} onpointerdown={onPointerDown} />
@@ -76,10 +84,21 @@
 
 <div class="app">
 	<div class="stage">
-		<!-- A little world to watch, beside the game (wide screens only). -->
-		<aside class="world-column">
-			<MiniWorld />
-		</aside>
+		<!-- A little world to watch, beside the game (wide screens only), opened by its button:
+		     the coin counter's mirror image on the left. -->
+		<button
+			class="world-toggle ui-btn"
+			aria-expanded={worldOpen}
+			data-sound={worldOpen ? 'close' : undefined}
+			onclick={toggleWorld}>World Sim</button
+		>
+		{#if worldOpen && miniWorld}
+			<aside class="world-column">
+				{#await miniWorld then { default: MiniWorld }}
+					<MiniWorld />
+				{/await}
+			</aside>
+		{/if}
 
 		<Header />
 
@@ -108,14 +127,35 @@
 		position: relative;
 	}
 
+	/* Where the coin counter's "Coins" is, mirrored: left of the game (Header.svelte). */
+	.world-toggle {
+		display: none;
+		position: absolute;
+		top: 14px;
+		right: calc(50% + var(--column-gap));
+		z-index: 1;
+		padding: 0;
+		font-size: 16px;
+		line-height: normal;
+		color: var(--text);
+	}
+
+	.world-toggle:hover,
+	.world-toggle:focus-visible,
+	.world-toggle[aria-expanded='true'] {
+		color: var(--hover);
+	}
+
 	/*
-	 * Left of the game, as tall as the header and game together; the coin counter makes the
-	 * matching column on the right (Header.svelte). 13 blocks wide, in a panel's border.
+	 * Left of the game, under its button, down to the bottom of the game; the coin counter
+	 * makes the matching column on the right (Header.svelte). 13 blocks wide, in a panel's
+	 * border.
 	 */
 	.world-column {
 		display: none;
 		position: absolute;
-		top: 14px;
+		/* Its border clears the button. */
+		top: 44px;
 		bottom: 0;
 		right: calc(50% + var(--column-gap));
 		width: calc(13 * 16px);
@@ -135,7 +175,8 @@
 	}
 
 	@media (min-width: 1150px) {
-		.world-column {
+		.world-column,
+		.world-toggle {
 			display: block;
 		}
 	}
