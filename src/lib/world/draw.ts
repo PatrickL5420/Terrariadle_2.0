@@ -520,9 +520,12 @@ function drawPlayer(ctx: CanvasRenderingContext2D, world: World, t: Textures) {
 	const hairY = Math.max(0, body * 56 - 336);
 	sprite(ctx, t.hair, [0, hairY, 40, 54], x, y, [0, 0], 0, 1, flip);
 
-	// 6. The item being swung.
+	// 6. The item being swung, or held (one with a hold style, like a torch held up):
+	// PlayerDrawLayers.DrawPlayer_27_HeldItem.
 	const shown = p.lastVisualized.type;
-	if (p.itemAnimation > 0 && t.items[shown]) {
+	const swung = p.itemAnimation > 0 && stats(shown).useStyle !== 0;
+	const held = !!stats(shown).holdStyle && p.lastVisualized.stack > 0;
+	if ((swung || held) && t.items[shown]) {
 		const img = t.items[shown];
 		const w = img.width;
 		const h = img.height;
