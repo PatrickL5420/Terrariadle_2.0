@@ -71,8 +71,9 @@ const FRONT_ARM: [number, number][] = [
 
 export interface Textures {
 	tiles: Record<number, Img>;
-	/** Tiles_5: tree trunks (a column of 176 px per biome; the forest's is the first). */
-	trunk: Img;
+	/** Tree trunks by tile: Tiles_5 (a column of 176 px per biome; the forest's is the first),
+	 * and the sakura's and yellow willow's Tiles_596, Tiles_616. */
+	trunks: Record<number, Img>;
 	/** Tree_Tops_N and Tree_Branches_N, by tree style. */
 	tops: Record<number, Img>;
 	branches: Record<number, Img>;
@@ -134,14 +135,23 @@ export async function loadTextures(): Promise<Textures> {
 		]);
 	const sheets = Object.keys(SHEETS).map(Number);
 	const player = await Promise.all(sheets.map((n) => w(`Player_0_${n}`)));
-	const [clay, clayItem, trunk, wood, acorn, axe] = await Promise.all(
-		['Tiles_40', 'Item_133', 'Tiles_5', 'Item_9', 'Item_27', 'Item_3506'].map(w)
+	const [clay, clayItem, trunk, sakura, willow, wood, acorn, axe] = await Promise.all(
+		[
+			'Tiles_40',
+			'Item_133',
+			'Tiles_5',
+			'Tiles_596',
+			'Tiles_616',
+			'Item_9',
+			'Item_27',
+			'Item_3506'
+		].map(w)
 	);
 	const tops = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Tops_${n}`)));
 	const branches = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Branches_${n}`)));
 	return {
 		tiles: { [DIRT]: tiles0, [STONE]: tiles1, [GRASS]: tiles2, [CLAY]: clay },
-		trunk,
+		trunks: { 5: trunk, 596: sakura, 616: willow },
 		tops: Object.fromEntries(TREE_STYLES.map((n, i) => [n, tops[i]])),
 		branches: Object.fromEntries(TREE_STYLES.map((n, i) => [n, branches[i]])),
 		wall,
@@ -216,14 +226,13 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 		}
 	}
 
-	// Tree trunks (and the stumps of their tops and branches): 20x20, 2 px over each side. The
-	// sakura's and yellow willow's own trunks (Tiles_596, Tiles_616) aren't here: a forest
-	// trunk stands in.
+	// Tree trunks (and the stumps of their tops and branches): 20x20, 2 px over each side.
 	for (let j = j0; j < j1; j++) {
 		for (let i = i0; i < i1; i++) {
-			if (!TREES.includes(tiles.at(i, j))) continue;
+			const type = tiles.at(i, j);
+			if (!TREES.includes(type)) continue;
 			const k = j * tiles.width + i;
-			sprite(ctx, t.trunk, [tiles.frameX[k], tiles.frameY[k], 20, 20], i * 16 - 2, j * 16);
+			sprite(ctx, t.trunks[type], [tiles.frameX[k], tiles.frameY[k], 20, 20], i * 16 - 2, j * 16);
 		}
 	}
 

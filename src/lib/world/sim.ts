@@ -24,15 +24,15 @@ import { AIR, DIRT, GRASS, isSolid, STONE, TREE, TREES } from './framing';
 import { generate, play, UnifiedRandom } from './gen';
 import {
 	canPlaceAt,
-	inRange,
 	overlapsPlayer,
-	stats,
 	type DropCall,
 	type Item,
 	type ItemWorld,
 	type SoundCall
 } from './item-check';
 import { LightMap, type RGB } from './light';
+import { Follower, use } from './ai/follow';
+import { open, plan, standOf, type Goal, type Stand } from './ai/nav';
 import { Player } from './player';
 import { MARGIN, Tiles } from './tiles';
 
@@ -74,11 +74,6 @@ export interface Dust {
 	frame: number;
 }
 
-type Goal =
-	| { kind: 'idle'; frames: number }
-	| { kind: 'walk'; x: number }
-	| { kind: 'mine' | 'chop' | 'place'; i: number; j: number };
-
 export class World implements ItemWorld {
 	tiles: Tiles;
 	light: LightMap;
@@ -101,8 +96,12 @@ export class World implements ItemWorld {
 	/** The ground's height when the world was made, per column: the player keeps it roughly so. */
 	surface: number[];
 
-	#goal: Goal = { kind: 'idle', frames: 60 };
-	#stuck = 0;
+	#task: Task = { kind: 'idle', frames: 60 };
+	#follow: Follower | null = null;
+	#failures = 0;
+	/** Blocks the plans dug out and put in (as tile indexes), to tidy up. */
+	#dug = new Set<number>();
+	#built = new Set<number>();
 	#sound: (s: Sound, at: { x: number; y: number }) => void = () => {};
 
 	/** The whole world, in tiles: what's shown plus MARGIN (see ./tiles). */
@@ -124,8 +123,8 @@ export class World implements ItemWorld {
 	}
 
 	/** What the player's up to (for tests). */
-	get goal(): Readonly<Goal> {
-		return this.#goal;
+	get task(): Readonly<Task> {
+		return this.#task;
 	}
 
 	/** How many columns and rows are shown (the rest is MARGIN). */
@@ -317,92 +316,122 @@ export class World implements ItemWorld {
 	}
 
 	// ---- The made-up part: what the player decides to do ------------------------------------------
+	//
+	// A task at a time (#choose), each "get somewhere, then do something there": the way there is
+	// planned (./ai/nav: walking, jumping, digging through, building up with blocks) and carried
+	// out step by step (./ai/follow), planned again whenever a step doesn't go as expected.
 
 	#think() {
 		const p = this.player;
-		const g = this.#goal;
 		p.controls = { left: false, right: false, jump: false, use: false };
-
-		if (g.kind === 'idle') {
-			if (--g.frames <= 0) this.#goal = this.#choose();
+		const task = this.#task;
+		if (task.kind === 'idle') {
+			if (--task.frames <= 0) this.#task = this.#choose();
 			return;
 		}
-
-		if (g.kind === 'walk') {
-			if (this.#walkTo(g.x)) this.#goal = { kind: 'idle', frames: 20 + this.rnd(90) };
+		if (this.#follow) {
+			const r = this.#follow.tick(this);
+			if (r === 'running') return;
+			this.#follow = null;
+			if (r === 'failed') this.#failed();
 			return;
 		}
-
-		// Mining, chopping or placing: get within reach (on the ground), then hold the button on it.
-		const done =
-			g.kind === 'mine'
-				? !isSolid(this.tiles.at(g.i, g.j))
-				: g.kind === 'chop'
-					? !TREES.includes(this.tiles.at(g.i, g.j))
-					: this.tiles.at(g.i, g.j) !== AIR;
-		if (done) {
-			if (p.itemAnimation === 0) this.#goal = { kind: 'idle', frames: 15 + this.rnd(60) };
+		const here = this.#stand();
+		if (!here) return; // still in the air
+		if (!task.goal.done(here)) {
+			const steps = plan(this.tiles, here, task.goal, { blocks: this.blocks });
+			if (!steps) return this.#give(task.kind === 'go' ? 'no way there' : 'no way to it');
+			this.#follow = new Follower(steps);
+			this.#follow.tick(this);
 			return;
 		}
-		const slot =
-			g.kind === 'mine'
-				? this.inventory[0]
-				: g.kind === 'chop'
-					? this.inventory[1]
-					: this.#blockToPlace();
-		if (g.kind === 'place' && (!this.canPlace(g.i, g.j) || !slot)) {
-			if (p.itemAnimation === 0) this.#goal = { kind: 'idle', frames: 30 };
-			return;
-		}
-		// Switching items: only between swings.
-		if (p.itemAnimation === 0 && slot) p.item = slot;
-		const boost = stats(p.item.type).tileBoost;
-		if (!inRange(p, g.i, g.j, boost) || (!p.grounded && p.itemAnimation === 0)) {
-			const side = g.i * 16 + 8 < p.center.x ? 1 : -1;
-			if (this.#walkTo(g.i * 16 + 8 + side * 40)) {
-				// Can't get closer: give up on it.
-				if (!inRange(p, g.i, g.j, boost)) this.#goal = { kind: 'idle', frames: 30 };
-			}
-			return;
-		}
-		// The cursor on it and the button held; a tap toward it first, to face it.
-		const toward = g.i * 16 + 8 < p.center.x ? -1 : 1;
-		if (p.itemAnimation === 0 && p.direction !== toward) {
-			p.controls.left = toward < 0;
-			p.controls.right = toward > 0;
-		}
-		p.tileTargetX = g.i;
-		p.tileTargetY = g.j;
-		p.controls.use = true;
+		// There: do what's to be done.
+		if (task.kind === 'go') return this.#give();
+		this.#act(task);
 	}
 
-	/** Walks toward x, jumping over what's in the way. True once there (or stuck for good). */
-	#walkTo(x: number): boolean {
+	/** The task's action, once in reach: mine, chop or place at the tile. */
+	#act(task: Exclude<Task, { kind: 'idle' | 'go' }>) {
 		const p = this.player;
-		const dx = x - p.center.x;
-		if (Math.abs(dx) < 6) return p.grounded;
-		p.controls.left = dx < 0;
-		p.controls.right = dx > 0;
-		// Blocked by a wall: jump (and keep holding it to jump higher).
-		const blocked = p.vx === 0 && p.grounded;
-		if (blocked || (this.#stuck > 0 && !p.grounded)) {
-			this.#stuck++;
-			p.controls.jump = this.#stuck % 40 < 20;
-		} else this.#stuck = 0;
-		if (this.#stuck > 150) {
-			// Too high to jump: dig through it instead.
-			this.#stuck = 0;
-			const dir = dx < 0 ? -1 : 1;
-			const i = Math.trunc((p.center.x + dir * 16) / 16);
-			const j = Math.trunc((p.y + p.h - 8) / 16);
-			for (const jj of [j - 1, j, j - 2])
-				if (isSolid(this.tiles.at(i, jj)) && !TREES.includes(this.tiles.at(i, jj - 1))) {
-					this.#goal = { kind: 'mine', i, j: jj };
-					return false;
-				}
-			return true;
+		const [i, j] = task.tile;
+		const t = this.tiles.at(i, j);
+		const done =
+			task.kind === 'place' ? t !== AIR : task.kind === 'chop' ? !TREES.includes(t) : !isSolid(t);
+		if (done || ++task.frames > 600) {
+			if (p.itemAnimation === 0) this.#give(done ? 'done' : 'took too long');
+			return;
 		}
-		return false;
+		if (!this.hold(task.kind === 'chop' ? 'axe' : task.kind === 'place' ? 'block' : 'pickaxe')) {
+			if (p.itemAnimation === 0) this.#give('nothing to use');
+			return;
+		}
+		if (task.kind === 'place' && !this.canPlace(i, j)) return this.#give("can't place");
+		use(p, i, j);
+	}
+
+	/** A plan that didn't work out: plan again, or after a few tries, do something else. */
+	#failed() {
+		if (++this.#failures > 4) this.#give('kept failing');
+	}
+
+	/** How tasks have ended: done, or given up on (and why). */
+	readonly outcomes: Record<string, number> = {};
+
+	/** On to something else, after a breather. */
+	#give(why = 'done') {
+		const k = `${this.#task.kind}: ${why}`;
+		this.outcomes[k] = (this.outcomes[k] ?? 0) + 1;
+		this.#task = { kind: 'idle', frames: 15 + this.rnd(60) };
+		this.#follow = null;
+		this.#failures = 0;
+	}
+
+	/** Where the player stands now (null in the air). */
+	#stand(): Stand | null {
+		const p = this.player;
+		if (!p.grounded) return null;
+		const s = standOf(p.x, p.y);
+		for (const di of [0, -1, 1]) {
+			const t = { i: s.i + di, j: s.j };
+			if (
+				this.tiles.inView(t.i, t.j - 1) &&
+				this.#fits(t.i, t.j) &&
+				(this.tiles.solid(t.i, t.j) || this.tiles.solid(t.i + 1, t.j))
+			)
+				return t;
+		}
+		return s;
+	}
+
+	#fits(i: number, j: number) {
+		for (let r = j - 3; r < j; r++)
+			if (this.tiles.solid(i, r) || this.tiles.solid(i + 1, r)) return false;
+		return true;
+	}
+
+	/** Body.hold (./ai/follow): the pickaxe, axe or a stack of blocks in hand, between swings. */
+	hold(kind: 'pickaxe' | 'block' | 'axe'): boolean {
+		const p = this.player;
+		const slot =
+			kind === 'pickaxe'
+				? this.inventory[0]
+				: kind === 'axe'
+					? this.inventory[1]
+					: this.#blockToPlace();
+		if (!slot) return false;
+		if (p.item === slot) return true;
+		if (p.itemAnimation > 0) return false;
+		p.item = slot;
+		return true;
+	}
+
+	/** Body.dug / built: blocks the plans took out or put in, to tidy up later. */
+	dug(i: number, j: number) {
+		if (this.#dug.size < 300) this.#dug.add(j * this.width + i);
+	}
+
+	built(i: number, j: number) {
+		this.#built.add(j * this.width + i);
 	}
 
 	/** Whether the tree tile at (i, j) is its trunk (not a root beside it). */
@@ -426,62 +455,117 @@ export class World implements ItemWorld {
 		return this.height;
 	}
 
-	/** Picks something to do: wander, dig the ground down where it's high, fill it in where low. */
-	#choose(): Goal {
+	// ---- Goals -------------------------------------------------------------------------------------
+
+	/** Standing on the open surface around column x. */
+	#surface(x: number): Goal {
+		return { i: x, done: (s) => Math.abs(s.i - x) <= 1 && open(this.tiles, s.i, s.j) };
+	}
+
+	/** Standing where tile (x, y) is in reach (Player.IsInTileInteractionRange, tileBoost `tb`), clear of it. */
+	#reach(x: number, y: number, tb: number): Goal {
+		const rx = 5 + tb;
+		const ry = 3 + tb;
+		return {
+			i: x,
+			done: (s) =>
+				x >= s.i - rx &&
+				x <= s.i + 1 + rx &&
+				y >= s.j - 3 - ry &&
+				y <= s.j - 1 + ry &&
+				// Not where it stands (or would stand on).
+				!((x === s.i || x === s.i + 1) && y >= s.j - 3 && y <= s.j)
+		};
+	}
+
+	/** Picks something to do: weighed by what's needed, then what's near. */
+	#choose(): Task {
 		const r = this.rnd;
 		const W = this.width;
-		const tops = Array.from({ length: W }, (_, i) => this.top(i));
-		// Columns in view, not right at its sides.
-		const first = MARGIN + 1;
-		const last = W - MARGIN - 2;
+		const t = this.tiles;
 		const p = this.player;
-		// A dropped block nearby: go and get it.
-		const loose = this.drops.find((d) => Math.abs(d.x - p.x) < 16 * 8);
-		if (loose && r(2) === 0) return { kind: 'walk', x: loose.x + 6 };
-		// A tree: chop it down at its foot (the trunk's lowest tile), now and then.
+		const first = MARGIN + 1;
+		const last = W - MARGIN - 3;
+		const pi = Math.trunc(p.center.x / 16);
+		const near = <T extends { i: number }>(list: T[]) =>
+			list.sort((a, b) => Math.abs(a.i - pi) - Math.abs(b.i - pi))[r(Math.min(3, list.length))];
+
+		// Something dropped nearby: pick it up.
+		const loose = this.drops.find((d) => Math.abs(d.x - p.x) < 16 * 25);
+		if (loose) {
+			const di = Math.trunc((loose.x + loose.w / 2) / 16);
+			const dj = Math.trunc((loose.y + loose.h) / 16);
+			return {
+				kind: 'go',
+				goal: { i: di, done: (s) => Math.abs(s.i + 1 - di) <= 1 && Math.abs(s.j - dj) <= 2 }
+			};
+		}
+
+		// Cleaning up: blocks it built to get about (pillars, bridges) come down; holes it dug go
+		// back in, bottom first.
+		const built = [...this.#built]
+			.map((k) => ({ i: k % W, j: Math.trunc(k / W) }))
+			.filter(({ i, j }) => {
+				const solid = isSolid(t.at(i, j));
+				if (!solid) this.#built.delete(j * W + i);
+				return solid;
+			});
+		if (built.length && r(2) === 0) {
+			const b = near(built);
+			this.#built.delete(b.j * W + b.i);
+			return { kind: 'mine', tile: [b.i, b.j], goal: this.#reach(b.i, b.j, -1), frames: 0 };
+		}
+		const holes = [...this.#dug]
+			.map((k) => ({ i: k % W, j: Math.trunc(k / W) }))
+			.filter(({ i, j }) => {
+				const open = t.at(i, j) === AIR;
+				if (!open) this.#dug.delete(j * W + i);
+				return open;
+			});
+		if (holes.length && this.blocks > 0 && r(2) === 0) {
+			// The lowest that a block can go into now (not over the player's head).
+			const me = standOf(p.x, p.y);
+			const ok = holes
+				.filter(({ i, j }) => this.canPlace(i, j) && !(i >= me.i - 1 && i <= me.i + 2 && j < me.j))
+				.sort((a, b) => b.j - a.j);
+			const h = ok[0];
+			if (h) {
+				this.#dug.delete(h.j * W + h.i);
+				return { kind: 'place', tile: [h.i, h.j], goal: this.#reach(h.i, h.j, 0), frames: 0 };
+			}
+		}
+
+		// Short of blocks: mine some, off the tops of the bumps nearby (it flattens, not pits).
+		if (this.blocks < 10 && r(2) === 0) {
+			const peaks: { i: number; j: number }[] = [];
+			for (let i = first; i <= last; i++) {
+				const j = this.top(i);
+				if (j >= this.rows - 1 || TREES.includes(t.at(i, j - 1))) continue;
+				if (j <= this.top(i - 1) && j <= this.top(i + 1)) peaks.push({ i, j });
+			}
+			const pk = near(peaks);
+			if (pk)
+				return { kind: 'mine', tile: [pk.i, pk.j], goal: this.#reach(pk.i, pk.j, -1), frames: 0 };
+		}
+
+		// A tree, now and then: chopped at its foot.
 		if (r(6) === 0) {
-			const trees: [number, number][] = [];
+			const trees: { i: number; j: number }[] = [];
 			for (let i = first; i <= last; i++) {
-				const j = tops[i] - 1;
-				if (j > 0 && this.tiles.at(i, j) === TREE && this.#isTrunk(i, j)) trees.push([i, j]);
+				const j = this.top(i) - 1;
+				if (j > 0 && t.at(i, j) === TREE && this.#isTrunk(i, j)) trees.push({ i, j });
 			}
-			const near = trees.filter(([i]) => Math.abs(i * 16 - p.x) < 16 * 30);
-			const pick = near[r(near.length)] ?? trees[r(trees.length)];
-			if (pick) return { kind: 'chop', i: pick[0], j: pick[1] };
+			const tr = near(trees);
+			if (tr)
+				return { kind: 'chop', tile: [tr.i, tr.j], goal: this.#reach(tr.i, tr.j, -1), frames: 0 };
 		}
-		const roll = r(10);
-		const blocks = this.blocks;
-		if (roll < 4 || (roll < 7 && blocks === 0)) {
-			// Mine an open block that's no deeper than 3 below where the ground was.
-			const options: [number, number][] = [];
-			for (let i = first; i <= last; i++) {
-				const j = tops[i];
-				// (Not under a tree: it can't go until the tree's gone, WorldGen.CanKillTile.)
-				if (
-					j < this.rows - 1 &&
-					j <= this.surface[i] + 2 &&
-					!TREES.includes(this.tiles.at(i, j - 1))
-				)
-					options.push([i, j]);
-			}
-			const weighted = options.filter(([i, j]) => j <= this.surface[i] || r(3) === 0);
-			const pick = weighted[r(weighted.length)] ?? options[r(options.length)];
-			if (pick) return { kind: 'mine', i: pick[0], j: pick[1] };
-		}
-		if (roll < 7 && blocks > 0) {
-			// Build up a column that's no more than 3 above where the ground was.
-			const options: [number, number][] = [];
-			for (let i = first; i <= last; i++) {
-				const j = tops[i] - 1;
-				if (j >= 2 && j >= this.surface[i] - 3 && this.canPlace(i, j)) {
-					// Lower spots first.
-					const weight = j < this.surface[i] ? 1 : 3;
-					for (let k = 0; k < weight; k++) options.push([i, j]);
-				}
-			}
-			const pick = options[r(options.length)];
-			if (pick) return { kind: 'place', i: pick[0], j: pick[1] };
-		}
-		return { kind: 'walk', x: first * 16 + r((last - first + 1) * 16) };
+
+		// Otherwise, off somewhere on the surface.
+		return { kind: 'go', goal: this.#surface(first + r(last - first + 1)) };
 	}
 }
+
+type Task =
+	| { kind: 'idle'; frames: number }
+	| { kind: 'go'; goal: Goal }
+	| { kind: 'mine' | 'chop' | 'place'; tile: [number, number]; goal: Goal; frames: number };

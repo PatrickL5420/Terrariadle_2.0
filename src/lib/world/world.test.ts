@@ -232,13 +232,42 @@ describe('the little world', () => {
 		expect(w.tiles.active).not.toEqual(start);
 	}, 60_000);
 
+	it('gets where it sets out for: most trips arrive, and it never stands about stuck', () => {
+		let s = 7;
+		const rnd = ((a: number, b?: number) => {
+			s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+			const v = s / 2 ** 32;
+			return b === undefined ? Math.floor(v * a) : a + Math.floor(v * (b - a));
+		}) as ConstructorParameters<typeof World>[0];
+		const w = new World(rnd);
+		let still = 0;
+		let worst = 0;
+		let last = { x: 0, y: 0 };
+		for (let f = 0; f < 60 * 120; f++) {
+			w.update([255, 255, 255], quiet);
+			const p = w.player;
+			const moved = Math.abs(p.x - last.x) + Math.abs(p.y - last.y) > 0.5;
+			still = moved || p.itemAnimation > 0 || w.task.kind === 'idle' ? 0 : still + 1;
+			worst = Math.max(worst, still);
+			last = { x: p.x, y: p.y };
+		}
+		const o = w.outcomes;
+		const arrived = o['go: done'] ?? 0;
+		const trips = Object.entries(o)
+			.filter(([k]) => k.startsWith('go:'))
+			.reduce((n, [, v]) => n + v, 0);
+		expect(trips).toBeGreaterThan(5);
+		expect(arrived / trips).toBeGreaterThan(0.85);
+		expect(worst).toBeLessThan(60 * 5);
+	}, 60_000);
+
 	it('is made by the game’s world generation: grass over dirt and stone, clay, walls, trees', () => {
 		const w = new World();
 		const types = new Set<number>();
 		for (let k = 0; k < w.width * w.height; k++) if (w.tiles.active[k]) types.add(w.tiles.type[k]);
-		expect([...types].filter((t) => t !== 596 && t !== 616).sort((a, b) => a - b)).toEqual([
-			0, 1, 2, 5, 40
-		]);
+		// (Clay, and the sakura and yellow willow trees, only in some worlds.)
+		for (const t of [0, 1, 2, 5]) expect(types).toContain(t);
+		for (const t of types) expect([0, 1, 2, 5, 40, 596, 616]).toContain(t);
 		expect(w.tiles.wall.some((x) => x === 2)).toBe(true);
 		expect(w.cols).toBe(150);
 	});
