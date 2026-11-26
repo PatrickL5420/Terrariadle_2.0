@@ -451,7 +451,7 @@ export function canPlaceTorch(w: ItemWorld, x: number, y: number): boolean {
  * there (TryReplacingWalls), then any gaps it closes in (FillEmptySpace). WorldGen's own
  * PlaceWall, ReplaceWall and NearFriendlyWall (converted) do the placing.
  */
-function placeWalls(p: Player, s: ItemStats, w: ItemWorld) {
+function placeWalls(p: Player, s: ItemStats, _w: ItemWorld) {
 	const wall = s.createWall;
 	if (wall < 0) return;
 	const x = p.tileTargetX;

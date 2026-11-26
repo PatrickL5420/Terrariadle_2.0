@@ -22,7 +22,8 @@ import {
 import { tileCollision } from './collision';
 import { AIR, DIRT, GRASS, isSolid, STONE, TORCH, TREE, TREES } from './framing';
 import { generate, play, UnifiedRandom } from './gen';
-import { DoorOpeningHelper, Main } from './gen/game';
+import { DoorOpeningHelper, Main, TileObject } from './gen/game';
+import { atStation, count, craft, hasFor, recipe } from './craft';
 import {
 	canPlaceAt,
 	canPlaceTorch,
@@ -39,6 +40,8 @@ import { open, plan, standOf, type Goal, type Stand } from './ai/nav';
 import {
 	bridgeSite,
 	houseSite,
+	done as pieceDone,
+	FURNITURE_TILE,
 	needs,
 	next,
 	towerSite,
@@ -57,6 +60,16 @@ const AXE = 3506;
 export const WOOD = 9;
 export const ACORN = 27;
 export const TORCH_ITEM = 8;
+/** The item each building piece is put in with. */
+const ITEM_FOR: Record<Exclude<Need, 'block'>, number> = {
+	wood: 9,
+	torch: 8,
+	wall: 93,
+	bench: 36,
+	door: 25,
+	table: 32,
+	chair: 34
+};
 /** The blocks the player builds with: dirt, stone and clay blocks (items 2, 3, 133). */
 const BLOCKS = [2, 3, 133];
 
@@ -111,6 +124,8 @@ export class World implements ItemWorld {
 	surface: number[];
 
 	#task: Task = { kind: 'idle', frames: 60 };
+	/** Drops it couldn't get to. */
+	#unreachable = new WeakSet<Drop>();
 	readonly #doors = new DoorOpeningHelper();
 	#follow: Follower | null = null;
 	#failures = 0;
@@ -396,8 +411,15 @@ export class World implements ItemWorld {
 		const p = this.player;
 		const [i, j] = task.tile;
 		const t = this.tiles.at(i, j);
+		// (A piece's in: the blueprint's own test, as a wall goes behind the tile.)
 		const done =
-			task.kind === 'place' ? t !== AIR : task.kind === 'chop' ? !TREES.includes(t) : !isSolid(t);
+			task.kind === 'place'
+				? task.need
+					? pieceDone(this.#map, { i, j, need: task.need })
+					: t !== AIR
+				: task.kind === 'chop'
+					? !TREES.includes(t)
+					: !isSolid(t);
 		if (done || ++task.frames > 600) {
 			if (p.itemAnimation === 0) this.#give(done ? 'done' : 'took too long');
 			return;
@@ -407,7 +429,7 @@ export class World implements ItemWorld {
 			if (p.itemAnimation === 0) this.#give('nothing to use');
 			return;
 		}
-		if (need && !this.#placeable(i, j, need === 'torch')) return this.#give("can't place");
+		if (need && !this.#placeable(i, j, need)) return this.#give("can't place");
 		use(p, i, j);
 	}
 
@@ -422,6 +444,9 @@ export class World implements ItemWorld {
 	/** On to something else, after a breather. */
 	#give(why = 'done') {
 		const k = `${this.#task.kind}: ${why}`;
+		// A drop it couldn't get to: left (till it moves).
+		const task = this.#task;
+		if (why !== 'done' && task.kind === 'go' && task.drop) this.#unreachable.add(task.drop);
 		// Building and getting nowhere: after a few, it's given up (#build).
 		if (why !== 'done' && this.#project) this.#stuckOn++;
 		this.outcomes[k] = (this.outcomes[k] ?? 0) + 1;
@@ -496,6 +521,9 @@ export class World implements ItemWorld {
 		for (let j = pj - 4; j <= pj + 3; j++)
 			for (let i = pi - 5; i <= pi + 5; i++) {
 				if (t.at(i, j) !== AIR || !t.inView(i, j) || !inRange(p, i, j, 0)) continue;
+				// (Not in what it's building: that's kept clear, or its own torch is planned.)
+				const k = j * this.width + i;
+				if (this.#keepClear.has(k) || this.#kept.has(k)) continue;
 				if (!canPlaceTorch(this, i, j)) continue;
 				const sc = Math.abs(i - (pi + 3 * p.direction)) + Math.abs(j - (pj - 1)) * 0.6;
 				if (sc < score) {
@@ -525,19 +553,20 @@ export class World implements ItemWorld {
 		return true;
 	}
 
-	/** Body.hold (./ai/follow): the pickaxe, axe, torches or a stack of blocks in hand, between swings. */
-	hold(kind: 'pickaxe' | 'block' | 'axe' | 'torch' | 'wood'): boolean {
+	/**
+	 * Body.hold (./ai/follow): the pickaxe, axe, a stack of blocks or of what a building piece
+	 * needs (wood, torches, walls, furniture) in hand, between swings.
+	 */
+	hold(kind: 'pickaxe' | 'axe' | Need): boolean {
 		const p = this.player;
 		const slot =
 			kind === 'pickaxe'
 				? this.inventory[0]
 				: kind === 'axe'
 					? this.inventory[1]
-					: kind === 'torch' || kind === 'wood'
-						? (this.inventory.find(
-								(it) => it.type === (kind === 'torch' ? TORCH_ITEM : WOOD) && it.stack > 0
-							) ?? null)
-						: this.#blockToPlace();
+					: kind === 'block'
+						? this.#blockToPlace()
+						: (this.inventory.find((it) => it.type === ITEM_FOR[kind] && it.stack > 0) ?? null);
 		if (!slot) return false;
 		if (p.item === slot) return true;
 		if (p.itemAnimation > 0) return false;
@@ -605,23 +634,61 @@ export class World implements ItemWorld {
 			at: (i, j) => t.at(i, j),
 			inView: (i, j) => t.inView(i, j),
 			top: (i) => this.top(i),
-			placeable: (i, j, torch) => this.#placeable(i, j, torch)
+			placeable: (i, j, need) => this.#placeable(i, j, need),
+			wallAt: (i, j) => t.wall[j * this.width + i]
 		};
 	}
 
-	/** Whether a block (or torch) could go at (i, j) now. */
-	#placeable(i: number, j: number, torch: boolean) {
+	/** Whether a piece could go at (i, j) now. */
+	#placeable(i: number, j: number, need: Need) {
 		const t = this.tiles;
-		if (!t.inView(i, j) || t.at(i, j) !== AIR) return false;
-		if (torch) return canPlaceTorch(this, i, j);
+		if (!t.inView(i, j)) return false;
+		if (need === 'wall') {
+			// PlaceThing_Walls: a block or wall beside it.
+			const next = (a: number, b: number) => t.at(a, b) !== AIR || t.wall[b * this.width + a] > 0;
+			return (
+				t.wall[j * this.width + i] === 0 &&
+				(next(i + 1, j) || next(i - 1, j) || next(i, j + 1) || next(i, j - 1))
+			);
+		}
+		if (t.at(i, j) !== AIR) return false;
+		if (need === 'torch') return canPlaceTorch(this, i, j);
+		const tile = FURNITURE_TILE[need];
+		if (tile !== undefined) {
+			// TileObject.CanPlace: the object's own rules (what it stands on, room for it).
+			const box = { v: new TileObject() };
+			return TileObject.CanPlace(i, j, tile, 0, this.player.direction, box, true, null);
+		}
 		return canPlaceAt(this, i, j) && !overlapsPlayer(this.player, i, j);
 	}
 
 	/** How many of a thing it has. */
 	#count(need: Need) {
-		if (need === 'block') return this.blocks;
-		const type = need === 'wood' ? WOOD : TORCH_ITEM;
-		return this.inventory.reduce((n, it) => n + (it.type === type ? it.stack : 0), 0);
+		return need === 'block' ? this.blocks : count(this.inventory, ITEM_FOR[need]);
+	}
+
+	/**
+	 * Something it needs for a piece, made: at once if it needs no station (or one's in reach),
+	 * otherwise a trip to the work bench first. Null when there's nothing to make it from.
+	 */
+	#make(need: Exclude<Need, 'block'>, want: number): Task | 'made' | null {
+		const r = recipe(ITEM_FOR[need]);
+		if (!hasFor(this.inventory, r)) return null;
+		const t = this.tiles;
+		if (!r.station || atStation(this.player, (i, j) => t.at(i, j), r.station)) {
+			// Main.CraftItem, as many times as wanted (and it has the wood for).
+			while (this.#count(need) < want && craft(this.inventory, r));
+			return 'made';
+		}
+		// The nearest bench.
+		const pi = Math.trunc(this.player.center.x / 16);
+		let best: [number, number] | null = null;
+		for (let i = 0; i < this.width; i++)
+			for (let j = 0; j < this.height; j++)
+				if (t.at(i, j) === r.station && (!best || Math.abs(i - pi) < Math.abs(best[0] - pi)))
+					best = [i, j];
+		if (!best) return null;
+		return { kind: 'go', goal: this.#reach(best[0], best[1], 0) };
 	}
 
 	/**
@@ -681,6 +748,14 @@ export class World implements ItemWorld {
 		}
 		// Enough of what it needs? Wood from trees (and torches from wood), blocks off bumps.
 		const want = needs(this.#map, b);
+		// Furniture and walls: made from wood (at the bench) if it has none.
+		if (n.need !== 'block' && (FURNITURE_TILE[n.need] !== undefined || n.need === 'wall')) {
+			if (this.#count(n.need) === 0) {
+				const made = this.#make(n.need, want[n.need]);
+				if (made === null) return this.#chopTree() ?? this.#starve();
+				if (made !== 'made') return made;
+			}
+		}
 		if (n.need === 'torch' && !this.#torches()) return this.#chopTree() ?? this.#starve();
 		if (n.need === 'wood' && this.#count('wood') < Math.min(want.wood, 10)) {
 			if (this.#count('wood') === 0) return this.#chopTree() ?? this.#starve();
@@ -750,12 +825,15 @@ export class World implements ItemWorld {
 			list.sort((a, b) => Math.abs(a.i - pi) - Math.abs(b.i - pi))[r(Math.min(3, list.length))];
 
 		// Something dropped nearby: pick it up.
-		const loose = this.drops.find((d) => Math.abs(d.x - p.x) < 16 * 25);
+		const loose = this.drops.find(
+			(d) => Math.abs(d.x - p.x) < 16 * 25 && !this.#unreachable.has(d)
+		);
 		if (loose) {
 			const di = Math.trunc((loose.x + loose.w / 2) / 16);
 			const dj = Math.trunc((loose.y + loose.h) / 16);
 			return {
 				kind: 'go',
+				drop: loose,
 				goal: { i: di, done: (s) => Math.abs(s.i + 1 - di) <= 1 && Math.abs(s.j - dj) <= 2 }
 			};
 		}
@@ -838,7 +916,7 @@ export class World implements ItemWorld {
 
 type Task =
 	| { kind: 'idle'; frames: number }
-	| { kind: 'go'; goal: Goal }
+	| { kind: 'go'; goal: Goal; drop?: Drop }
 	| {
 			kind: 'mine' | 'chop' | 'place';
 			tile: [number, number];

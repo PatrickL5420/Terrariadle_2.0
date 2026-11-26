@@ -5,24 +5,52 @@
  *
  * Trees where it goes are felled first.
  *
- *   house    a wooden box on flattened ground: floor, walls, a roof, a doorway on one side
- *            (3 high, for a door later) and a torch inside
+ *   house    a wooden box on flattened ground: floor, walls, a roof, a door each side, a
+ *            wood wall behind, a work bench, a table and a chair, and a torch inside
  *   tower    a wooden pole with a lookout deck on top, and a torch on the deck
  *   bridge   a wooden walkway across a dip in the ground, level with its lower rim
  *
- * A blueprint is the tiles that must be clear and the tiles to fill (with blocks for the
- * ground, wood, or a torch). Work goes: clear what's in the way, fill the ground, then wood
- * from the bottom up (each piece needs something beside it to go against), then the torch.
+ * A blueprint is the tiles that must be clear and the pieces to put in (blocks for the ground,
+ * wood, walls, furniture, a torch). Work goes: clear what's in the way, fill the ground, then
+ * wood from the bottom up (each piece needs something beside it to go against), then the
+ * work bench (where the rest is made), the wall behind, the door, the table and chair, and the
+ * torch.
  */
-import { AIR, isSolid, TORCH, TREES, WOOD_BLOCK } from '../framing';
+import {
+	AIR,
+	CHAIR,
+	DOOR_CLOSED,
+	DOOR_OPEN,
+	isSolid,
+	TABLE,
+	TORCH,
+	TREES,
+	WOOD_BLOCK,
+	WORK_BENCH
+} from '../framing';
 import type { NavMap } from './nav';
 
-export type Need = 'block' | 'wood' | 'torch';
+export type Need = 'block' | 'wood' | 'torch' | 'wall' | 'bench' | 'door' | 'table' | 'chair';
+
+/** The order pieces go in. */
+const ORDER: Need[] = ['block', 'wood', 'bench', 'wall', 'door', 'table', 'chair', 'torch'];
+
+/** Furniture: the tile each is, and the wood wall's type. */
+export const FURNITURE_TILE: Partial<Record<Need, number>> = {
+	bench: WORK_BENCH,
+	door: DOOR_CLOSED,
+	table: TABLE,
+	chair: CHAIR
+};
+export const WOOD_WALL_TYPE = 4;
 
 export interface Piece {
+	/** Where it goes: the tile aimed at to put it in (an object's origin tile). */
 	i: number;
 	j: number;
 	need: Need;
+	/** The tiles it takes up, if more than that one (furniture). */
+	area?: [number, number][];
 }
 
 export interface Blueprint {
@@ -41,21 +69,36 @@ export interface BuildMap extends NavMap {
 	readonly height: number;
 	/** The top block in column i (the height if none). */
 	top(i: number): number;
-	/** Whether a block (`torch` false) or torch could go at (i, j) by what's round it. */
-	placeable(i: number, j: number, torch: boolean): boolean;
+	/** Whether the piece could go in now (by what's round it, and nothing in the way). */
+	placeable(i: number, j: number, need: Need): boolean;
+	/** The wall at (i, j) (0 for none). */
+	wallAt(i: number, j: number): number;
 }
 
 /** Whether a piece is in: the right thing is there. */
 export function done(m: BuildMap, p: Piece): boolean {
 	const t = m.at(p.i, p.j);
-	if (p.need === 'torch') return t === TORCH;
-	if (p.need === 'wood') return t === WOOD_BLOCK;
-	return isSolid(t);
+	switch (p.need) {
+		case 'torch':
+			return t === TORCH;
+		case 'wood':
+			return t === WOOD_BLOCK;
+		case 'wall':
+			return m.wallAt(p.i, p.j) === WOOD_WALL_TYPE;
+		case 'door':
+			return t === DOOR_CLOSED || t === DOOR_OPEN;
+		case 'bench':
+		case 'table':
+		case 'chair':
+			return t === FURNITURE_TILE[p.need];
+		default:
+			return isSolid(t);
+	}
 }
 
-/** What's still needed: wood, blocks and torches. */
+/** What's still needed, by kind. */
 export function needs(m: BuildMap, b: Blueprint): Record<Need, number> {
-	const n = { block: 0, wood: 0, torch: 0 };
+	const n = Object.fromEntries(ORDER.map((k) => [k, 0])) as Record<Need, number>;
 	for (const p of b.pieces) if (!done(m, p)) n[p.need]++;
 	return n;
 }
@@ -73,14 +116,21 @@ export type Next =
  * first, then the nearest to column `near`).
  */
 export function next(m: BuildMap, b: Blueprint, near: number): Next {
-	// (A piece's place isn't to be cleared, even if the clearing takes it in.)
-	const piece = new Set(b.pieces.map((p) => `${p.i},${p.j}`));
+	// (A piece's place isn't to be cleared, even if the clearing takes it in: walls aside, as
+	// they go behind.)
+	const piece = new Set(
+		b.pieces
+			.filter((p) => p.need !== 'wall')
+			.flatMap((p) => (p.area ?? [[p.i, p.j]]).map(([i, j]) => `${i},${j}`))
+	);
 	const blocking = b.clear.filter(
 		([i, j]) =>
 			!piece.has(`${i},${j}`) &&
 			(isSolid(m.at(i, j)) || m.at(i, j) === TORCH || TREES.includes(m.at(i, j)))
 	);
-	const wrong = b.pieces.filter((p) => m.at(p.i, p.j) !== AIR && !done(m, p));
+	const wrong = b.pieces.filter(
+		(p) => p.need !== 'wall' && m.at(p.i, p.j) !== AIR && !done(m, p) && !furnitureHere(m, b, p)
+	);
 	const toMine = [...blocking, ...wrong.map((p): [number, number] => [p.i, p.j])];
 	// A tree in the way: chopped down at its foot (it all comes down).
 	const tree = toMine.find(([i, j]) => TREES.includes(m.at(i, j)));
@@ -98,16 +148,25 @@ export function next(m: BuildMap, b: Blueprint, near: number): Next {
 		toMine.sort((a, c) => a[1] - c[1] || Math.abs(a[0] - near) - Math.abs(c[0] - near));
 		return { kind: 'mine', tile: toMine[0] };
 	}
-	const order: Need[] = ['block', 'wood', 'torch'];
-	for (const need of order) {
-		const left = b.pieces.filter((p) => p.need === need && !done(m, p));
-		if (!left.length) continue;
-		const ready = left.filter((p) => m.placeable(p.i, p.j, need === 'torch'));
-		if (!ready.length) return { kind: 'stuck' };
+	// The first kind in order with a piece that can go in now (a kind that can't yet waits:
+	// say, the walls' tops, till the wall behind gives them something to go against).
+	let left = 0;
+	for (const need of ORDER) {
+		const todo = b.pieces.filter((p) => p.need === need && !done(m, p));
+		left += todo.length;
+		const ready = todo.filter((p) => m.placeable(p.i, p.j, need));
+		if (!ready.length) continue;
 		ready.sort((a, c) => c.j - a.j || Math.abs(a.i - near) - Math.abs(c.i - near));
 		return { kind: 'place', tile: [ready[0].i, ready[0].j], need };
 	}
-	return { kind: 'done' };
+	return left ? { kind: 'stuck' } : { kind: 'done' };
+}
+
+/** Whether the tile at a piece's place is (part of) another piece of furniture that's in. */
+function furnitureHere(m: BuildMap, b: Blueprint, p: Piece) {
+	return b.pieces.some(
+		(q) => q !== p && q.area?.some(([i, j]) => i === p.i && j === p.j) && done(m, q)
+	);
 }
 
 // ---- Sites ---------------------------------------------------------------------------------------
@@ -155,7 +214,6 @@ export function house(x0: number, g: number, door: -1 | 1): Blueprint {
 	const x1 = x0 + W - 1;
 	const pieces: Piece[] = [];
 	const clear: [number, number][] = [];
-	const doorX = door < 0 ? x0 : x1;
 	for (let i = x0 - 1; i <= x1 + 1; i++) {
 		// The ground, level at g (filled in from below where it's lower).
 		for (let j = g; j <= g + MAX_FILL; j++) pieces.push({ i, j, need: 'block' });
@@ -169,13 +227,59 @@ export function house(x0: number, g: number, door: -1 | 1): Blueprint {
 		pieces.push({ i, j: roof, need: 'wood' });
 	}
 	for (let j = roof + 1; j < f; j++) {
-		for (const i of [x0, x1]) {
-			if (i === doorX && j >= f - 3) clear.push([i, j]);
-			else pieces.push({ i, j, need: 'wood' });
-		}
+		for (const i of [x0, x1]) if (j < f - 3) pieces.push({ i, j, need: 'wood' });
 		for (let i = x0 + 1; i < x1; i++) clear.push([i, j]);
 	}
-	pieces.push({ i: door < 0 ? x1 - 1 : x0 + 1, j: f - 3, need: 'torch' });
+	// Doors, in the doorways on both sides (aimed at their top tiles).
+	for (const dx of [x0, x1])
+		pieces.push({
+			i: dx,
+			j: f - 3,
+			need: 'door',
+			area: [
+				[dx, f - 3],
+				[dx, f - 2],
+				[dx, f - 1]
+			]
+		});
+	// The wood wall behind, all inside.
+	for (let i = x0 + 1; i < x1; i++)
+		for (let j = roof + 1; j < f; j++) pieces.push({ i, j, need: 'wall' });
+	// Furniture on the floor, from the door's side in: a work bench, a table, a chair (each
+	// aimed at its origin tile: the bench's left, the table's bottom middle, the chair's bottom).
+	const at = (k: number) => (door < 0 ? x0 + k : x1 - k);
+	const bench = Math.min(at(2), at(3));
+	pieces.push({
+		i: bench,
+		j: f - 1,
+		need: 'bench',
+		area: [
+			[bench, f - 1],
+			[bench + 1, f - 1]
+		]
+	});
+	const table = at(5);
+	pieces.push({
+		i: table,
+		j: f - 1,
+		need: 'table',
+		area: [-1, 0, 1].flatMap((d): [number, number][] => [
+			[table + d, f - 2],
+			[table + d, f - 1]
+		])
+	});
+	const chair = at(7);
+	pieces.push({
+		i: chair,
+		j: f - 1,
+		need: 'chair',
+		area: [
+			[chair, f - 2],
+			[chair, f - 1]
+		]
+	});
+	// The torch on the wall behind, over the table.
+	pieces.push({ i: at(4), j: f - 4, need: 'torch' });
 	return { kind: 'house', box: [x0 - 2, roof - 1, x1 + 2, g], clear, pieces };
 }
 
