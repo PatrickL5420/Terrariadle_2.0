@@ -16,6 +16,8 @@ public partial class Main
 		Initialize_TileAndNPCData2();
 		// As Main.Initialize does after them.
 		Terraria.ID.TileID.Sets.PostSetupContent();
+		// Multi-tile objects' placing rules (Main.Initialize).
+		Terraria.ObjectData.TileObjectData.Initialize();
 	}
 
 	/// Nothing held on the cursor, nothing being crafted.

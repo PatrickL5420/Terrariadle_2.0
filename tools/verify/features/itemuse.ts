@@ -109,7 +109,8 @@ export function runItemUse(c: ItemUseCase): ItemFrame[] {
 	const m = {
 		maxTilesX: c.w,
 		maxTilesY: c.h,
-		solid: (i: number, j: number) => isSolid(t.at(i, j))
+		solid: (i: number, j: number) => isSolid(t.at(i, j)),
+		solidTop: (i: number, j: number) => t.solidTop(i, j)
 	};
 	const p = new Player(c.x, c.y);
 	play(t, rand, {
@@ -240,7 +241,7 @@ export function randomItemUse(rand: (n: number) => number): ItemUseCase {
 		for (let k = 0; k < 1 + rand(3); k++) if (!taken.has(j * w + i + k)) walls.push([i + k, j]);
 	}
 	const trees: ItemUseCase['trees'] = treeAt.map((t) => [t, tops[t]]);
-	const item = [3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8, 9][rand(10)];
+	const item = [3509, 3509, 3509, 3509, 3509, 3506, 3506, 2, 3, 133, 8, 9, 36, 32, 34][rand(15)];
 	// With an axe, mostly beside a tree.
 	const tree = item === 3506 && trees.length && rand(4) ? trees[rand(trees.length)] : null;
 	const i = tree ? Math.max(10, Math.min(w - 11, tree[0] + rand(5) - 2)) : 10 + rand(w - 20);

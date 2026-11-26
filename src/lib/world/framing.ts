@@ -25,8 +25,17 @@ export const WOOD_BLOCK = 30;
 export const TREE = 5;
 export const TREES = [TREE, 596, 616];
 export const TORCH = 4;
-/** Main.tileFrameImportant, for the tiles here: the trees, and torches. */
-export const FRAME_IMPORTANT = [...TREES, TORCH];
+/** Furniture: doors (closed, open), a table, a chair, a work bench. */
+export const DOOR_CLOSED = 10;
+export const DOOR_OPEN = 11;
+export const TABLE = 14;
+export const CHAIR = 15;
+export const WORK_BENCH = 18;
+export const FURNITURE = [DOOR_CLOSED, DOOR_OPEN, TABLE, CHAIR, WORK_BENCH];
+/** Main.tileSolidTop: stood on, walked through. */
+export const SOLID_TOP = [TABLE, WORK_BENCH];
+/** Main.tileFrameImportant, for the tiles here: the trees, torches and furniture. */
+export const FRAME_IMPORTANT = [...TREES, TORCH, ...FURNITURE];
 
 /**
  * The game's data about these blocks (Main.tile* and TileID.Sets), as the game sets it up
@@ -34,7 +43,7 @@ export const FRAME_IMPORTANT = [...TREES, TORCH];
  */
 export const TILE_DATA = {
 	/** Main.tileSolid */
-	solid: [DIRT, STONE, GRASS, CLAY, WOOD_BLOCK],
+	solid: [DIRT, STONE, GRASS, CLAY, WOOD_BLOCK, DOOR_CLOSED],
 	/** Main.tileBrick: bricks join up with each other. */
 	brick: [STONE, GRASS, WOOD_BLOCK],
 	/** Main.tileMergeDirt: blends into dirt. */

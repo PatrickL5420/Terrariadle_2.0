@@ -35,7 +35,9 @@
 		"Terraria.IO",
 		"Terraria.WorldBuilding",
 		"Terraria.GameContent.Biomes",
-		"ReLogic.Utilities"
+		"ReLogic.Utilities",
+		"Terraria.ObjectData",
+		"Terraria.Modules"
 	],
 	"sources": [
 		{
@@ -92,7 +94,30 @@
 				"TopEdgeCanBeAttachedTo",
 				"LeftEdgeCanBeAttachedTo",
 				"RightEdgeCanBeAttachedTo",
-				"BottomEdgeCanBeAttachedTo"
+				"BottomEdgeCanBeAttachedTo",
+				"CheckProjectilePressurePad_GetPossiblePlacementDirections",
+				"CheckDoorClosed",
+				"CheckDoorOpen",
+				"Check3x2",
+				"Check1x2",
+				"Check2x1",
+				"OpenDoor",
+				"CloseDoor",
+				"ShiftTrapdoor",
+				"PlaceDoor",
+				"PlaceWall",
+				"KillWall",
+				"AnchorValid",
+				"GetDoorItem",
+				"GetItemDrop_Benches",
+				"GetItemDrop_Chair",
+				"GetItemDrop_Pianos",
+				"GetItemDrop_Tables",
+				"GetItemDrop_Toilet",
+				"GetItemDrop_Workbenches",
+				"ValidateTileSquareIsActiveAndOfType",
+				"DropDoorItem",
+				"InvalidTileForPilesOrSpeleothems"
 			],
 			"auto": [
 				"AshTreeGroundTest",
@@ -100,11 +125,13 @@
 				"BroadcastText",
 				"CanBeClearedDuringGeneration",
 				"CanCutTile",
+				"CanPlaceProjectilePressurePad",
 				"CanUnderwaterPlantGrowHere",
 				"CheckBoulderChest",
 				"CheckExploitDestroyQueue",
 				"CheckTileBreakability_HasReasonToReturnEarly",
 				"DefaultTreeWallTest",
+				"DropDoorItem",
 				"ExploitDestroyQueue",
 				"GemTreeGroundTest",
 				"GemTreeWallTest",
@@ -120,11 +147,13 @@
 				"GetProjectileSource_ShakeTree",
 				"GetProjectileSource_TileBreak",
 				"GetRainbowPaintIDForPosition",
+				"GetTopLeftAndStyles",
 				"GetTreeTypeAndTreeBottom",
 				"GetWorldSize",
 				"HasValidGroundForAbigailsFlowerBelowSpot",
 				"HasValidGroundForGlowTulipBelowSpot",
 				"InWorld",
+				"InvalidTileForPilesOrSpeleothems",
 				"IsAContainer",
 				"IsAlchemyPlantHarvestable",
 				"IsChestRigged",
@@ -163,6 +192,9 @@
 				"PlaceTight",
 				"PlaceUnderwaterPlant",
 				"PlaceWall",
+				"PlaceXmasTree_Direct",
+				"PlantCheck_CanPlaceHook",
+				"PlantCheck_IsBadTypeMatch",
 				"PlantSeaOat",
 				"PlatformProperTopFrame",
 				"RangeFrame",
@@ -184,10 +216,12 @@
 				"SquareWallFrame",
 				"TileEmpty",
 				"TopEdgeCanBeAttachedTo",
+				"TransformingWorld",
 				"TreeTops",
 				"TreeTypeDropsAcorns",
 				"VanityTreeGroundTest",
 				"WouldTileReplacementWork",
+				"_transformingWorld",
 				"beachDistance",
 				"crimson",
 				"destroyObject",
@@ -202,6 +236,7 @@
 				"hallowBG",
 				"isGeneratingOrLoadingWorld",
 				"maxTreeShakes",
+				"mysticLogsEvent",
 				"notTheBees",
 				"numTreeShakes",
 				"oceanDepths",
@@ -265,7 +300,8 @@
 				"paintColor",
 				"PlaceChest",
 				"PlaceObject",
-				"Convert"
+				"Convert",
+				"SmashAltar"
 			],
 			"noop": ["KillTile_DropBait", "KillTile_MakeTileDust", "TreeGrowFX"],
 			"passes": [
@@ -447,6 +483,7 @@
 				"snowMoon",
 				"spawnTileX",
 				"spawnTileY",
+				"spriteBatch",
 				"tenthAnniversaryWorld",
 				"tile",
 				"tileAlch",
@@ -558,7 +595,9 @@
 				"BottomRightDouble",
 				"TopLeftDouble",
 				"TopRight",
-				"TopRightDouble"
+				"TopRightDouble",
+				"deepCompare",
+				"ToDirectionInt"
 			],
 			"static": true,
 			"auto": [
@@ -1890,6 +1929,71 @@
 		},
 		{
 			"file": "Terraria.GameContent/Luck.cs"
+		},
+		{
+			"file": "Terraria/TileObject.cs"
+		},
+		{
+			"file": "Terraria.ObjectData/TileObjectData.cs"
+		},
+		{
+			"file": "Terraria.Modules/AnchorDataModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/AnchorTypesModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/LiquidDeathModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/LiquidPlacementModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/TileObjectAlternatesModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/TileObjectBaseModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/TileObjectCoordinatesModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/TileObjectDrawModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/TileObjectStyleModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/TileObjectSubTilesModule.cs"
+		},
+		{
+			"file": "Terraria.Modules/TilePlacementHooksModule.cs"
+		},
+		{
+			"file": "Terraria.DataStructures/AnchorData.cs",
+			"class": "AnchorData"
+		},
+		{
+			"file": "Terraria.Enums/LiquidPlacement.cs",
+			"class": "LiquidPlacement"
+		},
+		{
+			"file": "Terraria.Enums/TileObjectDirection.cs",
+			"class": "TileObjectDirection"
+		},
+		{
+			"file": "Terraria.DataStructures/PlacementHook.cs",
+			"class": "PlacementHook"
+		},
+		{
+			"file": "Terraria.Enums/AnchorType.cs",
+			"class": "AnchorType"
+		},
+		{
+			"file": "Terraria.DataStructures/GetStyleMethod.cs"
+		},
+		{
+			"file": "Terraria.DataStructures/TileObjectPreviewData.cs"
 		}
 	],
 	"autostubs": {
@@ -2163,7 +2267,12 @@
 			"NotifyTileDestroyed:staticmethod",
 			"PlantedAcorn:staticmethod"
 		],
-		"Wiring": ["HitSwitch:staticmethod", "PokeLogicGate:staticmethod"],
+		"Wiring": [
+			"HitSwitch:staticmethod",
+			"PokeLogicGate:staticmethod",
+			"running:staticfield",
+			"SkipWire:staticmethod"
+		],
 		"MountData": [
 			"Minecart:field",
 			"acceleration:field",
@@ -2231,7 +2340,12 @@
 			"Deserialize:staticmethod"
 		],
 		"Empty": [],
-		"TextureAssets": ["Item:staticfield", "TileCrack:staticfield"],
+		"TextureAssets": [
+			"Item:staticfield",
+			"TileCrack:staticfield",
+			"Tile:staticfield",
+			"CageTop:staticfield"
+		],
 		"Texture2D": ["Frame:method"],
 		"AssetRequestMode": [],
 		"IAssetRepository": ["Request:field"],
@@ -2376,7 +2490,11 @@
 			"ChoppedCactus:staticfield"
 		],
 		"MessageSource": [],
-		"TECritterAnchor": ["GetLeashedCritterPrototype:staticmethod", "Kill:staticmethod"],
+		"TECritterAnchor": [
+			"GetLeashedCritterPrototype:staticmethod",
+			"Kill:staticmethod",
+			"Hook_AfterPlacement:staticfield"
+		],
 		"Language": ["GetTextValue:staticmethod"],
 		"ItemTrader": ["TryGetTradeOption:method", "ChlorophyteExtractinator:staticfield"],
 		"FlexibleTileWand.PlacementOption": ["TileIdToPlace:field", "TileStyleToPlace:field"],
@@ -2397,20 +2515,22 @@
 			"item:field",
 			"DestroyChest:staticmethod",
 			"NearOtherChests:staticmethod",
-			"CreateChest:staticmethod"
+			"CreateChest:staticmethod",
+			"FindEmptyChest:staticfield",
+			"AfterPlacement_Hook:staticfield"
 		],
-		"TEItemFrame": ["item:field", "DropItem:method"],
-		"TEDeadCellsDisplayJar": ["item:field", "DropItem:method"],
-		"TEWeaponsRack": ["item:field", "DropItem:method"],
-		"TEFoodPlatter": ["item:field", "DropItem:method"],
+		"TEItemFrame": ["item:field", "DropItem:method", "Hook_AfterPlacement:staticfield"],
+		"TEDeadCellsDisplayJar": ["item:field", "DropItem:method", "Hook_AfterPlacement:staticfield"],
+		"TEWeaponsRack": ["item:field", "DropItem:method", "Hook_AfterPlacement:staticfield"],
+		"TEFoodPlatter": ["item:field", "DropItem:method", "Hook_AfterPlacement:staticfield"],
 		"TELeashedEntityAnchorWithItem": ["DropItemForTileBreak:method"],
-		"TELogicSensor": ["Kill:staticmethod"],
-		"TEKiteAnchor": ["Kill:staticmethod"],
+		"TELogicSensor": ["Kill:staticmethod", "Hook_AfterPlacement:staticfield"],
+		"TEKiteAnchor": ["Kill:staticmethod", "Hook_AfterPlacement:staticfield"],
 		"WiresUI": ["Settings:staticfield"],
 		"DD2Event": ["Ongoing:staticfield"],
 		"GolfHelper": ["IsPlayerHoldingClub:staticmethod"],
-		"TEDisplayDoll": ["IsBreakable:staticmethod"],
-		"TEHatRack": ["IsBreakable:staticmethod"],
+		"TEDisplayDoll": ["IsBreakable:staticmethod", "Hook_AfterPlacement:staticfield"],
+		"TEHatRack": ["IsBreakable:staticmethod", "Hook_AfterPlacement:staticfield"],
 		"PressurePlateHelper": ["DestroyPlate:staticmethod"],
 		"SpriteEffects": [],
 		"TilePaintSystemV2": ["TryGetTileAndRequestIfNotReady:method"],
@@ -2426,7 +2546,13 @@
 			"IsConsideredDungeonTile:staticmethod"
 		],
 		"Luck": ["RollLuck:staticmethod"],
-		"TreeTopsInfo": ["GetTreeStyle:method"]
+		"TreeTopsInfo": ["GetTreeStyle:method"],
+		"TETrainingDummy": ["Hook_AfterPlacement:staticfield"],
+		"TETeleportationPylon": [
+			"PlacementPreviewHook_CheckIfCanPlace:staticfield",
+			"PlacementPreviewHook_AfterPlacement:staticfield"
+		],
+		"MysticLogFairiesEvent": ["FallenLogDestroyed:method"]
 	},
 	"neverReal": ["CrashDump", "TileEntityType"],
 	"realNamespaces": ["Terraria.ID", "Terraria.Enums", "Terraria.DataStructures"]

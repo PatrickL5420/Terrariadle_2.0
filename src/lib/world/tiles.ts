@@ -1,5 +1,5 @@
 import type { TileMap } from './collision';
-import { AIR, isSolid, TileGrid } from './framing';
+import { AIR, isSolid, SOLID_TOP, TileGrid } from './framing';
 
 /**
  * Columns of real ground kept beyond each side of what's shown, and rows below it. The game
@@ -45,6 +45,12 @@ export class Tiles extends TileGrid implements TileMap {
 	solid(i: number, j: number): boolean {
 		if (i < MARGIN || i >= this.width - MARGIN || j >= this.height - MARGIN) return true;
 		return isSolid(this.at(i, j));
+	}
+
+	/** Collision's solid tops (tables, work benches): 2 on their top row, 1 below it, 0 if none. */
+	solidTop(i: number, j: number): 0 | 1 | 2 {
+		if (!SOLID_TOP.includes(this.at(i, j))) return 0;
+		return this.frameY[j * this.width + i] === 0 ? 2 : 1;
 	}
 
 	/** Whether (i, j) has a wall: off the sides and bottom, the walls go on. */

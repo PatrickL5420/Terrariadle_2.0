@@ -6,33 +6,6 @@ using Oracle;
 
 namespace Terraria;
 
-public partial class TileObject
-{
-	public static bool CanPlace(int x, int y, int type, int style, int dir, out TileObject objectData, bool onlyCheck = false, int? forcedRandom = null)
-	{
-		objectData = null;
-		// Player.UpdatePlacementPreview's check for a torch, every frame it's held: for the
-		// preview drawn under the cursor (looks only; a torch has no random styles).
-		if (onlyCheck && type == 4) return false;
-		Stub.Hit("TileObject.CanPlace");
-		return false;
-	}
-
-	public static bool Place(TileObject toBePlaced)
-	{
-		Stub.Hit("TileObject.Place");
-		return false;
-	}
-
-	/// The placement preview drawn under the cursor: looks only.
-	public static readonly PreviewData objectPreview = new();
-
-	public class PreviewData
-	{
-		public void Reset() { }
-	}
-}
-
 /**
  * Item uses ItemCheck runs every frame, each of which starts by checking for its own items
  * (fishing poles, wires, instruments, buckets, the Rod of Discord, event and boss summons,
@@ -42,7 +15,7 @@ public partial class TileObject
  */
 public partial class Player
 {
-	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 8 or 9 or 0; // 0: used up
+	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 8 or 9 or 36 or 32 or 34 or 0; // 0: used up
 
 	static void Only(Item item, string what)
 	{
@@ -85,26 +58,6 @@ public partial class Player
 	}
 }
 
-public partial class TileObjectData
-{
-	/// The game's own answer for blocks with no object data (dirt, stone, grass): not custom.
-	public static bool CustomPlace(int type, int style)
-	{
-		// (No item: the pickaxe's createTile is -1.)
-		if (type < 0 || type == 0 || type == 1 || type == 2 || type == 40 || type == 30) return false;
-		// Torches have object data, but PlaceThing_Tiles_TryPlacing places them as blocks all the same.
-		if (type == 4) return true;
-		Stub.Hit("TileObjectData.CustomPlace");
-		return false;
-	}
-
-	public static TileObjectData GetTileData(int type, int style, int alternate = 0)
-	{
-		if (type == 0 || type == 1 || type == 2 || type == 40 || type == 30) return null;
-		Stub.Hit("TileObjectData.GetTileData");
-		return null;
-	}
-}
 
 public partial class ParticleOrchestrator
 {
@@ -119,9 +72,15 @@ public partial class ParticleOrchestraType
 }
 
 /// Drawing only (HitTile's crack drawing).
-public enum SpriteEffects
+/// (A number, as the decompiled code treats it: `effects | 1`.)
+public struct SpriteEffects
 {
-	None
+	public int Value;
+	public static readonly SpriteEffects None = 0;
+	public static readonly SpriteEffects FlipHorizontally = 1;
+	public static readonly SpriteEffects FlipVertically = 2;
+	public static implicit operator SpriteEffects(int v) => new() { Value = v };
+	public static implicit operator int(SpriteEffects e) => e.Value;
 }
 
 public partial class FlexibleTileWand

@@ -32,6 +32,66 @@ export class Array2D<T> {
 	GetLength(d: number) {
 		return d === 0 ? this.width : this.height;
 	}
+
+	/** Its Length: every item. */
+	get length() {
+		return this.width * this.height;
+	}
+
+	/** The k-th item in its storage order (Array.Copy's). */
+	at(k: number): T {
+		return this.#items[k];
+	}
+
+	put(k: number, v: T) {
+		this.#items[k] = v;
+	}
+
+	/** Array.Clear on it: `count` items from `start` (in its storage order) back to `empty`. */
+	clear(start: number, count: number, empty: () => T) {
+		for (let k = start; k < start + count; k++) this.#items[k] = empty();
+	}
+}
+
+/** Array.Copy / CopyTo: `n` items (all of `src` by default) from src[from] into dst[at]. */
+export function $arrayCopy(
+	src: ArrayLike<unknown> | Array2D<unknown>,
+	from: number,
+	dst: { [k: number]: unknown } | Array2D<unknown>,
+	at: number,
+	n = src.length - from
+) {
+	const get = (k: number) => (src instanceof Array2D ? src.at(k) : src[k]);
+	for (let k = 0; k < n; k++) {
+		if (dst instanceof Array2D) dst.put(at + k, get(from + k));
+		else dst[at + k] = get(from + k);
+	}
+}
+
+/** Array.Clone: a shallow copy. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function $cloneArray(a: any): any {
+	if (a instanceof Array2D) {
+		const c = new Array2D(a.width, a.height, () => null as unknown);
+		for (let i = 0; i < a.width; i++) for (let j = 0; j < a.height; j++) c.set(i, j, a.get(i, j));
+		return c;
+	}
+	return a.slice();
+}
+
+/** Array.Clear(array, start = 0, count = all): items back to their default (0, false, null). */
+export function $clear(a: unknown, start = 0, count?: number) {
+	if (a instanceof Array2D) {
+		const n = count ?? a.width * a.height;
+		const sample = a.width && a.height ? a.get(0, 0) : 0;
+		const empty = typeof sample === 'number' ? 0 : typeof sample === 'boolean' ? false : null;
+		a.clear(start, n, () => empty as never);
+		return;
+	}
+	const arr = a as { length: number; [k: number]: unknown };
+	const n = count ?? arr.length;
+	const empty = typeof arr[0] === 'boolean' ? false : typeof arr[0] === 'number' ? 0 : null;
+	for (let k = start; k < start + n; k++) arr[k] = empty;
 }
 
 /**
@@ -130,6 +190,16 @@ export class Tile {
 		if (v) $hole('Tile.slope');
 	}
 	ClearSlope() {}
+	/** BlockType.Solid: full blocks only here. */
+	blockType() {
+		return 0;
+	}
+	leftSlope() {
+		return false;
+	}
+	rightSlope() {
+		return false;
+	}
 	topSlope() {
 		return false;
 	}
@@ -307,6 +377,8 @@ export class GamePlayer {
 	get height() {
 		return this.body?.h ?? 0;
 	}
+	/** Where it's drawn below its hitbox (only for drawing). */
+	gfxOffY = 0;
 	get direction() {
 		return this.body?.direction ?? 1;
 	}

@@ -10,7 +10,7 @@
  * as tall as a small world (the passes place things by fractions of its height), with no beaches.
  */
 import { TileGrid } from '../framing';
-import { GenVars, Main, TerrainPass, UnifiedRandom, WorldGen } from './game';
+import { GenVars, Main, TerrainPass, TileObjectData, UnifiedRandom, WorldGen } from './game';
 import {
 	GameConfiguration,
 	GamePlayer,
@@ -91,6 +91,8 @@ export function generate(
 	};
 }
 
+let objectData = false;
+
 /** Where the game's code, run on a world being played, sends what it makes. */
 export interface PlayHooks {
 	/** The player (Main.player[0]): where it is, so nothing's placed on it. */
@@ -121,6 +123,11 @@ export function play(grid: TileGrid, rand: UnifiedRandom, hooks: PlayHooks) {
 		(_, k) => new GamePlayer(k === 0 ? () => hooks.player : undefined)
 	);
 	Main.gameMenu = false;
+	// Multi-tile objects' placing rules (Main.Initialize), once.
+	if (!objectData) {
+		TileObjectData.Initialize();
+		objectData = true;
+	}
 	WorldGen.isGeneratingOrLoadingWorld = false;
 	WorldGen.generatingWorld = false;
 	Rt.drop = (d) => hooks.drop(d);

@@ -66,8 +66,9 @@ namespace Terraria
 
 		/// WorldGen.TileFrameImportant dispatches on the tile's type (a chain of switches and type
 		/// sets); for the tiles here that's all it does: CheckTree for a forest tree (5), for the
-		/// sakura and yellow willow (596, 616) CheckTreeWithSettings with VanityTreeGroundTest, and
-		/// CheckTorch for a torch.
+		/// sakura and yellow willow (596, 616) CheckTreeWithSettings with VanityTreeGroundTest,
+		/// CheckTorch for a torch, and for the furniture here: a door (CheckDoorClosed / Open), a
+		/// table (Check3x2), a chair (Check1x2) and a work bench (Check2x1).
 		private static void TileFrameImportant(int i, int j, int type, Tile tileCache, bool resetFrame)
 		{
 			if (TileID.Sets.Torches[type])
@@ -82,6 +83,21 @@ namespace Terraria
 			}
 			switch (type)
 			{
+				case 10:
+					CheckDoorClosed(i, j, tileCache, type);
+					return;
+				case 11:
+					CheckDoorOpen(i, j, tileCache);
+					return;
+				case 14:
+					Check3x2(i, j, (ushort)type);
+					return;
+				case 15:
+					Check1x2(i, j, (ushort)type);
+					return;
+				case 18:
+					Check2x1(i, j, (ushort)type);
+					return;
 				case 5:
 					CheckTree(i, j);
 					return;

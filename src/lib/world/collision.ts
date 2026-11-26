@@ -16,6 +16,11 @@ export interface TileMap {
 	readonly maxTilesY: number;
 	/** The tile is there, not actuated, and Main.tileSolid. */
 	solid(i: number, j: number): boolean;
+	/**
+	 * The tile is there and Main.tileSolidTop (a table's or work bench's top: stood on, walked
+	 * through): 1, or 2 on its top row (frameY 0, which TileCollision lands on). 0 otherwise.
+	 */
+	solidTop?(i: number, j: number): 0 | 1 | 2;
 }
 
 export interface Body {
@@ -59,7 +64,9 @@ export function tileCollision(m: TileMap, b: Body): Hit {
 	let num6 = (j1 + 3) * 16;
 	for (let i = i0; i < i1; i++) {
 		for (let j = j0; j < j1; j++) {
-			if (!m.solid(i, j)) continue;
+			// Main.tileSolid, or a solid top's top row; a solid top only stops a body from above.
+			const top = m.solidTop?.(i, j) ?? 0;
+			if (!m.solid(i, j) && top !== 2) continue;
 			const tx = i * 16;
 			const ty = j * 16;
 			if (!(f(nx + w) > tx) || !(nx < tx + 16) || !(f(ny + h) > ty) || !(ny < ty + 16)) continue;
@@ -73,17 +80,17 @@ export function tileCollision(m: TileMap, b: Body): Hit {
 						num6 = ty;
 					}
 				}
-			} else if (f(x + w) <= tx) {
+			} else if (f(x + w) <= tx && !top) {
 				num = i;
 				num2 = j;
 				if (num2 !== num4) out.vx = f(tx - f(x + w));
 				if (num3 === num) out.vy = vy;
-			} else if (x >= tx + 16) {
+			} else if (x >= tx + 16 && !top) {
 				num = i;
 				num2 = j;
 				if (num2 !== num4) out.vx = f(tx + 16 - x);
 				if (num3 === num) out.vy = vy;
-			} else if (y >= ty + 16) {
+			} else if (y >= ty + 16 && !top) {
 				out.up = true;
 				num3 = i;
 				num4 = j;
@@ -146,7 +153,7 @@ export function stepDown(m: TileMap, b: Body, s: Step) {
 	for (let i = i0; i <= i1; i++) {
 		for (let j = j0; j <= j0 + 1; j++) {
 			if (!inWorld(m, i, j, 1)) continue;
-			if (j >= num6 || m.solid(i, j)) {
+			if (j >= num6 || m.solid(i, j) || m.solidTop?.(i, j)) {
 				const num9 = j * 16;
 				// Utils.FloatIntersect(i * 16, j * 16 - 17, 16, 16, position, width, height)
 				const r1x = i * 16;

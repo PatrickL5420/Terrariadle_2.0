@@ -252,6 +252,10 @@ class Emitter
 		return string.Join("_", parts);
 	}
 
+	/// A parameter type in a mangled name: arrays by their element type and rank.
+	static string TypeTag(ITypeSymbol t) =>
+		t is IArrayTypeSymbol a ? TypeTag(a.ElementType) + (a.Rank > 1 ? "Array2D" : "Array") : t.Name;
+
 	/// The name a member is emitted under: overloads get their parameter types appended.
 	string MemberName(ISymbol s)
 	{
@@ -262,7 +266,7 @@ class Emitter
 			if (m.MethodKind == MethodKind.Conversion) return m.Name;
 			var overloads = m.ContainingType.GetMembers(m.Name).OfType<IMethodSymbol>().Count();
 			if (overloads > 1)
-				return Id(m.Name) + "_" + string.Join("_", m.Parameters.Select(p => p.Type.Name + (p.RefKind != RefKind.None ? "Ref" : "")));
+				return Id(m.Name) + "_" + string.Join("_", m.Parameters.Select(p => TypeTag(p.Type) + (p.RefKind != RefKind.None ? "Ref" : "")));
 			return Id(m.Name);
 		}
 		return Id(s.Name);
@@ -946,6 +950,12 @@ class Emitter
 			if (s.Name == "Length" && p.Instance?.Type?.SpecialType == SpecialType.System_String) return $"{Expr(p.Instance)}.length";
 			if (s.Name == "Count" && IsList(p.Instance?.Type)) return $"{Expr(p.Instance)}.length";
 			if (s.Name == "Count" && IsSet(p.Instance?.Type)) return $"{Expr(p.Instance)}.size";
+			// Nullable<T>: null, or the value.
+			if (s.ContainingType?.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+			{
+				if (s.Name == "HasValue") return $"({Expr(p.Instance)} !== null)";
+				if (s.Name == "Value") return $"({Expr(p.Instance)}!)";
+			}
 			if (s.IsIndexer)
 			{
 				if (IsList(p.Instance?.Type)) return $"{Expr(p.Instance)}[{Expr(p.Arguments[0].Value)}]";
@@ -1211,8 +1221,12 @@ class Emitter
 				}
 				if (a.ArgumentKind == ArgumentKind.ParamArray)
 				{
+					// As the array the parameter is (a typed array for numbers).
 					var arr = a.Value as IArrayCreationOperation;
-					list.Add(arr?.Initializer != null ? "[" + string.Join(", ", arr.Initializer.ElementValues.Select(v => Value(v, null))) + "]" : "[]");
+					var elem = ((IArrayTypeSymbol)p.Type).ElementType;
+					var items = arr?.Initializer != null ? string.Join(", ", arr.Initializer.ElementValues.Select(v => Value(v, elem))) : "";
+					var ta = elem.TypeKind == TypeKind.TypeParameter ? null : TypedArray(elem);
+					list.Add(ta != null ? $"{ta}.of({items})" : $"[{items}]");
 					continue;
 				}
 				if (p.RefKind is RefKind.Ref or RefKind.Out)
@@ -1271,6 +1285,23 @@ class Emitter
 			}
 			if (m.MethodKind == MethodKind.DelegateInvoke)
 				return $"{Expr(inv.Instance)}!({Args(m, inv.Arguments)})";
+			// Array.Clear(array, start, count): the runtime's $clear (any kind of array).
+			// a.CopyTo(b, at), Array.Copy(a, b, n), Array.Copy(a, from, b, at, n): $arrayCopy(a, from, b, at, n).
+			if (m.ContainingType.ToDisplayString() == "System.Array" && m.Name == "CopyTo")
+				return $"$arrayCopy({Expr(inv.Instance)}, 0, {Expr(inv.Arguments[0].Value)}, {Expr(inv.Arguments[1].Value)})";
+			if (m.ContainingType.ToDisplayString() == "System.Array" && m.Name == "Copy")
+			{
+				var a = inv.Arguments.Select(x => Expr(x.Value)).ToArray();
+				return a.Length == 3 ? $"$arrayCopy({a[0]}, 0, {a[1]}, 0, {a[2]})" : $"$arrayCopy({string.Join(", ", a)})";
+			}
+			if (m.ContainingType.ToDisplayString() == "System.Array" && m.Name == "GetLength")
+				return inv.Instance?.Type is IArrayTypeSymbol { Rank: > 1 }
+					? $"{Expr(inv.Instance)}.GetLength({Expr(inv.Arguments[0].Value)})"
+					: $"{Expr(inv.Instance)}.length";
+			if (m.ContainingType.ToDisplayString() == "System.Array" && m.Name == "Clone")
+				return $"$cloneArray({Expr(inv.Instance)})";
+			if (m.ContainingType.ToDisplayString() == "System.Array" && m.Name == "Clear")
+				return $"$clear({string.Join(", ", inv.Arguments.Select(a => Expr(a.Value)))})";
 			if (m.ContainingType.ToDisplayString() == "System.Math" && MathNames.TryGetValue(m.Name, out var mn))
 			{
 				string call = $"{mn}({Args(m, inv.Arguments)})";

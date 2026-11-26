@@ -19,7 +19,10 @@ import {
 	Tile,
 	$newItem,
 	GamePlayer,
-	GameNPC
+	GameNPC,
+	$clear,
+	$cloneArray,
+	$arrayCopy
 } from './runtime';
 
 export class AEntitySource_Tile {
@@ -38,6 +41,109 @@ export class AmmoID {
 	static None: number = 0;
 }
 
+export class AnchorData {
+	type: number = 0;
+
+	tileCount: number = 0;
+
+	checkStart: number = 0;
+
+	static Empty: AnchorData = new AnchorData();
+
+	constructor(type: number = 0, count: number = 0, start: number = 0) {
+		this.type = type;
+		this.tileCount = count;
+		this.checkStart = start;
+	}
+
+	static op_Equality(data1: AnchorData, data2: AnchorData): boolean {
+		if (data1.type === data2.type && data1.tileCount === data2.tileCount) {
+			return data1.checkStart === data2.checkStart;
+		}
+		return false;
+	}
+
+	clone(): AnchorData {
+		const c = new AnchorData();
+		c.type = this.type;
+		c.tileCount = this.tileCount;
+		c.checkStart = this.checkStart;
+		return c;
+	}
+}
+
+export class AnchorDataModule {
+	top: AnchorData = new AnchorData();
+
+	bottom: AnchorData = new AnchorData();
+
+	left: AnchorData = new AnchorData();
+
+	right: AnchorData = new AnchorData();
+
+	wall: boolean = false;
+
+	constructor(copyFrom: AnchorDataModule) {
+		if (copyFrom === null!) {
+			this.top = new AnchorData();
+			this.bottom = new AnchorData();
+			this.left = new AnchorData();
+			this.right = new AnchorData();
+			this.wall = false;
+		} else {
+			this.top = copyFrom.top.clone();
+			this.bottom = copyFrom.bottom.clone();
+			this.left = copyFrom.left.clone();
+			this.right = copyFrom.right.clone();
+			this.wall = copyFrom.wall;
+		}
+	}
+}
+
+export class AnchorTypesModule {
+	tileValid: Int32Array = null!;
+
+	tileInvalid: Int32Array = null!;
+
+	tileAlternates: Int32Array = null!;
+
+	wallValid: Int32Array = null!;
+
+	constructor(copyFrom: AnchorTypesModule) {
+		if (copyFrom === null!) {
+			this.tileValid = null!;
+			this.tileInvalid = null!;
+			this.tileAlternates = null!;
+			this.wallValid = null!;
+			return;
+		}
+		if (copyFrom.tileValid === null!) {
+			this.tileValid = null!;
+		} else {
+			this.tileValid = new Int32Array(copyFrom.tileValid.length);
+			$arrayCopy(copyFrom.tileValid, 0, this.tileValid, 0, this.tileValid.length);
+		}
+		if (copyFrom.tileInvalid === null!) {
+			this.tileInvalid = null!;
+		} else {
+			this.tileInvalid = new Int32Array(copyFrom.tileInvalid.length);
+			$arrayCopy(copyFrom.tileInvalid, 0, this.tileInvalid, 0, this.tileInvalid.length);
+		}
+		if (copyFrom.tileAlternates === null!) {
+			this.tileAlternates = null!;
+		} else {
+			this.tileAlternates = new Int32Array(copyFrom.tileAlternates.length);
+			$arrayCopy(copyFrom.tileAlternates, 0, this.tileAlternates, 0, this.tileAlternates.length);
+		}
+		if (copyFrom.wallValid === null!) {
+			this.wallValid = null!;
+			return;
+		}
+		this.wallValid = new Int32Array(copyFrom.wallValid.length);
+		$arrayCopy(copyFrom.wallValid, 0, this.wallValid, 0, this.wallValid.length);
+	}
+}
+
 export class ArmorIDs {}
 
 export class ArmorIDs_Body {
@@ -50,6 +156,32 @@ export class ArmorIDs_Head {
 
 export class ArmorIDs_Legs {
 	static Count: number = 254;
+}
+
+export class Chest {
+	static FindEmptyChest(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('Chest.FindEmptyChest');
+		return 0;
+	}
+
+	static AfterPlacement_Hook(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('Chest.AfterPlacement_Hook');
+		return 0;
+	}
 }
 
 export class Collision {
@@ -257,6 +389,14 @@ export class Rectangle {
 	Width: number = 0;
 
 	Height: number = 0;
+
+	static op_Equality(a: Rectangle, b: Rectangle): boolean {
+		return a.X === b.X && a.Y === b.Y && a.Width === b.Width && a.Height === b.Height;
+	}
+
+	static op_Inequality(a: Rectangle, b: Rectangle): boolean {
+		return !Rectangle.op_Equality(a.clone(), b.clone());
+	}
 
 	constructor(x: number = 0, y: number = 0, w: number = 0, h: number = 0) {
 		this.X = x;
@@ -624,6 +764,38 @@ export class Liquid {
 	}
 }
 
+export class LiquidDeathModule {
+	water: boolean = false;
+
+	lava: boolean = false;
+
+	constructor(copyFrom: LiquidDeathModule) {
+		if (copyFrom === null!) {
+			this.water = false;
+			this.lava = false;
+		} else {
+			this.water = copyFrom.water;
+			this.lava = copyFrom.lava;
+		}
+	}
+}
+
+export class LiquidPlacementModule {
+	water: number = 0;
+
+	lava: number = 0;
+
+	constructor(copyFrom: LiquidPlacementModule) {
+		if (copyFrom === null!) {
+			this.water = 0;
+			this.lava = 0;
+		} else {
+			this.water = copyFrom.water;
+			this.lava = copyFrom.lava;
+		}
+	}
+}
+
 export class LocalizedText {
 	get Value(): string {
 		return '';
@@ -690,6 +862,8 @@ export class Main {
 	static halloween: boolean = false;
 
 	static hardMode: boolean = false;
+
+	static infectedSeed: boolean = false;
 
 	static maxNPCs: number = 0;
 
@@ -800,6 +974,55 @@ export class NetMessage {
 
 export class NetworkText {}
 
+export class PlacementHook {
+	hook:
+		| ((
+				x: number,
+				y: number,
+				type: number,
+				style: number,
+				direction: number,
+				alternate: number
+		  ) => number)
+		| null = null!;
+
+	badReturn: number = 0;
+
+	badResponse: number = 0;
+
+	processedCoordinates: boolean = false;
+
+	constructor(
+		hook:
+			| ((
+					x: number,
+					y: number,
+					type: number,
+					style: number,
+					direction: number,
+					alternate: number
+			  ) => number)
+			| null = null!,
+		badReturn: number = 0,
+		badResponse: number = 0,
+		processedCoordinates: boolean = false
+	) {
+		this.hook = hook;
+		this.badResponse = badResponse;
+		this.badReturn = badReturn;
+		this.processedCoordinates = processedCoordinates;
+	}
+
+	clone(): PlacementHook {
+		const c = new PlacementHook();
+		c.hook = this.hook;
+		c.badReturn = this.badReturn;
+		c.badResponse = this.badResponse;
+		c.processedCoordinates = this.processedCoordinates;
+		return c;
+	}
+}
+
 export class Point {
 	X: number = 0;
 
@@ -818,6 +1041,36 @@ export class Point {
 	}
 }
 
+export class Point16 {
+	X: number = 0;
+
+	Y: number = 0;
+
+	static Zero: Point16 = new Point16();
+
+	constructor(X: number = 0, Y: number = 0) {
+		this.X = (X << 16) >> 16;
+		this.Y = (Y << 16) >> 16;
+	}
+
+	static op_Equality(first: Point16, second: Point16): boolean {
+		if (first.X === second.X) {
+			return first.Y === second.Y;
+		}
+		return false;
+	}
+
+	static {
+		Point16.Zero = new Point16(0, 0);
+	}
+	clone(): Point16 {
+		const c = new Point16();
+		c.X = this.X;
+		c.Y = this.Y;
+		return c;
+	}
+}
+
 export class SpecialSeedFeatures {
 	static get ShouldDropExtraWood(): boolean {
 		return false;
@@ -828,7 +1081,33 @@ export class SpecialSeedFeatures {
 	}
 }
 
+export class TECritterAnchor {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TECritterAnchor.Hook_AfterPlacement');
+		return 0;
+	}
+}
+
 export class TEDeadCellsDisplayJar {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TEDeadCellsDisplayJar.Hook_AfterPlacement');
+		return 0;
+	}
+
 	item: Item = null!;
 
 	DropItem(): void {
@@ -836,7 +1115,33 @@ export class TEDeadCellsDisplayJar {
 	}
 }
 
+export class TEDisplayDoll {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TEDisplayDoll.Hook_AfterPlacement');
+		return 0;
+	}
+}
+
 export class TEFoodPlatter {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TEFoodPlatter.Hook_AfterPlacement');
+		return 0;
+	}
+
 	item: Item = null!;
 
 	DropItem(): void {
@@ -844,7 +1149,33 @@ export class TEFoodPlatter {
 	}
 }
 
+export class TEHatRack {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TEHatRack.Hook_AfterPlacement');
+		return 0;
+	}
+}
+
 export class TEItemFrame {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TEItemFrame.Hook_AfterPlacement');
+		return 0;
+	}
+
 	item: Item = null!;
 
 	DropItem(): void {
@@ -852,7 +1183,87 @@ export class TEItemFrame {
 	}
 }
 
+export class TEKiteAnchor {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TEKiteAnchor.Hook_AfterPlacement');
+		return 0;
+	}
+}
+
+export class TELogicSensor {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TELogicSensor.Hook_AfterPlacement');
+		return 0;
+	}
+}
+
+export class TETeleportationPylon {
+	static PlacementPreviewHook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TETeleportationPylon.PlacementPreviewHook_AfterPlacement');
+		return 0;
+	}
+
+	static PlacementPreviewHook_CheckIfCanPlace(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TETeleportationPylon.PlacementPreviewHook_CheckIfCanPlace');
+		return 0;
+	}
+}
+
+export class TETrainingDummy {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TETrainingDummy.Hook_AfterPlacement');
+		return 0;
+	}
+}
+
 export class TEWeaponsRack {
+	static Hook_AfterPlacement(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		$hit('TEWeaponsRack.Hook_AfterPlacement');
+		return 0;
+	}
+
 	item: Item = null!;
 
 	DropItem(): void {
@@ -1279,6 +1690,14 @@ export class TileID_Sets {
 		'0000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000001111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
 
+	static Mud: boolean[] = $bools(
+		'0000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
+	static Snow: boolean[] = $bools(
+		'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
 	static Ices: boolean[] = $bools(
 		'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010110000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
@@ -1341,8 +1760,20 @@ export class TileID_Sets_Conversion {
 		'0100000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
 
+	static Ice: boolean[] = $bools(
+		'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010110000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
 	static Sand: boolean[] = $bools(
 		'0000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000100010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
+	static HardenedSand: boolean[] = $bools(
+		'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000111001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+	);
+
+	static Sandstone: boolean[] = $bools(
+		'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000110100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 	);
 
 	static Moss: boolean[] = $bools(
@@ -1350,13 +1781,6307 @@ export class TileID_Sets_Conversion {
 	);
 }
 
+export class TileObjectPreviewData {
+	_type: number = 0;
+
+	_style: number = 0;
+
+	_alternate: number = 0;
+
+	_random: number = 0;
+
+	_active: boolean = false;
+
+	_size: Point16 = new Point16();
+
+	_coordinates: Point16 = new Point16();
+
+	_objectStart: Point16 = new Point16();
+
+	_data: Array2D<number> = null!;
+
+	_dataSize: Point16 = new Point16();
+
+	_percentValid: number = 0;
+
+	static placementCache: TileObjectPreviewData = null!;
+
+	static randomCache: TileObjectPreviewData = null!;
+
+	get Active(): boolean {
+		return this._active;
+	}
+
+	set Active(value: boolean) {
+		this._active = value;
+	}
+
+	get Type(): number {
+		return this._type;
+	}
+
+	set Type(value: number) {
+		this._type = value;
+	}
+
+	get Style(): number {
+		return this._style;
+	}
+
+	set Style(value: number) {
+		this._style = value;
+	}
+
+	get Alternate(): number {
+		return this._alternate;
+	}
+
+	set Alternate(value: number) {
+		this._alternate = value;
+	}
+
+	get Random(): number {
+		return this._random;
+	}
+
+	set Random(value: number) {
+		this._random = value;
+	}
+
+	get Size(): Point16 {
+		return this._size.clone();
+	}
+
+	set Size(value: Point16) {
+		if (value.X <= 0 || value.Y <= 0) {
+			throw new Error(
+				'throw new FormatException(\u0022PlacementData.Size was set to a negative value.\u0022);'
+			);
+		}
+		if (value.X > this._dataSize.X || value.Y > this._dataSize.Y) {
+			let num: number = value.X > this._dataSize.X ? value.X : this._dataSize.X;
+			let num2: number = value.Y > this._dataSize.Y ? value.Y : this._dataSize.Y;
+			let array: Array2D<number> = new Array2D<number>(num, num2, () => 0);
+			if (this._data !== null!) {
+				for (let i: number = 0; i < this._dataSize.X; i++) {
+					for (let j: number = 0; j < this._dataSize.Y; j++) {
+						array.set(i, j, this._data.get(i, j));
+					}
+				}
+			}
+			this._data = array;
+			this._dataSize = new Point16(num, num2);
+		}
+		this._size = value.clone();
+	}
+
+	get Coordinates(): Point16 {
+		return this._coordinates.clone();
+	}
+
+	set Coordinates(value: Point16) {
+		this._coordinates = value.clone();
+	}
+
+	get ObjectStart(): Point16 {
+		return this._objectStart.clone();
+	}
+
+	set ObjectStart(value: Point16) {
+		this._objectStart = value.clone();
+	}
+
+	get_Item(x: number, y: number): number {
+		if (x < 0 || y < 0 || x >= this._size.X || y >= this._size.Y) {
+			throw new Error('throw new IndexOutOfRangeException();');
+		}
+		return this._data.get(x, y);
+	}
+
+	set_Item(x: number, y: number, value: number) {
+		if (x < 0 || y < 0 || x >= this._size.X || y >= this._size.Y) {
+			throw new Error('throw new IndexOutOfRangeException();');
+		}
+		this._data.set(x, y, value);
+	}
+
+	Reset(): void {
+		this._active = false;
+		this._size = Point16.Zero.clone();
+		this._coordinates = Point16.Zero.clone();
+		this._objectStart = Point16.Zero.clone();
+		this._percentValid = 0;
+		this._type = 0;
+		this._style = 0;
+		this._alternate = -1;
+		this._random = -1;
+		if (this._data !== null!) {
+			$clear(this._data, 0, Math.imul(this._dataSize.X, this._dataSize.Y));
+		}
+	}
+
+	CopyFrom(copy: TileObjectPreviewData): void {
+		this._type = copy._type;
+		this._style = copy._style;
+		this._alternate = copy._alternate;
+		this._random = copy._random;
+		this._active = copy._active;
+		this._size = copy._size.clone();
+		this._coordinates = copy._coordinates.clone();
+		this._objectStart = copy._objectStart.clone();
+		this._percentValid = copy._percentValid;
+		if (this._data === null!) {
+			this._data = new Array2D<number>(copy._dataSize.X, copy._dataSize.Y, () => 0);
+			this._dataSize = copy._dataSize.clone();
+		} else {
+			$clear(this._data, 0, this._data.length);
+		}
+		if (this._dataSize.X < copy._dataSize.X || this._dataSize.Y < copy._dataSize.Y) {
+			let num: number = copy._dataSize.X > this._dataSize.X ? copy._dataSize.X : this._dataSize.X;
+			let num2: number = copy._dataSize.Y > this._dataSize.Y ? copy._dataSize.Y : this._dataSize.Y;
+			this._data = new Array2D<number>(num, num2, () => 0);
+			this._dataSize = new Point16(num, num2);
+		}
+		for (let i: number = 0; i < copy._dataSize.X; i++) {
+			for (let j: number = 0; j < copy._dataSize.Y; j++) {
+				this._data.set(i, j, copy._data.get(i, j));
+			}
+		}
+	}
+
+	AllInvalid(): void {
+		for (let i: number = 0; i < this._size.X; i++) {
+			for (let j: number = 0; j < this._size.Y; j++) {
+				if (this._data.get(i, j) !== 0) {
+					this._data.set(i, j, 2);
+				}
+			}
+		}
+	}
+}
+
+export class TileObject {
+	xCoord: number = 0;
+
+	yCoord: number = 0;
+
+	type: number = 0;
+
+	style: number = 0;
+
+	alternate: number = 0;
+
+	random: number = 0;
+
+	static Empty: TileObject = new TileObject();
+
+	static objectPreview: TileObjectPreviewData = null!;
+
+	static Place(toBePlaced: TileObject): boolean {
+		let tileData: TileObjectData = TileObjectData.GetTileData_Int32_Int32_Int32(
+			toBePlaced.type,
+			toBePlaced.style,
+			toBePlaced.alternate
+		);
+		if (tileData === null!) {
+			return false;
+		}
+		if (tileData.HookPlaceOverride.hook !== null!) {
+			let x: number = 0;
+			let y: number = 0;
+			if (tileData.HookPlaceOverride.processedCoordinates) {
+				x = toBePlaced.xCoord;
+				y = toBePlaced.yCoord;
+			} else {
+				x = (toBePlaced.xCoord + tileData.Origin.X) | 0;
+				y = (toBePlaced.yCoord + tileData.Origin.Y) | 0;
+			}
+			if (
+				tileData.HookPlaceOverride.hook!(
+					x,
+					y,
+					toBePlaced.type,
+					toBePlaced.style,
+					1,
+					toBePlaced.alternate
+				) === tileData.HookPlaceOverride.badReturn
+			) {
+				return false;
+			}
+		} else {
+			let num: number = toBePlaced.type & 0xffff;
+			let num2: number = 0;
+			let num3: number = 0;
+			let num4: number = tileData.CalculatePlacementStyle(
+				toBePlaced.style,
+				toBePlaced.alternate,
+				toBePlaced.random
+			);
+			let num5: number = 0;
+			if (tileData.StyleWrapLimit > 0) {
+				num5 = Math.imul((num4 / tileData.StyleWrapLimit) | 0, tileData.StyleLineSkip);
+				num4 = (num4 % tileData.StyleWrapLimit) | 0;
+			}
+			if (tileData.StyleHorizontal) {
+				num2 = Math.imul(tileData.CoordinateFullWidth, num4);
+				num3 = Math.imul(tileData.CoordinateFullHeight, num5);
+			} else {
+				num2 = Math.imul(tileData.CoordinateFullWidth, num5);
+				num3 = Math.imul(tileData.CoordinateFullHeight, num4);
+			}
+			let num6: number = toBePlaced.xCoord;
+			let num7: number = toBePlaced.yCoord;
+			for (let i: number = 0; i < tileData.Width; i++) {
+				for (let j: number = 0; j < tileData.Height; j++) {
+					let tileSafely: Tile = Framing.GetTileSafely((num6 + i) | 0, (num7 + j) | 0);
+					if (
+						tileSafely.active_() &&
+						tileSafely.type !== 484 &&
+						(Main.tileCut[tileSafely.type] || TileID_Sets.BreakableWhenPlacing[tileSafely.type])
+					) {
+						WorldGen.KillTile((num6 + i) | 0, (num7 + j) | 0, false, false, false);
+						if (!Rt.tile.get((num6 + i) | 0, (num7 + j) | 0).active_() && Main.netMode !== 0) {
+							NetMessage.SendData(17, -1, -1, null!, 0, (num6 + i) | 0, (num7 + j) | 0, 0, 0, 0, 0);
+						}
+					}
+				}
+			}
+			for (let k: number = 0; k < tileData.Width; k++) {
+				let num8: number =
+					(num2 + Math.imul(k, (tileData.CoordinateWidth + tileData.CoordinatePadding) | 0)) | 0;
+				let num9: number = num3;
+				for (let l: number = 0; l < tileData.Height; l++) {
+					let tileSafely2: Tile = Framing.GetTileSafely((num6 + k) | 0, (num7 + l) | 0);
+					if (!tileSafely2.active_()) {
+						tileSafely2.active_Boolean(true);
+						tileSafely2.frameX = (num8 << 16) >> 16;
+						tileSafely2.frameY = (num9 << 16) >> 16;
+						tileSafely2.type = num;
+					}
+					num9 = (num9 + ((tileData.CoordinateHeights[l] + tileData.CoordinatePadding) | 0)) | 0;
+				}
+			}
+		}
+		if (tileData.FlattenAnchors) {
+			let anchorBottom: AnchorData = tileData.AnchorBottom.clone();
+			if (anchorBottom.tileCount !== 0 && ((anchorBottom.type & 1) | 0) === 1) {
+				let num10: number = (toBePlaced.xCoord + anchorBottom.checkStart) | 0;
+				let j2: number = (toBePlaced.yCoord + tileData.Height) | 0;
+				for (let m: number = 0; m < anchorBottom.tileCount; m++) {
+					let tileSafely3: Tile = Framing.GetTileSafely((num10 + m) | 0, j2);
+					if (
+						Main.tileSolid[tileSafely3.type] &&
+						!Main.tileSolidTop[tileSafely3.type] &&
+						tileSafely3.blockType() !== 0
+					) {
+						WorldGen.SlopeTile((num10 + m) | 0, j2, 0, false, true);
+					}
+				}
+			}
+			anchorBottom = tileData.AnchorTop.clone();
+			if (anchorBottom.tileCount !== 0 && ((anchorBottom.type & 1) | 0) === 1) {
+				let num11: number = (toBePlaced.xCoord + anchorBottom.checkStart) | 0;
+				let j3: number = (toBePlaced.yCoord - 1) | 0;
+				for (let n: number = 0; n < anchorBottom.tileCount; n++) {
+					let tileSafely4: Tile = Framing.GetTileSafely((num11 + n) | 0, j3);
+					if (
+						Main.tileSolid[tileSafely4.type] &&
+						!Main.tileSolidTop[tileSafely4.type] &&
+						tileSafely4.blockType() !== 0
+					) {
+						WorldGen.SlopeTile((num11 + n) | 0, j3, 0, false, true);
+					}
+				}
+			}
+			anchorBottom = tileData.AnchorRight.clone();
+			if (anchorBottom.tileCount !== 0 && ((anchorBottom.type & 1) | 0) === 1) {
+				let i2: number = (toBePlaced.xCoord + tileData.Width) | 0;
+				let num12: number = (toBePlaced.yCoord + anchorBottom.checkStart) | 0;
+				for (let num13: number = 0; num13 < anchorBottom.tileCount; num13++) {
+					let tileSafely5: Tile = Framing.GetTileSafely(i2, (num12 + num13) | 0);
+					if (
+						Main.tileSolid[tileSafely5.type] &&
+						!Main.tileSolidTop[tileSafely5.type] &&
+						tileSafely5.blockType() !== 0
+					) {
+						WorldGen.SlopeTile(i2, (num12 + num13) | 0, 0, false, true);
+					}
+				}
+			}
+			anchorBottom = tileData.AnchorLeft.clone();
+			if (anchorBottom.tileCount !== 0 && ((anchorBottom.type & 1) | 0) === 1) {
+				let i3: number = (toBePlaced.xCoord - 1) | 0;
+				let num14: number = (toBePlaced.yCoord + anchorBottom.checkStart) | 0;
+				for (let num15: number = 0; num15 < anchorBottom.tileCount; num15++) {
+					let tileSafely6: Tile = Framing.GetTileSafely(i3, (num14 + num15) | 0);
+					if (
+						Main.tileSolid[tileSafely6.type] &&
+						!Main.tileSolidTop[tileSafely6.type] &&
+						tileSafely6.blockType() !== 0
+					) {
+						WorldGen.SlopeTile(i3, (num14 + num15) | 0, 0, false, true);
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	static CanPlace(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		dir: number,
+		objectData: { v: TileObject },
+		onlyCheck: boolean,
+		forcedRandom: number | null
+	): boolean {
+		let tileData: TileObjectData = TileObjectData.GetTileData_Int32_Int32_Int32(type, style, 0);
+		objectData.v = TileObject.Empty.clone();
+		if (tileData === null!) {
+			return false;
+		}
+		let num: number = (x - tileData.Origin.X) | 0;
+		let num2: number = (y - tileData.Origin.Y) | 0;
+		if (
+			num < 0 ||
+			((num + tileData.Width) | 0) >= Main.maxTilesX ||
+			num2 < 0 ||
+			((num2 + tileData.Height) | 0) >= Main.maxTilesY
+		) {
+			return false;
+		}
+		let flag: boolean = tileData.RandomStyleRange > 0;
+		if (TileObjectPreviewData.placementCache === null!) {
+			TileObjectPreviewData.placementCache = new TileObjectPreviewData();
+		}
+		TileObjectPreviewData.placementCache.Reset();
+		let num3: number = 0;
+		if (tileData.AlternatesCount !== 0) {
+			num3 = tileData.AlternatesCount;
+		}
+		let num4: number = -1;
+		let num5: number = -1;
+		let num6: number = 0;
+		let tileObjectData: TileObjectData = null!;
+		let num7: number = -1;
+		let flag2: boolean = false;
+		let val: Rectangle = new Rectangle();
+		while (num7 < num3) {
+			num7++;
+			let tileData2: TileObjectData = TileObjectData.GetTileData_Int32_Int32_Int32(
+				type,
+				style,
+				num7
+			);
+			if (
+				tileData2.Direction !== 0 &&
+				((tileData2.Direction === 1 && dir === 1) || (tileData2.Direction === 2 && dir === -1))
+			) {
+				continue;
+			}
+			let num8: number = (x - tileData2.Origin.X) | 0;
+			let num9: number = (y - tileData2.Origin.Y) | 0;
+			if (
+				num8 < 5 ||
+				((num8 + tileData2.Width) | 0) > ((Main.maxTilesX - 5) | 0) ||
+				num9 < 5 ||
+				((num9 + tileData2.Height) | 0) > ((Main.maxTilesY - 5) | 0)
+			) {
+				return false;
+			}
+			val = new Rectangle(0, 0, tileData2.Width, tileData2.Height);
+			let num10: number = 0;
+			let num11: number = 0;
+			if (tileData2.AnchorTop.tileCount !== 0) {
+				if (val.Y === 0) {
+					val.Y = -1;
+					val.Height++;
+					num11++;
+				}
+				let checkStart: number = tileData2.AnchorTop.checkStart;
+				if (checkStart < val.X) {
+					val.Width = (val.Width + ((val.X - checkStart) | 0)) | 0;
+					num10 = (num10 + ((val.X - checkStart) | 0)) | 0;
+					val.X = checkStart;
+				}
+				let num12: number = (((checkStart + tileData2.AnchorTop.tileCount) | 0) - 1) | 0;
+				let num13: number = (((val.X + val.Width) | 0) - 1) | 0;
+				if (num12 > num13) {
+					val.Width = (val.Width + ((num12 - num13) | 0)) | 0;
+				}
+			}
+			if (tileData2.AnchorBottom.tileCount !== 0) {
+				if (((val.Y + val.Height) | 0) === tileData2.Height) {
+					val.Height++;
+				}
+				let checkStart2: number = tileData2.AnchorBottom.checkStart;
+				if (checkStart2 < val.X) {
+					val.Width = (val.Width + ((val.X - checkStart2) | 0)) | 0;
+					num10 = (num10 + ((val.X - checkStart2) | 0)) | 0;
+					val.X = checkStart2;
+				}
+				let num14: number = (((checkStart2 + tileData2.AnchorBottom.tileCount) | 0) - 1) | 0;
+				let num15: number = (((val.X + val.Width) | 0) - 1) | 0;
+				if (num14 > num15) {
+					val.Width = (val.Width + ((num14 - num15) | 0)) | 0;
+				}
+			}
+			if (tileData2.AnchorLeft.tileCount !== 0) {
+				if (val.X === 0) {
+					val.X = -1;
+					val.Width++;
+					num10++;
+				}
+				let num16: number = tileData2.AnchorLeft.checkStart;
+				if (((tileData2.AnchorLeft.type & 16) | 0) === 16) {
+					num16--;
+				}
+				if (num16 < val.Y) {
+					val.Width = (val.Width + ((val.Y - num16) | 0)) | 0;
+					num11 = (num11 + ((val.Y - num16) | 0)) | 0;
+					val.Y = num16;
+				}
+				let num17: number = (((num16 + tileData2.AnchorLeft.tileCount) | 0) - 1) | 0;
+				if (((tileData2.AnchorLeft.type & 16) | 0) === 16) {
+					num17 = (num17 + 2) | 0;
+				}
+				let num18: number = (((val.Y + val.Height) | 0) - 1) | 0;
+				if (num17 > num18) {
+					val.Height = (val.Height + ((num17 - num18) | 0)) | 0;
+				}
+			}
+			if (tileData2.AnchorRight.tileCount !== 0) {
+				if (((val.X + val.Width) | 0) === tileData2.Width) {
+					val.Width++;
+				}
+				let num19: number = tileData2.AnchorLeft.checkStart;
+				if (((tileData2.AnchorRight.type & 16) | 0) === 16) {
+					num19--;
+				}
+				if (num19 < val.Y) {
+					val.Width = (val.Width + ((val.Y - num19) | 0)) | 0;
+					num11 = (num11 + ((val.Y - num19) | 0)) | 0;
+					val.Y = num19;
+				}
+				let num20: number = (((num19 + tileData2.AnchorRight.tileCount) | 0) - 1) | 0;
+				if (((tileData2.AnchorRight.type & 16) | 0) === 16) {
+					num20 = (num20 + 2) | 0;
+				}
+				let num21: number = (((val.Y + val.Height) | 0) - 1) | 0;
+				if (num20 > num21) {
+					val.Height = (val.Height + ((num20 - num21) | 0)) | 0;
+				}
+			}
+			if (onlyCheck) {
+				TileObject.objectPreview.Reset();
+				TileObject.objectPreview.Active = true;
+				TileObject.objectPreview.Type = type & 0xffff;
+				TileObject.objectPreview.Style = (style << 16) >> 16;
+				TileObject.objectPreview.Alternate = num7;
+				TileObject.objectPreview.Size = new Point16(val.Width, val.Height);
+				TileObject.objectPreview.ObjectStart = new Point16(num10, num11);
+				TileObject.objectPreview.Coordinates = new Point16((num8 - num10) | 0, (num9 - num11) | 0);
+			}
+			let num22: number = 0;
+			let num23: number = Math.imul(tileData2.Width, tileData2.Height);
+			let num24: number = 0;
+			let num25: number = 0;
+			for (let i: number = 0; i < tileData2.Width; i++) {
+				for (let j: number = 0; j < tileData2.Height; j++) {
+					let tileSafely: Tile = Framing.GetTileSafely((num8 + i) | 0, (num9 + j) | 0);
+					let flag3: boolean = !tileData2.LiquidPlace_Tile(tileSafely);
+					let flag4: boolean = false;
+					if (tileData2.AnchorWall) {
+						num25 = Math.fround(num25 + 1);
+						if (!tileData2.isValidWallAnchor(tileSafely.wall)) {
+							flag4 = true;
+						} else {
+							num24 = Math.fround(num24 + 1);
+						}
+					}
+					let flag5: boolean = false;
+					if (
+						tileSafely.active_() &&
+						(!Main.tileCut[tileSafely.type] ||
+							tileSafely.type === 484 ||
+							tileSafely.type === 654) &&
+						!TileID_Sets.BreakableWhenPlacing[tileSafely.type]
+					) {
+						flag5 = true;
+					}
+					if (flag5 || flag3 || flag4) {
+						if (onlyCheck) {
+							TileObject.objectPreview.set_Item((i + num10) | 0, (j + num11) | 0, 2);
+						}
+						continue;
+					}
+					if (onlyCheck) {
+						TileObject.objectPreview.set_Item((i + num10) | 0, (j + num11) | 0, 1);
+					}
+					num22 = Math.fround(num22 + 1);
+				}
+			}
+			let anchorBottom: AnchorData = tileData2.AnchorBottom.clone();
+			if (anchorBottom.tileCount !== 0) {
+				num25 = Math.fround(num25 + anchorBottom.tileCount);
+				let height: number = tileData2.Height;
+				for (let k: number = 0; k < anchorBottom.tileCount; k++) {
+					let num26: number = (anchorBottom.checkStart + k) | 0;
+					let tileSafely: Tile = Framing.GetTileSafely((num8 + num26) | 0, (num9 + height) | 0);
+					let flag6: boolean = false;
+					if (tileSafely.nactive()) {
+						if (
+							((anchorBottom.type & 1) | 0) === 1 &&
+							Main.tileSolid[tileSafely.type] &&
+							!Main.tileSolidTop[tileSafely.type] &&
+							!Main.tileNoAttach[tileSafely.type] &&
+							(tileData2.FlattenAnchors || tileSafely.blockType() === 0)
+						) {
+							flag6 = tileData2.isValidTileAnchor(tileSafely.type);
+						}
+						if (
+							!flag6 &&
+							(((anchorBottom.type & 2) | 0) === 2 || ((anchorBottom.type & 4) | 0) === 4)
+						) {
+							if (TileID_Sets.Platforms[tileSafely.type]) {
+								void ((tileSafely.frameX / TileObjectData.PlatformFrameWidth()) | 0);
+								if (
+									!tileSafely.halfBrick_() &&
+									WorldGen.PlatformProperTopFrame(tileSafely.frameX)
+								) {
+									flag6 = true;
+								}
+							} else if (Main.tileSolid[tileSafely.type] && Main.tileSolidTop[tileSafely.type]) {
+								flag6 = true;
+							}
+						}
+						if (
+							!flag6 &&
+							((anchorBottom.type & 4) | 0) === 4 &&
+							!TileID_Sets.Platforms[tileSafely.type] &&
+							Main.tileTable[tileSafely.type] &&
+							tileSafely.blockType() === 0
+						) {
+							flag6 = true;
+						}
+						if (
+							!flag6 &&
+							((anchorBottom.type & 8) | 0) === 8 &&
+							Main.tileSolid[tileSafely.type] &&
+							!Main.tileSolidTop[tileSafely.type]
+						) {
+							let num27: number = tileSafely.blockType();
+							if (((num27 - 4) | 0) >>> 0 <= 1) {
+								flag6 = tileData2.isValidTileAnchor(tileSafely.type);
+							}
+						}
+						if (
+							!flag6 &&
+							((anchorBottom.type & 32) | 0) === 32 &&
+							tileData2.isValidAlternateAnchor(tileSafely.type)
+						) {
+							flag6 = true;
+						}
+					} else if (!flag6 && ((anchorBottom.type & 64) | 0) === 64) {
+						flag6 = true;
+					}
+					if (!flag6) {
+						if (onlyCheck) {
+							TileObject.objectPreview.set_Item((num26 + num10) | 0, (height + num11) | 0, 2);
+						}
+						continue;
+					}
+					if (onlyCheck) {
+						TileObject.objectPreview.set_Item((num26 + num10) | 0, (height + num11) | 0, 1);
+					}
+					num24 = Math.fround(num24 + 1);
+				}
+			}
+			let num28: number = -1;
+			anchorBottom = tileData2.AnchorTop.clone();
+			if (anchorBottom.tileCount !== 0) {
+				num25 = Math.fround(num25 + anchorBottom.tileCount);
+				let num29: number = -1;
+				for (let l: number = 0; l < anchorBottom.tileCount; l++) {
+					let num30: number = -1;
+					let num31: number = (anchorBottom.checkStart + l) | 0;
+					let tileSafely: Tile = Framing.GetTileSafely((num8 + num31) | 0, (num9 + num29) | 0);
+					let flag7: boolean = false;
+					if (tileSafely.nactive()) {
+						if (
+							Main.tileSolid[tileSafely.type] &&
+							!Main.tileSolidTop[tileSafely.type] &&
+							!Main.tileNoAttach[tileSafely.type] &&
+							(tileData2.FlattenAnchors || tileSafely.blockType() === 0)
+						) {
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7) {
+								num30 = 0;
+							}
+						}
+						if (
+							!flag7 &&
+							((anchorBottom.type & 128) | 0) === 128 &&
+							((Main.tileSolid[tileSafely.type] &&
+								(!Main.tileSolidTop[tileSafely.type] ||
+									(TileID_Sets.Platforms[tileSafely.type] &&
+										(tileSafely.halfBrick_() || tileSafely.topSlope())))) ||
+								tileSafely.halfBrick_() ||
+								tileSafely.topSlope()) &&
+							!TileID_Sets.NotReallySolid[tileSafely.type] &&
+							!tileSafely.bottomSlope()
+						) {
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7) {
+								num30 = 0;
+							}
+						}
+						if (
+							!flag7 &&
+							((anchorBottom.type & 256) | 0) === 256 &&
+							TileID_Sets.Platforms[tileSafely.type]
+						) {
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7) {
+								num30 = !tileSafely.halfBrick_() && !tileSafely.topSlope() ? 8 : 0;
+							}
+						}
+						if (
+							!flag7 &&
+							((anchorBottom.type & 1024) | 0) === 1024 &&
+							TileID_Sets.Platforms[tileSafely.type] &&
+							tileSafely.slope_() === 0 &&
+							!tileSafely.halfBrick_()
+						) {
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7) {
+								num30 = 8;
+							}
+						}
+						if (!flag7 && ((anchorBottom.type & 512) | 0) === 512 && tileSafely.type === 380) {
+							flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							if (flag7) {
+								num30 = 0;
+							}
+						}
+						if (
+							!flag7 &&
+							((anchorBottom.type & 8) | 0) === 8 &&
+							Main.tileSolid[tileSafely.type] &&
+							!Main.tileSolidTop[tileSafely.type]
+						) {
+							let num27: number = tileSafely.blockType();
+							if (((num27 - 2) | 0) >>> 0 <= 1) {
+								flag7 = tileData2.isValidTileAnchor(tileSafely.type);
+							}
+							if (flag7) {
+								num30 = 0;
+							}
+						}
+						if (
+							!flag7 &&
+							((anchorBottom.type & 32) | 0) === 32 &&
+							tileData2.isValidAlternateAnchor(tileSafely.type)
+						) {
+							flag7 = true;
+							if (flag7) {
+								num30 = 0;
+							}
+						}
+					} else if (!flag7 && ((anchorBottom.type & 64) | 0) === 64) {
+						flag7 = true;
+						num30 = 0;
+					}
+					if (flag7 && ((anchorBottom.type & 2048) | 0) === 2048) {
+						if (num28 === -1) {
+							num28 = num30;
+						}
+						if (num28 !== num30) {
+							flag7 = false;
+						}
+					}
+					if (!flag7) {
+						if (onlyCheck) {
+							TileObject.objectPreview.set_Item((num31 + num10) | 0, (num29 + num11) | 0, 2);
+						}
+						continue;
+					}
+					if (onlyCheck) {
+						TileObject.objectPreview.set_Item((num31 + num10) | 0, (num29 + num11) | 0, 1);
+					}
+					num24 = Math.fround(num24 + 1);
+				}
+			}
+			anchorBottom = tileData2.AnchorRight.clone();
+			if (anchorBottom.tileCount !== 0) {
+				num25 = Math.fround(num25 + anchorBottom.tileCount);
+				let width: number = tileData2.Width;
+				for (let m: number = 0; m < anchorBottom.tileCount; m++) {
+					let num32: number = (anchorBottom.checkStart + m) | 0;
+					let tileSafely: Tile = Framing.GetTileSafely((num8 + width) | 0, (num9 + num32) | 0);
+					let flag8: boolean = false;
+					if (tileSafely.nactive()) {
+						if (
+							Main.tileSolid[tileSafely.type] &&
+							!Main.tileSolidTop[tileSafely.type] &&
+							!Main.tileNoAttach[tileSafely.type] &&
+							(tileData2.FlattenAnchors || tileSafely.blockType() === 0)
+						) {
+							flag8 = tileData2.isValidTileAnchor(tileSafely.type);
+						}
+						if (
+							!flag8 &&
+							((anchorBottom.type & 8) | 0) === 8 &&
+							Main.tileSolid[tileSafely.type] &&
+							!Main.tileSolidTop[tileSafely.type]
+						) {
+							let num27: number = tileSafely.blockType();
+							if (num27 === 2 || num27 === 4) {
+								flag8 = tileData2.isValidTileAnchor(tileSafely.type);
+							}
+						}
+						if (
+							!flag8 &&
+							((anchorBottom.type & 16) | 0) === 16 &&
+							TileID_Sets.IsATreeTrunk[tileSafely.type]
+						) {
+							flag8 = true;
+							if (m === 0) {
+								num25 = Math.fround(num25 + 1);
+								let tileSafely2: Tile = Framing.GetTileSafely(
+									(num8 + width) | 0,
+									(((num9 + num32) | 0) - 1) | 0
+								);
+								if (tileSafely2.nactive() && TileID_Sets.IsATreeTrunk[tileSafely2.type]) {
+									num24 = Math.fround(num24 + 1);
+									if (onlyCheck) {
+										TileObject.objectPreview.set_Item(
+											(width + num10) | 0,
+											(((num32 + num11) | 0) - 1) | 0,
+											1
+										);
+									}
+								} else if (onlyCheck) {
+									TileObject.objectPreview.set_Item(
+										(width + num10) | 0,
+										(((num32 + num11) | 0) - 1) | 0,
+										2
+									);
+								}
+							}
+							if (m === ((anchorBottom.tileCount - 1) | 0)) {
+								num25 = Math.fround(num25 + 1);
+								let tileSafely3: Tile = Framing.GetTileSafely(
+									(num8 + width) | 0,
+									(((num9 + num32) | 0) + 1) | 0
+								);
+								if (tileSafely3.nactive() && TileID_Sets.IsATreeTrunk[tileSafely3.type]) {
+									num24 = Math.fround(num24 + 1);
+									if (onlyCheck) {
+										TileObject.objectPreview.set_Item(
+											(width + num10) | 0,
+											(((num32 + num11) | 0) + 1) | 0,
+											1
+										);
+									}
+								} else if (onlyCheck) {
+									TileObject.objectPreview.set_Item(
+										(width + num10) | 0,
+										(((num32 + num11) | 0) + 1) | 0,
+										2
+									);
+								}
+							}
+						}
+						if (
+							!flag8 &&
+							((anchorBottom.type & 32) | 0) === 32 &&
+							tileData2.isValidAlternateAnchor(tileSafely.type)
+						) {
+							flag8 = true;
+						}
+					} else if (!flag8 && ((anchorBottom.type & 64) | 0) === 64) {
+						flag8 = true;
+					}
+					if (!flag8) {
+						if (onlyCheck) {
+							TileObject.objectPreview.set_Item((width + num10) | 0, (num32 + num11) | 0, 2);
+						}
+						continue;
+					}
+					if (onlyCheck) {
+						TileObject.objectPreview.set_Item((width + num10) | 0, (num32 + num11) | 0, 1);
+					}
+					num24 = Math.fround(num24 + 1);
+				}
+			}
+			anchorBottom = tileData2.AnchorLeft.clone();
+			if (anchorBottom.tileCount !== 0) {
+				num25 = Math.fround(num25 + anchorBottom.tileCount);
+				let num33: number = -1;
+				for (let n: number = 0; n < anchorBottom.tileCount; n++) {
+					let num34: number = (anchorBottom.checkStart + n) | 0;
+					let tileSafely: Tile = Framing.GetTileSafely((num8 + num33) | 0, (num9 + num34) | 0);
+					let flag9: boolean = false;
+					if (tileSafely.nactive()) {
+						if (
+							Main.tileSolid[tileSafely.type] &&
+							!Main.tileSolidTop[tileSafely.type] &&
+							!Main.tileNoAttach[tileSafely.type] &&
+							(tileData2.FlattenAnchors || tileSafely.blockType() === 0)
+						) {
+							flag9 = tileData2.isValidTileAnchor(tileSafely.type);
+						}
+						if (
+							!flag9 &&
+							((anchorBottom.type & 8) | 0) === 8 &&
+							Main.tileSolid[tileSafely.type] &&
+							!Main.tileSolidTop[tileSafely.type]
+						) {
+							let num27: number = tileSafely.blockType();
+							if (num27 === 3 || num27 === 5) {
+								flag9 = tileData2.isValidTileAnchor(tileSafely.type);
+							}
+						}
+						if (
+							!flag9 &&
+							((anchorBottom.type & 16) | 0) === 16 &&
+							TileID_Sets.IsATreeTrunk[tileSafely.type]
+						) {
+							flag9 = true;
+							if (n === 0) {
+								num25 = Math.fround(num25 + 1);
+								let tileSafely4: Tile = Framing.GetTileSafely(
+									(num8 + num33) | 0,
+									(((num9 + num34) | 0) - 1) | 0
+								);
+								if (tileSafely4.nactive() && TileID_Sets.IsATreeTrunk[tileSafely4.type]) {
+									num24 = Math.fround(num24 + 1);
+									if (onlyCheck) {
+										TileObject.objectPreview.set_Item(
+											(num33 + num10) | 0,
+											(((num34 + num11) | 0) - 1) | 0,
+											1
+										);
+									}
+								} else if (onlyCheck) {
+									TileObject.objectPreview.set_Item(
+										(num33 + num10) | 0,
+										(((num34 + num11) | 0) - 1) | 0,
+										2
+									);
+								}
+							}
+							if (n === ((anchorBottom.tileCount - 1) | 0)) {
+								num25 = Math.fround(num25 + 1);
+								let tileSafely5: Tile = Framing.GetTileSafely(
+									(num8 + num33) | 0,
+									(((num9 + num34) | 0) + 1) | 0
+								);
+								if (tileSafely5.nactive() && TileID_Sets.IsATreeTrunk[tileSafely5.type]) {
+									num24 = Math.fround(num24 + 1);
+									if (onlyCheck) {
+										TileObject.objectPreview.set_Item(
+											(num33 + num10) | 0,
+											(((num34 + num11) | 0) + 1) | 0,
+											1
+										);
+									}
+								} else if (onlyCheck) {
+									TileObject.objectPreview.set_Item(
+										(num33 + num10) | 0,
+										(((num34 + num11) | 0) + 1) | 0,
+										2
+									);
+								}
+							}
+						}
+						if (
+							!flag9 &&
+							((anchorBottom.type & 32) | 0) === 32 &&
+							tileData2.isValidAlternateAnchor(tileSafely.type)
+						) {
+							flag9 = true;
+						}
+					} else if (!flag9 && ((anchorBottom.type & 64) | 0) === 64) {
+						flag9 = true;
+					}
+					if (!flag9) {
+						if (onlyCheck) {
+							TileObject.objectPreview.set_Item((num33 + num10) | 0, (num34 + num11) | 0, 2);
+						}
+						continue;
+					}
+					if (onlyCheck) {
+						TileObject.objectPreview.set_Item((num33 + num10) | 0, (num34 + num11) | 0, 1);
+					}
+					num24 = Math.fround(num24 + 1);
+				}
+			}
+			if (tileData2.HookCheckIfCanPlace.hook !== null!) {
+				if (tileData2.HookCheckIfCanPlace.processedCoordinates) {
+					void tileData2.Origin;
+					void tileData2.Origin;
+				}
+				if (
+					tileData2.HookCheckIfCanPlace.hook!(x, y, type, style, dir, num7) ===
+						tileData2.HookCheckIfCanPlace.badReturn &&
+					tileData2.HookCheckIfCanPlace.badResponse === 0
+				) {
+					num24 = 0;
+					num22 = 0;
+					TileObject.objectPreview.AllInvalid();
+				}
+			}
+			let num35: number = Math.fround(num24 / num25);
+			if (num25 === 0) {
+				num35 = 1;
+			}
+			let num36: number = Math.fround(num22 / num23);
+			if (num36 === 1 && num25 === 0) {
+				num23 = 1;
+				num25 = 1;
+				num35 = 1;
+				num36 = 1;
+			}
+			if (num35 === 1 && num36 === 1) {
+				num4 = 1;
+				num5 = 1;
+				num6 = num7;
+				tileObjectData = tileData2;
+				break;
+			}
+			if (!(num35 < 1 && flag2) && (num35 > num4 || (num35 === num4 && num36 > num5))) {
+				flag2 = true;
+				TileObjectPreviewData.placementCache.CopyFrom(TileObject.objectPreview);
+				num4 = num35;
+				num5 = num36;
+				tileObjectData = tileData2;
+				num6 = num7;
+			}
+		}
+		let num37: number = -1;
+		if (flag) {
+			if (TileObjectPreviewData.randomCache === null!) {
+				TileObjectPreviewData.randomCache = new TileObjectPreviewData();
+			}
+			let flag10: boolean = false;
+			if (TileObjectPreviewData.randomCache.Type === type) {
+				let coordinates: Point16 = TileObjectPreviewData.randomCache.Coordinates.clone();
+				let objectStart: Point16 = TileObjectPreviewData.randomCache.ObjectStart.clone();
+				let num38: number = (coordinates.X + objectStart.X) | 0;
+				let num39: number = (coordinates.Y + objectStart.Y) | 0;
+				let num40: number = (x - tileData.Origin.X) | 0;
+				let num41: number = (y - tileData.Origin.Y) | 0;
+				if (num38 !== num40 || num39 !== num41) {
+					flag10 = true;
+				}
+			} else {
+				flag10 = true;
+			}
+			let randomStyleRange: number = tileData.RandomStyleRange;
+			let num42: number = Main.rand.Next_Int32(tileData.RandomStyleRange);
+			if (forcedRandom !== null) {
+				num42 =
+					(((((forcedRandom! % randomStyleRange) | 0) + randomStyleRange) | 0) % randomStyleRange) |
+					0;
+			}
+			num37 =
+				!flag10 && !(forcedRandom !== null) ? TileObjectPreviewData.randomCache.Random : num42;
+		}
+		if (tileData.SpecificRandomStyles !== null!) {
+			if (TileObjectPreviewData.randomCache === null!) {
+				TileObjectPreviewData.randomCache = new TileObjectPreviewData();
+			}
+			let flag11: boolean = false;
+			if (TileObjectPreviewData.randomCache.Type === type) {
+				let coordinates2: Point16 = TileObjectPreviewData.randomCache.Coordinates.clone();
+				let objectStart2: Point16 = TileObjectPreviewData.randomCache.ObjectStart.clone();
+				let num43: number = (coordinates2.X + objectStart2.X) | 0;
+				let num44: number = (coordinates2.Y + objectStart2.Y) | 0;
+				let num45: number = (x - tileData.Origin.X) | 0;
+				let num46: number = (y - tileData.Origin.Y) | 0;
+				if (num43 !== num45 || num44 !== num46) {
+					flag11 = true;
+				}
+			} else {
+				flag11 = true;
+			}
+			let num47: number = tileData.SpecificRandomStyles.length;
+			let num48: number = Main.rand.Next_Int32(num47);
+			if (forcedRandom !== null) {
+				num48 = (((((forcedRandom! % num47) | 0) + num47) | 0) % num47) | 0;
+			}
+			num37 =
+				!flag11 && !(forcedRandom !== null)
+					? TileObjectPreviewData.randomCache.Random
+					: (tileData.SpecificRandomStyles[num48] - style) | 0;
+		}
+		if (onlyCheck) {
+			if (num4 !== 1 || num5 !== 1) {
+				TileObject.objectPreview.CopyFrom(TileObjectPreviewData.placementCache);
+				num7 = num6;
+			}
+			TileObject.objectPreview.Random = num37;
+			if (tileData.RandomStyleRange > 0 || tileData.SpecificRandomStyles !== null!) {
+				TileObjectPreviewData.randomCache.CopyFrom(TileObject.objectPreview);
+			}
+		}
+		if (!onlyCheck) {
+			objectData.v.xCoord = (x - tileObjectData.Origin.X) | 0;
+			objectData.v.yCoord = (y - tileObjectData.Origin.Y) | 0;
+			objectData.v.type = type;
+			objectData.v.style = style;
+			objectData.v.alternate = num7;
+			objectData.v.random = num37;
+		}
+		if (num4 === 1) {
+			return num5 === 1;
+		}
+		return false;
+	}
+
+	static {
+		TileObject.Empty = new TileObject();
+		TileObject.objectPreview = new TileObjectPreviewData();
+	}
+	clone(): TileObject {
+		const c = new TileObject();
+		c.xCoord = this.xCoord;
+		c.yCoord = this.yCoord;
+		c.type = this.type;
+		c.style = this.style;
+		c.alternate = this.alternate;
+		c.random = this.random;
+		return c;
+	}
+}
+
+export class TileObjectAlternatesModule {
+	data: TileObjectData[] = null!;
+
+	constructor(copyFrom: TileObjectAlternatesModule) {
+		if (copyFrom === null!) {
+			this.data = null!;
+			return;
+		}
+		if (copyFrom.data === null!) {
+			this.data = null!;
+			return;
+		}
+		this.data = [];
+		for (let i: number = 0; i < copyFrom.data.length; i++) {
+			this.data.push(new TileObjectData(copyFrom.data[i]));
+		}
+	}
+}
+
+export class TileObjectBaseModule {
+	width: number = 0;
+
+	height: number = 0;
+
+	origin: Point16 = new Point16();
+
+	direction: number = 0;
+
+	randomRange: number = 0;
+
+	flattenAnchors: boolean = false;
+
+	specificRandomStyles: Int32Array = null!;
+
+	constructor(copyFrom: TileObjectBaseModule) {
+		if (copyFrom === null!) {
+			this.width = 1;
+			this.height = 1;
+			this.origin = Point16.Zero.clone();
+			this.direction = 0;
+			this.randomRange = 0;
+			this.flattenAnchors = false;
+			this.specificRandomStyles = null!;
+			return;
+		}
+		this.width = copyFrom.width;
+		this.height = copyFrom.height;
+		this.origin = copyFrom.origin.clone();
+		this.direction = copyFrom.direction;
+		this.randomRange = copyFrom.randomRange;
+		this.flattenAnchors = copyFrom.flattenAnchors;
+		this.specificRandomStyles = null!;
+		if (copyFrom.specificRandomStyles !== null!) {
+			this.specificRandomStyles = new Int32Array(copyFrom.specificRandomStyles.length);
+			$arrayCopy(copyFrom.specificRandomStyles, 0, this.specificRandomStyles, 0);
+		}
+	}
+}
+
+export class TileObjectCoordinatesModule {
+	width: number = 0;
+
+	heights: Int32Array = null!;
+
+	padding: number = 0;
+
+	paddingFix: Point16 = new Point16();
+
+	styleWidth: number = 0;
+
+	styleHeight: number = 0;
+
+	calculated: boolean = false;
+
+	drawStyleOffset: number = 0;
+
+	drawFrameOffsets: Array2D<Rectangle> = null!;
+
+	constructor(
+		copyFrom: TileObjectCoordinatesModule,
+		drawHeight: Int32Array,
+		drawFrameOffs: Array2D<Rectangle>
+	) {
+		if (copyFrom === null!) {
+			this.width = 0;
+			this.padding = 0;
+			this.paddingFix = Point16.Zero.clone();
+			this.styleWidth = 0;
+			this.drawStyleOffset = 0;
+			this.styleHeight = 0;
+			this.calculated = false;
+			this.heights = drawHeight;
+			this.drawFrameOffsets = drawFrameOffs;
+			return;
+		}
+		this.width = copyFrom.width;
+		this.padding = copyFrom.padding;
+		this.paddingFix = copyFrom.paddingFix.clone();
+		this.drawStyleOffset = copyFrom.drawStyleOffset;
+		this.styleWidth = copyFrom.styleWidth;
+		this.styleHeight = copyFrom.styleHeight;
+		this.calculated = copyFrom.calculated;
+		if (drawHeight === null!) {
+			if (copyFrom.heights === null!) {
+				this.heights = null!;
+			} else {
+				this.heights = new Int32Array(copyFrom.heights.length);
+				$arrayCopy(copyFrom.heights, 0, this.heights, 0, this.heights.length);
+			}
+		} else {
+			this.heights = drawHeight;
+		}
+		if (drawFrameOffs === null!) {
+			if (copyFrom.drawFrameOffsets === null!) {
+				this.drawFrameOffsets = null!;
+				return;
+			}
+			this.drawFrameOffsets = new Array2D<Rectangle>(
+				copyFrom.drawFrameOffsets.GetLength(0),
+				copyFrom.drawFrameOffsets.GetLength(1),
+				() => new Rectangle()
+			);
+			$arrayCopy(
+				copyFrom.drawFrameOffsets,
+				0,
+				this.drawFrameOffsets,
+				0,
+				this.drawFrameOffsets.length
+			);
+		} else {
+			this.drawFrameOffsets = drawFrameOffs;
+		}
+	}
+}
+
 export class TileObjectData {
-	static GetTileData(type: number, style: number, alternate: number): TileObjectData {
-		if (type === 0 || type === 1 || type === 2 || type === 40) {
+	_parent: TileObjectData = null!;
+
+	_linkedAlternates: boolean = false;
+
+	_usesCustomCanPlace: boolean = false;
+
+	_useGlobalLiquidChecks: boolean = false;
+
+	_alternates: TileObjectAlternatesModule = null!;
+
+	_anchor: AnchorDataModule = null!;
+
+	_anchorTiles: AnchorTypesModule = null!;
+
+	_liquidDeath: LiquidDeathModule = null!;
+
+	_liquidPlacement: LiquidPlacementModule = null!;
+
+	_placementHooks: TilePlacementHooksModule = null!;
+
+	_subTiles: TileObjectSubTilesModule = null!;
+
+	_tileObjectDraw: TileObjectDrawModule = null!;
+
+	_tileObjectStyle: TileObjectStyleModule = null!;
+
+	_tileObjectBase: TileObjectBaseModule = null!;
+
+	_tileObjectCoords: TileObjectCoordinatesModule = null!;
+
+	_hasOwnAlternates: boolean = false;
+
+	_hasOwnAnchor: boolean = false;
+
+	_hasOwnAnchorTiles: boolean = false;
+
+	_hasOwnLiquidDeath: boolean = false;
+
+	_hasOwnLiquidPlacement: boolean = false;
+
+	_hasOwnPlacementHooks: boolean = false;
+
+	_hasOwnSubTiles: boolean = false;
+
+	_hasOwnTileObjectBase: boolean = false;
+
+	_hasOwnTileObjectDraw: boolean = false;
+
+	_hasOwnTileObjectStyle: boolean = false;
+
+	_hasOwnTileObjectCoords: boolean = false;
+
+	static _data: TileObjectData[] = null!;
+
+	static _baseObject: TileObjectData = null!;
+
+	static readOnlyData: boolean = false;
+
+	static newTile: TileObjectData = null!;
+
+	static newSubTile: TileObjectData = null!;
+
+	static newAlternate: TileObjectData = null!;
+
+	static StyleSwitch: TileObjectData = null!;
+
+	static StyleTorch: TileObjectData = null!;
+
+	static Style4x2: TileObjectData = null!;
+
+	static Style2x2: TileObjectData = null!;
+
+	static Style1x2: TileObjectData = null!;
+
+	static Style1x1: TileObjectData = null!;
+
+	static StyleAlch: TileObjectData = null!;
+
+	static StyleDye: TileObjectData = null!;
+
+	static Style2x1: TileObjectData = null!;
+
+	static Style6x3: TileObjectData = null!;
+
+	static StyleSmallCage: TileObjectData = null!;
+
+	static StyleOnTable1x1: TileObjectData = null!;
+
+	static Style1x2Top: TileObjectData = null!;
+
+	static Style1xX: TileObjectData = null!;
+
+	static Style2xX: TileObjectData = null!;
+
+	static Style3x2: TileObjectData = null!;
+
+	static Style3x3: TileObjectData = null!;
+
+	static Style3x4: TileObjectData = null!;
+
+	static Style4x4: TileObjectData = null!;
+
+	static Style5x4: TileObjectData = null!;
+
+	static Style3x3Wall: TileObjectData = null!;
+
+	static Style1x1Drip: TileObjectData = null!;
+
+	static Style1x1Plant_Height22: TileObjectData = null!;
+
+	static Style1x1Plant_Height34: TileObjectData = null!;
+
+	get LinkedAlternates(): boolean {
+		return this._linkedAlternates;
+	}
+
+	set LinkedAlternates(value: boolean) {
+		this.WriteCheck();
+		if (value && !this._hasOwnAlternates) {
+			this._hasOwnAlternates = true;
+			this._alternates = new TileObjectAlternatesModule(this._alternates);
+		}
+		this._linkedAlternates = value;
+	}
+
+	get UsesCustomCanPlace(): boolean {
+		return this._usesCustomCanPlace;
+	}
+
+	set UsesCustomCanPlace(value: boolean) {
+		this.WriteCheck();
+		this._usesCustomCanPlace = value;
+	}
+
+	get UsesGlobalLiquidChecks(): boolean {
+		return this._useGlobalLiquidChecks;
+	}
+
+	set UsesGlobalLiquidChecks(value: boolean) {
+		this.WriteCheck();
+		this._useGlobalLiquidChecks = value;
+	}
+
+	get Alternates(): TileObjectData[] {
+		if (this._alternates === null!) {
+			return TileObjectData._baseObject.Alternates;
+		}
+		return this._alternates.data;
+	}
+
+	set Alternates(value: TileObjectData[]) {
+		if (!this._hasOwnAlternates) {
+			this._hasOwnAlternates = true;
+			this._alternates = new TileObjectAlternatesModule(this._alternates);
+		}
+		this._alternates.data = value;
+	}
+
+	get AnchorTop(): AnchorData {
+		if (this._anchor === null!) {
+			return TileObjectData._baseObject.AnchorTop.clone();
+		}
+		return this._anchor.top.clone();
+	}
+
+	set AnchorTop(value: AnchorData) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchor) {
+			if (AnchorData.op_Equality(this._anchor.top.clone(), value.clone())) {
+				return;
+			}
+			this._hasOwnAnchor = true;
+			this._anchor = new AnchorDataModule(this._anchor);
+		}
+		this._anchor.top = value.clone();
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].AnchorTop = value.clone();
+			}
+		}
+	}
+
+	get AnchorBottom(): AnchorData {
+		if (this._anchor === null!) {
+			return TileObjectData._baseObject.AnchorBottom.clone();
+		}
+		return this._anchor.bottom.clone();
+	}
+
+	set AnchorBottom(value: AnchorData) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchor) {
+			if (AnchorData.op_Equality(this._anchor.bottom.clone(), value.clone())) {
+				return;
+			}
+			this._hasOwnAnchor = true;
+			this._anchor = new AnchorDataModule(this._anchor);
+		}
+		this._anchor.bottom = value.clone();
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].AnchorBottom = value.clone();
+			}
+		}
+	}
+
+	get AnchorLeft(): AnchorData {
+		if (this._anchor === null!) {
+			return TileObjectData._baseObject.AnchorLeft.clone();
+		}
+		return this._anchor.left.clone();
+	}
+
+	set AnchorLeft(value: AnchorData) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchor) {
+			if (AnchorData.op_Equality(this._anchor.left.clone(), value.clone())) {
+				return;
+			}
+			this._hasOwnAnchor = true;
+			this._anchor = new AnchorDataModule(this._anchor);
+		}
+		this._anchor.left = value.clone();
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].AnchorLeft = value.clone();
+			}
+		}
+	}
+
+	get AnchorRight(): AnchorData {
+		if (this._anchor === null!) {
+			return TileObjectData._baseObject.AnchorRight.clone();
+		}
+		return this._anchor.right.clone();
+	}
+
+	set AnchorRight(value: AnchorData) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchor) {
+			if (AnchorData.op_Equality(this._anchor.right.clone(), value.clone())) {
+				return;
+			}
+			this._hasOwnAnchor = true;
+			this._anchor = new AnchorDataModule(this._anchor);
+		}
+		this._anchor.right = value.clone();
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].AnchorRight = value.clone();
+			}
+		}
+	}
+
+	get AnchorWall(): boolean {
+		if (this._anchor === null!) {
+			return TileObjectData._baseObject.AnchorWall;
+		}
+		return this._anchor.wall;
+	}
+
+	set AnchorWall(value: boolean) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchor) {
+			if (this._anchor.wall === value) {
+				return;
+			}
+			this._hasOwnAnchor = true;
+			this._anchor = new AnchorDataModule(this._anchor);
+		}
+		this._anchor.wall = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].AnchorWall = value;
+			}
+		}
+	}
+
+	get AnchorValidTiles(): Int32Array {
+		if (this._anchorTiles === null!) {
+			return TileObjectData._baseObject.AnchorValidTiles;
+		}
+		return this._anchorTiles.tileValid;
+	}
+
+	set AnchorValidTiles(value: Int32Array) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchorTiles) {
+			if (Utils.deepCompare_Int32Array_Int32Array(value, this._anchorTiles.tileValid)) {
+				return;
+			}
+			this._hasOwnAnchorTiles = true;
+			this._anchorTiles = new AnchorTypesModule(this._anchorTiles);
+		}
+		this._anchorTiles.tileValid = value;
+		if (!this._linkedAlternates) {
+			return;
+		}
+		for (let i: number = 0; i < this._alternates.data.length; i++) {
+			let anchorValidTiles: Int32Array = value;
+			if (value !== null!) {
+				anchorValidTiles = $cloneArray(value);
+			}
+			this._alternates.data[i].AnchorValidTiles = anchorValidTiles;
+		}
+	}
+
+	get AnchorInvalidTiles(): Int32Array {
+		if (this._anchorTiles === null!) {
+			return TileObjectData._baseObject.AnchorInvalidTiles;
+		}
+		return this._anchorTiles.tileInvalid;
+	}
+
+	set AnchorInvalidTiles(value: Int32Array) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchorTiles) {
+			if (Utils.deepCompare_Int32Array_Int32Array(value, this._anchorTiles.tileInvalid)) {
+				return;
+			}
+			this._hasOwnAnchorTiles = true;
+			this._anchorTiles = new AnchorTypesModule(this._anchorTiles);
+		}
+		this._anchorTiles.tileInvalid = value;
+		if (!this._linkedAlternates) {
+			return;
+		}
+		for (let i: number = 0; i < this._alternates.data.length; i++) {
+			let anchorInvalidTiles: Int32Array = value;
+			if (value !== null!) {
+				anchorInvalidTiles = $cloneArray(value);
+			}
+			this._alternates.data[i].AnchorInvalidTiles = anchorInvalidTiles;
+		}
+	}
+
+	get AnchorAlternateTiles(): Int32Array {
+		if (this._anchorTiles === null!) {
+			return TileObjectData._baseObject.AnchorAlternateTiles;
+		}
+		return this._anchorTiles.tileAlternates;
+	}
+
+	set AnchorAlternateTiles(value: Int32Array) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchorTiles) {
+			if (Utils.deepCompare_Int32Array_Int32Array(value, this._anchorTiles.tileInvalid)) {
+				return;
+			}
+			this._hasOwnAnchorTiles = true;
+			this._anchorTiles = new AnchorTypesModule(this._anchorTiles);
+		}
+		this._anchorTiles.tileAlternates = value;
+		if (!this._linkedAlternates) {
+			return;
+		}
+		for (let i: number = 0; i < this._alternates.data.length; i++) {
+			let anchorAlternateTiles: Int32Array = value;
+			if (value !== null!) {
+				anchorAlternateTiles = $cloneArray(value);
+			}
+			this._alternates.data[i].AnchorAlternateTiles = anchorAlternateTiles;
+		}
+	}
+
+	get AnchorValidWalls(): Int32Array {
+		if (this._anchorTiles === null!) {
+			return TileObjectData._baseObject.AnchorValidWalls;
+		}
+		return this._anchorTiles.wallValid;
+	}
+
+	set AnchorValidWalls(value: Int32Array) {
+		this.WriteCheck();
+		if (!this._hasOwnAnchorTiles) {
+			this._hasOwnAnchorTiles = true;
+			this._anchorTiles = new AnchorTypesModule(this._anchorTiles);
+		}
+		this._anchorTiles.wallValid = value;
+		if (!this._linkedAlternates) {
+			return;
+		}
+		for (let i: number = 0; i < this._alternates.data.length; i++) {
+			let anchorValidWalls: Int32Array = value;
+			if (value !== null!) {
+				anchorValidWalls = $cloneArray(value);
+			}
+			this._alternates.data[i].AnchorValidWalls = anchorValidWalls;
+		}
+	}
+
+	get WaterDeath(): boolean {
+		if (this._liquidDeath === null!) {
+			return TileObjectData._baseObject.WaterDeath;
+		}
+		return this._liquidDeath.water;
+	}
+
+	set WaterDeath(value: boolean) {
+		this.WriteCheck();
+		if (!this._hasOwnLiquidDeath) {
+			if (this._liquidDeath.water === value) {
+				return;
+			}
+			this._hasOwnLiquidDeath = true;
+			this._liquidDeath = new LiquidDeathModule(this._liquidDeath);
+		}
+		this._liquidDeath.water = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].WaterDeath = value;
+			}
+		}
+	}
+
+	get LavaDeath(): boolean {
+		if (this._liquidDeath === null!) {
+			return TileObjectData._baseObject.LavaDeath;
+		}
+		return this._liquidDeath.lava;
+	}
+
+	set LavaDeath(value: boolean) {
+		this.WriteCheck();
+		if (!this._hasOwnLiquidDeath) {
+			if (this._liquidDeath.lava === value) {
+				return;
+			}
+			this._hasOwnLiquidDeath = true;
+			this._liquidDeath = new LiquidDeathModule(this._liquidDeath);
+		}
+		this._liquidDeath.lava = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].LavaDeath = value;
+			}
+		}
+	}
+
+	get WaterPlacement(): number {
+		if (this._liquidPlacement === null!) {
+			return TileObjectData._baseObject.WaterPlacement;
+		}
+		return this._liquidPlacement.water;
+	}
+
+	set WaterPlacement(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnLiquidPlacement) {
+			if (this._liquidPlacement.water === value) {
+				return;
+			}
+			this._hasOwnLiquidPlacement = true;
+			this._liquidPlacement = new LiquidPlacementModule(this._liquidPlacement);
+		}
+		this._liquidPlacement.water = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].WaterPlacement = value;
+			}
+		}
+	}
+
+	get LavaPlacement(): number {
+		if (this._liquidPlacement === null!) {
+			return TileObjectData._baseObject.LavaPlacement;
+		}
+		return this._liquidPlacement.lava;
+	}
+
+	set LavaPlacement(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnLiquidPlacement) {
+			if (this._liquidPlacement.lava === value) {
+				return;
+			}
+			this._hasOwnLiquidPlacement = true;
+			this._liquidPlacement = new LiquidPlacementModule(this._liquidPlacement);
+		}
+		this._liquidPlacement.lava = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].LavaPlacement = value;
+			}
+		}
+	}
+
+	get HookCheckIfCanPlace(): PlacementHook {
+		if (this._placementHooks === null!) {
+			return TileObjectData._baseObject.HookCheckIfCanPlace.clone();
+		}
+		return this._placementHooks.check.clone();
+	}
+
+	set HookCheckIfCanPlace(value: PlacementHook) {
+		this.WriteCheck();
+		if (!this._hasOwnPlacementHooks) {
+			this._hasOwnPlacementHooks = true;
+			this._placementHooks = new TilePlacementHooksModule(this._placementHooks);
+		}
+		this._placementHooks.check = value.clone();
+	}
+
+	get HookPostPlaceEveryone(): PlacementHook {
+		if (this._placementHooks === null!) {
+			return TileObjectData._baseObject.HookPostPlaceEveryone.clone();
+		}
+		return this._placementHooks.postPlaceEveryone.clone();
+	}
+
+	set HookPostPlaceEveryone(value: PlacementHook) {
+		this.WriteCheck();
+		if (!this._hasOwnPlacementHooks) {
+			this._hasOwnPlacementHooks = true;
+			this._placementHooks = new TilePlacementHooksModule(this._placementHooks);
+		}
+		this._placementHooks.postPlaceEveryone = value.clone();
+	}
+
+	get HookPostPlaceMyPlayer(): PlacementHook {
+		if (this._placementHooks === null!) {
+			return TileObjectData._baseObject.HookPostPlaceMyPlayer.clone();
+		}
+		return this._placementHooks.postPlaceMyPlayer.clone();
+	}
+
+	set HookPostPlaceMyPlayer(value: PlacementHook) {
+		this.WriteCheck();
+		if (!this._hasOwnPlacementHooks) {
+			this._hasOwnPlacementHooks = true;
+			this._placementHooks = new TilePlacementHooksModule(this._placementHooks);
+		}
+		this._placementHooks.postPlaceMyPlayer = value.clone();
+	}
+
+	get HookPlaceOverride(): PlacementHook {
+		if (this._placementHooks === null!) {
+			return TileObjectData._baseObject.HookPlaceOverride.clone();
+		}
+		return this._placementHooks.placeOverride.clone();
+	}
+
+	set HookPlaceOverride(value: PlacementHook) {
+		this.WriteCheck();
+		if (!this._hasOwnPlacementHooks) {
+			this._hasOwnPlacementHooks = true;
+			this._placementHooks = new TilePlacementHooksModule(this._placementHooks);
+		}
+		this._placementHooks.placeOverride = value.clone();
+	}
+
+	get GetStyleOverride(): ((tile: Tile, data: TileObjectData) => TileObjectData) | null {
+		if (this._placementHooks === null!) {
+			return TileObjectData._baseObject.GetStyleOverride;
+		}
+		return this._placementHooks.getStyleMethod;
+	}
+
+	set GetStyleOverride(value: ((tile: Tile, data: TileObjectData) => TileObjectData) | null) {
+		this.WriteCheck();
+		if (!this._hasOwnPlacementHooks) {
+			this._hasOwnPlacementHooks = true;
+			this._placementHooks = new TilePlacementHooksModule(this._placementHooks);
+		}
+		this._placementHooks.getStyleMethod = value;
+	}
+
+	get SubTiles(): TileObjectData[] {
+		if (this._subTiles === null!) {
+			return TileObjectData._baseObject.SubTiles;
+		}
+		return this._subTiles.data;
+	}
+
+	set SubTiles(value: TileObjectData[]) {
+		if (!this._hasOwnSubTiles) {
+			this._hasOwnSubTiles = true;
+			this._subTiles = new TileObjectSubTilesModule(null!, null!);
+		}
+		if (value === null!) {
+			this._subTiles.data = null!;
+		} else {
+			this._subTiles.data = value;
+		}
+	}
+
+	get DrawYOffset(): number {
+		if (this._tileObjectDraw === null!) {
+			return this.DrawYOffset;
+		}
+		return this._tileObjectDraw.yOffset;
+	}
+
+	set DrawYOffset(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectDraw) {
+			if (this._tileObjectDraw.yOffset === value) {
+				return;
+			}
+			this._hasOwnTileObjectDraw = true;
+			this._tileObjectDraw = new TileObjectDrawModule(this._tileObjectDraw);
+		}
+		this._tileObjectDraw.yOffset = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].DrawYOffset = value;
+			}
+		}
+	}
+
+	get DrawXOffset(): number {
+		if (this._tileObjectDraw === null!) {
+			return this.DrawXOffset;
+		}
+		return this._tileObjectDraw.xOffset;
+	}
+
+	set DrawXOffset(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectDraw) {
+			if (this._tileObjectDraw.xOffset === value) {
+				return;
+			}
+			this._hasOwnTileObjectDraw = true;
+			this._tileObjectDraw = new TileObjectDrawModule(this._tileObjectDraw);
+		}
+		this._tileObjectDraw.xOffset = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].DrawXOffset = value;
+			}
+		}
+	}
+
+	get DrawFlipHorizontal(): boolean {
+		if (this._tileObjectDraw === null!) {
+			return this.DrawFlipHorizontal;
+		}
+		return this._tileObjectDraw.flipHorizontal;
+	}
+
+	set DrawFlipHorizontal(value: boolean) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectDraw) {
+			if (this._tileObjectDraw.flipHorizontal === value) {
+				return;
+			}
+			this._hasOwnTileObjectDraw = true;
+			this._tileObjectDraw = new TileObjectDrawModule(this._tileObjectDraw);
+		}
+		this._tileObjectDraw.flipHorizontal = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].DrawFlipHorizontal = value;
+			}
+		}
+	}
+
+	get DrawFlipVertical(): boolean {
+		if (this._tileObjectDraw === null!) {
+			return this.DrawFlipVertical;
+		}
+		return this._tileObjectDraw.flipVertical;
+	}
+
+	set DrawFlipVertical(value: boolean) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectDraw) {
+			if (this._tileObjectDraw.flipVertical === value) {
+				return;
+			}
+			this._hasOwnTileObjectDraw = true;
+			this._tileObjectDraw = new TileObjectDrawModule(this._tileObjectDraw);
+		}
+		this._tileObjectDraw.flipVertical = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].DrawFlipVertical = value;
+			}
+		}
+	}
+
+	get DrawStepDown(): number {
+		if (this._tileObjectDraw === null!) {
+			return this.DrawStepDown;
+		}
+		return this._tileObjectDraw.stepDown;
+	}
+
+	set DrawStepDown(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectDraw) {
+			if (this._tileObjectDraw.stepDown === value) {
+				return;
+			}
+			this._hasOwnTileObjectDraw = true;
+			this._tileObjectDraw = new TileObjectDrawModule(this._tileObjectDraw);
+		}
+		this._tileObjectDraw.stepDown = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].DrawStepDown = value;
+			}
+		}
+	}
+
+	get StyleHorizontal(): boolean {
+		if (this._tileObjectStyle === null!) {
+			return this.StyleHorizontal;
+		}
+		return this._tileObjectStyle.horizontal;
+	}
+
+	set StyleHorizontal(value: boolean) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectStyle) {
+			if (this._tileObjectStyle.horizontal === value) {
+				return;
+			}
+			this._hasOwnTileObjectStyle = true;
+			this._tileObjectStyle = new TileObjectStyleModule(this._tileObjectStyle);
+		}
+		this._tileObjectStyle.horizontal = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].StyleHorizontal = value;
+			}
+		}
+	}
+
+	get Style(): number {
+		if (this._tileObjectStyle === null!) {
+			return TileObjectData._baseObject.Style;
+		}
+		return this._tileObjectStyle.style;
+	}
+
+	set Style(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectStyle) {
+			if (this._tileObjectStyle.style === value) {
+				return;
+			}
+			this._hasOwnTileObjectStyle = true;
+			this._tileObjectStyle = new TileObjectStyleModule(this._tileObjectStyle);
+		}
+		this._tileObjectStyle.style = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].Style = value;
+			}
+		}
+	}
+
+	get StyleWrapLimit(): number {
+		if (this._tileObjectStyle === null!) {
+			return TileObjectData._baseObject.StyleWrapLimit;
+		}
+		return this._tileObjectStyle.styleWrapLimit;
+	}
+
+	set StyleWrapLimit(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectStyle) {
+			if (this._tileObjectStyle.styleWrapLimit === value) {
+				return;
+			}
+			this._hasOwnTileObjectStyle = true;
+			this._tileObjectStyle = new TileObjectStyleModule(this._tileObjectStyle);
+		}
+		this._tileObjectStyle.styleWrapLimit = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].StyleWrapLimit = value;
+			}
+		}
+	}
+
+	get StyleWrapLimitVisualOverride(): number | null {
+		if (this._tileObjectStyle === null!) {
+			return TileObjectData._baseObject.StyleWrapLimitVisualOverride;
+		}
+		return this._tileObjectStyle.styleWrapLimitVisualOverride;
+	}
+
+	set StyleWrapLimitVisualOverride(value: number | null) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectStyle) {
+			if (this._tileObjectStyle.styleWrapLimitVisualOverride === value) {
+				return;
+			}
+			this._hasOwnTileObjectStyle = true;
+			this._tileObjectStyle = new TileObjectStyleModule(this._tileObjectStyle);
+		}
+		this._tileObjectStyle.styleWrapLimitVisualOverride = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].StyleWrapLimitVisualOverride = value;
+			}
+		}
+	}
+
+	get styleLineSkipVisualOverride(): number | null {
+		if (this._tileObjectStyle === null!) {
+			return TileObjectData._baseObject.styleLineSkipVisualOverride;
+		}
+		return this._tileObjectStyle.styleLineSkipVisualoverride;
+	}
+
+	set styleLineSkipVisualOverride(value: number | null) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectStyle) {
+			if (this._tileObjectStyle.styleLineSkipVisualoverride === value) {
+				return;
+			}
+			this._hasOwnTileObjectStyle = true;
+			this._tileObjectStyle = new TileObjectStyleModule(this._tileObjectStyle);
+		}
+		this._tileObjectStyle.styleLineSkipVisualoverride = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].styleLineSkipVisualOverride = value;
+			}
+		}
+	}
+
+	get StyleLineSkip(): number {
+		if (this._tileObjectStyle === null!) {
+			return TileObjectData._baseObject.StyleLineSkip;
+		}
+		return this._tileObjectStyle.styleLineSkip;
+	}
+
+	set StyleLineSkip(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectStyle) {
+			if (this._tileObjectStyle.styleLineSkip === value) {
+				return;
+			}
+			this._hasOwnTileObjectStyle = true;
+			this._tileObjectStyle = new TileObjectStyleModule(this._tileObjectStyle);
+		}
+		this._tileObjectStyle.styleLineSkip = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].StyleLineSkip = value;
+			}
+		}
+	}
+
+	get StyleMultiplier(): number {
+		if (this._tileObjectStyle === null!) {
+			return TileObjectData._baseObject.StyleMultiplier;
+		}
+		return this._tileObjectStyle.styleMultiplier;
+	}
+
+	set StyleMultiplier(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectStyle) {
+			if (this._tileObjectStyle.styleMultiplier === value) {
+				return;
+			}
+			this._hasOwnTileObjectStyle = true;
+			this._tileObjectStyle = new TileObjectStyleModule(this._tileObjectStyle);
+		}
+		this._tileObjectStyle.styleMultiplier = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].StyleMultiplier = value;
+			}
+		}
+	}
+
+	get Width(): number {
+		if (this._tileObjectBase === null!) {
+			return TileObjectData._baseObject.Width;
+		}
+		return this._tileObjectBase.width;
+	}
+
+	set Width(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectBase) {
+			if (this._tileObjectBase.width === value) {
+				return;
+			}
+			this._hasOwnTileObjectBase = true;
+			this._tileObjectBase = new TileObjectBaseModule(this._tileObjectBase);
+			if (!this._hasOwnTileObjectCoords) {
+				this._hasOwnTileObjectCoords = true;
+				this._tileObjectCoords = new TileObjectCoordinatesModule(
+					this._tileObjectCoords,
+					null!,
+					null!
+				);
+				this._tileObjectCoords.calculated = false;
+			}
+		}
+		this._tileObjectBase.width = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].Width = value;
+			}
+		}
+	}
+
+	get Height(): number {
+		if (this._tileObjectBase === null!) {
+			return TileObjectData._baseObject.Height;
+		}
+		return this._tileObjectBase.height;
+	}
+
+	set Height(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectBase) {
+			if (this._tileObjectBase.height === value) {
+				return;
+			}
+			this._hasOwnTileObjectBase = true;
+			this._tileObjectBase = new TileObjectBaseModule(this._tileObjectBase);
+			if (!this._hasOwnTileObjectCoords) {
+				this._hasOwnTileObjectCoords = true;
+				this._tileObjectCoords = new TileObjectCoordinatesModule(
+					this._tileObjectCoords,
+					null!,
+					null!
+				);
+				this._tileObjectCoords.calculated = false;
+			}
+		}
+		this._tileObjectBase.height = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].Height = value;
+			}
+		}
+	}
+
+	get Origin(): Point16 {
+		if (this._tileObjectBase === null!) {
+			return TileObjectData._baseObject.Origin.clone();
+		}
+		return this._tileObjectBase.origin.clone();
+	}
+
+	set Origin(value: Point16) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectBase) {
+			if (Point16.op_Equality(this._tileObjectBase.origin.clone(), value.clone())) {
+				return;
+			}
+			this._hasOwnTileObjectBase = true;
+			this._tileObjectBase = new TileObjectBaseModule(this._tileObjectBase);
+		}
+		this._tileObjectBase.origin = value.clone();
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].Origin = value.clone();
+			}
+		}
+	}
+
+	get Direction(): number {
+		if (this._tileObjectBase === null!) {
+			return TileObjectData._baseObject.Direction;
+		}
+		return this._tileObjectBase.direction;
+	}
+
+	set Direction(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectBase) {
+			if (this._tileObjectBase.direction === value) {
+				return;
+			}
+			this._hasOwnTileObjectBase = true;
+			this._tileObjectBase = new TileObjectBaseModule(this._tileObjectBase);
+		}
+		this._tileObjectBase.direction = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].Direction = value;
+			}
+		}
+	}
+
+	get RandomStyleRange(): number {
+		if (this._tileObjectBase === null!) {
+			return TileObjectData._baseObject.RandomStyleRange;
+		}
+		return this._tileObjectBase.randomRange;
+	}
+
+	set RandomStyleRange(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectBase) {
+			if (this._tileObjectBase.randomRange === value) {
+				return;
+			}
+			this._hasOwnTileObjectBase = true;
+			this._tileObjectBase = new TileObjectBaseModule(this._tileObjectBase);
+		}
+		this._tileObjectBase.randomRange = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].RandomStyleRange = value;
+			}
+		}
+	}
+
+	get SpecificRandomStyles(): Int32Array {
+		if (this._tileObjectBase === null!) {
+			return TileObjectData._baseObject.SpecificRandomStyles;
+		}
+		return this._tileObjectBase.specificRandomStyles;
+	}
+
+	set SpecificRandomStyles(value: Int32Array) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectBase) {
+			if (this._tileObjectBase.specificRandomStyles === value) {
+				return;
+			}
+			this._hasOwnTileObjectBase = true;
+			this._tileObjectBase = new TileObjectBaseModule(this._tileObjectBase);
+		}
+		this._tileObjectBase.specificRandomStyles = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].SpecificRandomStyles = value;
+			}
+		}
+	}
+
+	get FlattenAnchors(): boolean {
+		if (this._tileObjectBase === null!) {
+			return TileObjectData._baseObject.FlattenAnchors;
+		}
+		return this._tileObjectBase.flattenAnchors;
+	}
+
+	set FlattenAnchors(value: boolean) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectBase) {
+			if (this._tileObjectBase.flattenAnchors === value) {
+				return;
+			}
+			this._hasOwnTileObjectBase = true;
+			this._tileObjectBase = new TileObjectBaseModule(this._tileObjectBase);
+		}
+		this._tileObjectBase.flattenAnchors = value;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].FlattenAnchors = value;
+			}
+		}
+	}
+
+	get CoordinateHeights(): Int32Array {
+		if (this._tileObjectCoords === null!) {
+			return TileObjectData._baseObject.CoordinateHeights;
+		}
+		return this._tileObjectCoords.heights;
+	}
+
+	set CoordinateHeights(value: Int32Array) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectCoords) {
+			if (Utils.deepCompare_Int32Array_Int32Array(value, this._tileObjectCoords.heights)) {
+				return;
+			}
+			this._hasOwnTileObjectCoords = true;
+			this._tileObjectCoords = new TileObjectCoordinatesModule(
+				this._tileObjectCoords,
+				value,
+				this._tileObjectCoords.drawFrameOffsets
+			);
+		} else {
+			this._tileObjectCoords.heights = value;
+		}
+		this._tileObjectCoords.calculated = false;
+		if (!this._linkedAlternates) {
+			return;
+		}
+		for (let i: number = 0; i < this._alternates.data.length; i++) {
+			let coordinateHeights: Int32Array = value;
+			if (value !== null!) {
+				coordinateHeights = $cloneArray(value);
+			}
+			this._alternates.data[i].CoordinateHeights = coordinateHeights;
+		}
+	}
+
+	get DrawFrameOffsets(): Array2D<Rectangle> {
+		if (this._tileObjectCoords === null!) {
+			return TileObjectData._baseObject.DrawFrameOffsets;
+		}
+		return this._tileObjectCoords.drawFrameOffsets;
+	}
+
+	set DrawFrameOffsets(value: Array2D<Rectangle>) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectCoords) {
+			if (
+				Utils.deepCompare_RectangleArray2D_RectangleArray2D(
+					value,
+					this._tileObjectCoords.drawFrameOffsets
+				)
+			) {
+				return;
+			}
+			this._hasOwnTileObjectCoords = true;
+			this._tileObjectCoords = new TileObjectCoordinatesModule(
+				this._tileObjectCoords,
+				this._tileObjectCoords.heights,
+				value
+			);
+		} else {
+			this._tileObjectCoords.drawFrameOffsets = value;
+		}
+		this._tileObjectCoords.calculated = false;
+		if (!this._linkedAlternates) {
+			return;
+		}
+		for (let i: number = 0; i < this._alternates.data.length; i++) {
+			let drawFrameOffsets: Array2D<Rectangle> = value;
+			if (value !== null!) {
+				drawFrameOffsets = $cloneArray(value);
+			}
+			this._alternates.data[i].DrawFrameOffsets = drawFrameOffsets;
+		}
+	}
+
+	get CoordinateWidth(): number {
+		if (this._tileObjectCoords === null!) {
+			return TileObjectData._baseObject.CoordinateWidth;
+		}
+		return this._tileObjectCoords.width;
+	}
+
+	set CoordinateWidth(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectCoords) {
+			if (this._tileObjectCoords.width === value) {
+				return;
+			}
+			this._hasOwnTileObjectCoords = true;
+			this._tileObjectCoords = new TileObjectCoordinatesModule(
+				this._tileObjectCoords,
+				null!,
+				null!
+			);
+		}
+		this._tileObjectCoords.width = value;
+		this._tileObjectCoords.calculated = false;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].CoordinateWidth = value;
+			}
+		}
+	}
+
+	get CoordinatePadding(): number {
+		if (this._tileObjectCoords === null!) {
+			return TileObjectData._baseObject.CoordinatePadding;
+		}
+		return this._tileObjectCoords.padding;
+	}
+
+	set CoordinatePadding(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectCoords) {
+			if (this._tileObjectCoords.padding === value) {
+				return;
+			}
+			this._hasOwnTileObjectCoords = true;
+			this._tileObjectCoords = new TileObjectCoordinatesModule(
+				this._tileObjectCoords,
+				null!,
+				null!
+			);
+		}
+		this._tileObjectCoords.padding = value;
+		this._tileObjectCoords.calculated = false;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].CoordinatePadding = value;
+			}
+		}
+	}
+
+	get CoordinatePaddingFix(): Point16 {
+		if (this._tileObjectCoords === null!) {
+			return TileObjectData._baseObject.CoordinatePaddingFix.clone();
+		}
+		return this._tileObjectCoords.paddingFix.clone();
+	}
+
+	set CoordinatePaddingFix(value: Point16) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectCoords) {
+			if (Point16.op_Equality(this._tileObjectCoords.paddingFix.clone(), value.clone())) {
+				return;
+			}
+			this._hasOwnTileObjectCoords = true;
+			this._tileObjectCoords = new TileObjectCoordinatesModule(
+				this._tileObjectCoords,
+				null!,
+				null!
+			);
+		}
+		this._tileObjectCoords.paddingFix = value.clone();
+		this._tileObjectCoords.calculated = false;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].CoordinatePaddingFix = value.clone();
+			}
+		}
+	}
+
+	get CoordinateFullWidth(): number {
+		if (this._tileObjectCoords === null!) {
+			return TileObjectData._baseObject.CoordinateFullWidth;
+		}
+		if (!this._tileObjectCoords.calculated) {
+			this.Calculate();
+		}
+		return this._tileObjectCoords.styleWidth;
+	}
+
+	get CoordinateFullHeight(): number {
+		if (this._tileObjectCoords === null!) {
+			return TileObjectData._baseObject.CoordinateFullHeight;
+		}
+		if (!this._tileObjectCoords.calculated) {
+			this.Calculate();
+		}
+		return this._tileObjectCoords.styleHeight;
+	}
+
+	get DrawStyleOffset(): number {
+		if (this._tileObjectCoords === null!) {
+			return TileObjectData._baseObject.DrawStyleOffset;
+		}
+		return this._tileObjectCoords.drawStyleOffset;
+	}
+
+	set DrawStyleOffset(value: number) {
+		this.WriteCheck();
+		if (!this._hasOwnTileObjectCoords) {
+			if (this._tileObjectCoords.drawStyleOffset === value) {
+				return;
+			}
+			this._hasOwnTileObjectCoords = true;
+			this._tileObjectCoords = new TileObjectCoordinatesModule(
+				this._tileObjectCoords,
+				null!,
+				null!
+			);
+		}
+		this._tileObjectCoords.drawStyleOffset = value;
+		this._tileObjectCoords.calculated = false;
+		if (this._linkedAlternates) {
+			for (let i: number = 0; i < this._alternates.data.length; i++) {
+				this._alternates.data[i].DrawStyleOffset = value;
+			}
+		}
+	}
+
+	get AlternatesCount(): number {
+		return this.Alternates.length;
+	}
+
+	constructor(copyFrom: TileObjectData) {
+		this._parent = null!;
+		this._linkedAlternates = false;
+		if (copyFrom === null!) {
+			this._usesCustomCanPlace = false;
+			this._useGlobalLiquidChecks = false;
+			this._alternates = null!;
+			this._anchor = null!;
+			this._anchorTiles = null!;
+			this._tileObjectBase = null!;
+			this._liquidDeath = null!;
+			this._liquidPlacement = null!;
+			this._placementHooks = null!;
+			this._tileObjectDraw = null!;
+			this._tileObjectStyle = null!;
+			this._tileObjectCoords = null!;
+		} else {
+			this.CopyFrom(copyFrom);
+		}
+	}
+
+	CopyFrom(copy: TileObjectData): void {
+		if (copy !== null!) {
+			this._usesCustomCanPlace = copy._usesCustomCanPlace;
+			this._useGlobalLiquidChecks = copy._useGlobalLiquidChecks;
+			this._alternates = copy._alternates;
+			this._anchor = copy._anchor;
+			this._anchorTiles = copy._anchorTiles;
+			this._tileObjectBase = copy._tileObjectBase;
+			this._liquidDeath = copy._liquidDeath;
+			this._liquidPlacement = copy._liquidPlacement;
+			this._placementHooks = copy._placementHooks;
+			this._tileObjectDraw = copy._tileObjectDraw;
+			this._tileObjectStyle = copy._tileObjectStyle;
+			this._tileObjectCoords = copy._tileObjectCoords;
+		}
+	}
+
+	FullCopyFrom_UInt16(tileType: number): void {
+		this.FullCopyFrom_TileObjectData(TileObjectData.GetTileData_Int32_Int32_Int32(tileType, 0, 0));
+	}
+
+	FullCopyFrom_TileObjectData(copy: TileObjectData): void {
+		if (copy !== null!) {
+			this._usesCustomCanPlace = copy._usesCustomCanPlace;
+			this._useGlobalLiquidChecks = copy._useGlobalLiquidChecks;
+			this._alternates = copy._alternates;
+			this._anchor = copy._anchor;
+			this._anchorTiles = copy._anchorTiles;
+			this._tileObjectBase = copy._tileObjectBase;
+			this._liquidDeath = copy._liquidDeath;
+			this._liquidPlacement = copy._liquidPlacement;
+			this._placementHooks = copy._placementHooks;
+			this._tileObjectDraw = copy._tileObjectDraw;
+			this._tileObjectStyle = copy._tileObjectStyle;
+			this._tileObjectCoords = copy._tileObjectCoords;
+			this._subTiles = new TileObjectSubTilesModule(copy._subTiles, null!);
+			this._hasOwnSubTiles = true;
+		}
+	}
+
+	SetupBaseObject(): void {
+		this._alternates = new TileObjectAlternatesModule(null!);
+		this._hasOwnAlternates = true;
+		this.Alternates = [];
+		this._anchor = new AnchorDataModule(null!);
+		this._hasOwnAnchor = true;
+		this.AnchorTop = new AnchorData();
+		this.AnchorBottom = new AnchorData();
+		this.AnchorLeft = new AnchorData();
+		this.AnchorRight = new AnchorData();
+		this.AnchorWall = false;
+		this._anchorTiles = new AnchorTypesModule(null!);
+		this._hasOwnAnchorTiles = true;
+		this.AnchorValidTiles = null!;
+		this.AnchorInvalidTiles = null!;
+		this.AnchorAlternateTiles = null!;
+		this.AnchorValidWalls = null!;
+		this._liquidDeath = new LiquidDeathModule(null!);
+		this._hasOwnLiquidDeath = true;
+		this.WaterDeath = false;
+		this.LavaDeath = false;
+		this._liquidPlacement = new LiquidPlacementModule(null!);
+		this._hasOwnLiquidPlacement = true;
+		this.WaterPlacement = 0;
+		this.LavaPlacement = 1;
+		this._placementHooks = new TilePlacementHooksModule(null!);
+		this._hasOwnPlacementHooks = true;
+		this.HookCheckIfCanPlace = new PlacementHook();
+		this.HookPostPlaceEveryone = new PlacementHook();
+		this.HookPostPlaceMyPlayer = new PlacementHook();
+		this.HookPlaceOverride = new PlacementHook();
+		this.GetStyleOverride = null!;
+		this.SubTiles = [];
+		this._tileObjectBase = new TileObjectBaseModule(null!);
+		this._hasOwnTileObjectBase = true;
+		this.Width = 1;
+		this.Height = 1;
+		this.Origin = Point16.Zero.clone();
+		this.Direction = 0;
+		this.RandomStyleRange = 0;
+		this.FlattenAnchors = false;
+		this._tileObjectCoords = new TileObjectCoordinatesModule(null!, null!, null!);
+		this._hasOwnTileObjectCoords = true;
+		this.CoordinateHeights = Int32Array.of(16);
+		this.CoordinateWidth = 0;
+		this.CoordinatePadding = 0;
+		this.CoordinatePaddingFix = Point16.Zero.clone();
+		this._tileObjectDraw = new TileObjectDrawModule(null!);
+		this._hasOwnTileObjectDraw = true;
+		this.DrawYOffset = 0;
+		this.DrawFlipHorizontal = false;
+		this.DrawFlipVertical = false;
+		this.DrawStepDown = 0;
+		this._tileObjectStyle = new TileObjectStyleModule(null!);
+		this._hasOwnTileObjectStyle = true;
+		this.Style = 0;
+		this.StyleHorizontal = false;
+		this.StyleWrapLimit = 0;
+		this.StyleMultiplier = 1;
+	}
+
+	Calculate(): void {
+		if (this._tileObjectCoords.calculated) {
+			return;
+		}
+		this._tileObjectCoords.calculated = true;
+		this._tileObjectCoords.styleWidth =
+			(Math.imul((this._tileObjectCoords.width + this._tileObjectCoords.padding) | 0, this.Width) +
+				this._tileObjectCoords.paddingFix.X) |
+			0;
+		let num: number = 0;
+		this._tileObjectCoords.styleHeight = 0;
+		for (let i: number = 0; i < this._tileObjectCoords.heights.length; i++) {
+			num = (num + ((this._tileObjectCoords.heights[i] + this._tileObjectCoords.padding) | 0)) | 0;
+		}
+		num = (num + this._tileObjectCoords.paddingFix.Y) | 0;
+		this._tileObjectCoords.styleHeight = num;
+		if (this._hasOwnLiquidDeath) {
+			if (this._liquidDeath.lava) {
+				this.LavaPlacement = 1;
+			}
+			if (this._liquidDeath.water) {
+				this.WaterPlacement = 1;
+			}
+		}
+	}
+
+	WriteCheck(): void {
+		if (TileObjectData.readOnlyData) {
+			throw new Error(
+				'throw new FieldAccessException(\u0022Tile data is locked and only accessible during startup.\u0022);'
+			);
+		}
+	}
+
+	ApplyNaturalObjectRules(): void {
+		this.UsesCustomCanPlace = false;
+		this.UsesGlobalLiquidChecks = true;
+	}
+
+	LiquidPlace_Tile(checkTile: Tile): boolean {
+		if (checkTile === null!) {
+			return false;
+		}
+		if (checkTile.liquid > 0) {
+			switch (checkTile.liquidType_()) {
+				case 1:
+					if (this.LavaPlacement === 1) {
+						return false;
+					}
+					if (this.LavaPlacement === 3 && checkTile.liquid !== 255) {
+						return false;
+					}
+					break;
+				case 0:
+				case 2:
+				case 3:
+					if (this.WaterPlacement === 1) {
+						return false;
+					}
+					if (this.WaterPlacement === 3 && checkTile.liquid !== 255) {
+						return false;
+					}
+					break;
+			}
+		} else {
+			switch (checkTile.liquidType_()) {
+				case 1:
+					if (this.LavaPlacement === 3 || this.LavaPlacement === 2) {
+						return false;
+					}
+					break;
+				case 0:
+				case 2:
+				case 3:
+					if (this.WaterPlacement === 3 || this.WaterPlacement === 2) {
+						return false;
+					}
+					break;
+			}
+		}
+		return true;
+	}
+
+	isValidTileAnchor(type: number): boolean {
+		let array: Int32Array = null!;
+		let array2: Int32Array = null!;
+		if (this._anchorTiles === null!) {
+			array = null!;
+			array2 = null!;
+		} else {
+			array = this._anchorTiles.tileValid;
+			array2 = this._anchorTiles.tileInvalid;
+		}
+		if (array2 !== null!) {
+			for (let i: number = 0; i < array2.length; i++) {
+				if (type === array2[i]) {
+					return false;
+				}
+			}
+		}
+		if (array === null!) {
+			return true;
+		}
+		for (let j: number = 0; j < array.length; j++) {
+			if (type === array[j]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	isValidWallAnchor(type: number): boolean {
+		let array: Int32Array = this._anchorTiles !== null! ? this._anchorTiles.wallValid : null!;
+		if (array === null!) {
+			if (type === 0) {
+				return false;
+			}
+			return true;
+		}
+		for (let i: number = 0; i < array.length; i++) {
+			if (type === array[i]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	isValidAlternateAnchor(type: number): boolean {
+		if (this._anchorTiles === null!) {
+			return false;
+		}
+		let tileAlternates: Int32Array = this._anchorTiles.tileAlternates;
+		if (tileAlternates === null!) {
+			return false;
+		}
+		for (let i: number = 0; i < tileAlternates.length; i++) {
+			if (type === tileAlternates[i]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	CalculatePlacementStyle(style: number, alternate: number, random: number): number {
+		let num: number = Math.imul(style, this.StyleMultiplier);
+		num = (num + this.Style) | 0;
+		if (random >= 0) {
+			num = (num + random) | 0;
+		}
+		return num;
+	}
+
+	static addBaseTile(baseTile: { v: TileObjectData }): void {
+		TileObjectData.newTile.Calculate();
+		baseTile.v = TileObjectData.newTile;
+		baseTile.v._parent = TileObjectData._baseObject;
+		TileObjectData.newTile = new TileObjectData(TileObjectData._baseObject);
+	}
+
+	static addTile(tileType: number): void {
+		TileObjectData.newTile.Calculate();
+		TileObjectData._data[tileType] = TileObjectData.newTile;
+		TileObjectData.newTile = new TileObjectData(TileObjectData._baseObject);
+	}
+
+	static addSubTile_Int32Array(styles: Int32Array): void {
+		TileObjectData.newSubTile.Calculate();
+		for (const num of styles) {
+			let list: TileObjectData[] = null!;
+			if (!TileObjectData.newTile._hasOwnSubTiles) {
+				list = [];
+				TileObjectData.newTile.SubTiles = list;
+			} else {
+				list = TileObjectData.newTile.SubTiles;
+			}
+			if (list.length <= num) {
+				for (let j: number = list.length; j <= num; j++) {
+					list.push(null!);
+				}
+			}
+			TileObjectData.newSubTile._parent = TileObjectData.newTile;
+			list[num] = TileObjectData.newSubTile;
+		}
+		TileObjectData.newSubTile = new TileObjectData(TileObjectData._baseObject);
+	}
+
+	static addSubTileRange(startStyle: number, styleCount: number): void {
+		TileObjectData.newSubTile.Calculate();
+		for (let i: number = 0; i < styleCount; i++) {
+			let num: number = (startStyle + i) | 0;
+			let list: TileObjectData[] = null!;
+			if (!TileObjectData.newTile._hasOwnSubTiles) {
+				list = [];
+				TileObjectData.newTile.SubTiles = list;
+			} else {
+				list = TileObjectData.newTile.SubTiles;
+			}
+			if (list.length <= num) {
+				for (let j: number = list.length; j <= num; j++) {
+					list.push(null!);
+				}
+			}
+			TileObjectData.newSubTile._parent = TileObjectData.newTile;
+			list[num] = TileObjectData.newSubTile;
+		}
+		TileObjectData.newSubTile = new TileObjectData(TileObjectData._baseObject);
+	}
+
+	static addSubTile_Int32(style: number): void {
+		TileObjectData.newSubTile.Calculate();
+		let list: TileObjectData[] = null!;
+		if (!TileObjectData.newTile._hasOwnSubTiles) {
+			list = [];
+			TileObjectData.newTile.SubTiles = list;
+		} else {
+			list = TileObjectData.newTile.SubTiles;
+		}
+		if (list.length <= style) {
+			for (let i: number = list.length; i <= style; i++) {
+				list.push(null!);
+			}
+		}
+		TileObjectData.newSubTile._parent = TileObjectData.newTile;
+		list[style] = TileObjectData.newSubTile;
+		TileObjectData.newSubTile = new TileObjectData(TileObjectData._baseObject);
+	}
+
+	static addAlternate(baseStyle: number): void {
+		TileObjectData.newAlternate.Calculate();
+		if (!TileObjectData.newTile._hasOwnAlternates) {
+			TileObjectData.newTile.Alternates = [];
+		}
+		TileObjectData.newAlternate.Style = baseStyle;
+		TileObjectData.newAlternate._parent = TileObjectData.newTile;
+		TileObjectData.newTile.Alternates.push(TileObjectData.newAlternate);
+		TileObjectData.newAlternate = new TileObjectData(TileObjectData._baseObject);
+	}
+
+	static Initialize(): void {
+		let anchorInvalidTiles: Int32Array = Int32Array.of(
+			127,
+			138,
+			664,
+			665,
+			484,
+			711,
+			712,
+			713,
+			714,
+			715,
+			716
+		);
+		TileObjectData._baseObject = new TileObjectData(null!);
+		TileObjectData._baseObject.SetupBaseObject();
+		TileObjectData._data = [];
+		for (let i: number = 0; i < TileID.Count; i++) {
+			TileObjectData._data.push(null!);
+		}
+		TileObjectData.newTile = new TileObjectData(TileObjectData._baseObject);
+		TileObjectData.newSubTile = new TileObjectData(TileObjectData._baseObject);
+		TileObjectData.newAlternate = new TileObjectData(TileObjectData._baseObject);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleMultiplier = 27;
+		TileObjectData.newTile.StyleWrapLimit = 27;
+		TileObjectData.newTile.UsesCustomCanPlace = false;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(13, 43, 47));
+		TileObjectData.addTile(19);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleMultiplier = 27;
+		TileObjectData.newTile.StyleWrapLimit = 27;
+		TileObjectData.newTile.UsesCustomCanPlace = false;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(427);
+		for (let j: number = 435; j <= 439; j++) {
+			TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+			TileObjectData.newTile.CoordinateWidth = 16;
+			TileObjectData.newTile.CoordinatePadding = 2;
+			TileObjectData.newTile.StyleHorizontal = true;
+			TileObjectData.newTile.StyleMultiplier = 27;
+			TileObjectData.newTile.StyleWrapLimit = 27;
+			TileObjectData.newTile.UsesCustomCanPlace = false;
+			TileObjectData.newTile.LavaDeath = true;
+			TileObjectData.addTile(j);
+		}
+		TileObjectData.newTile.Width = 4;
+		TileObjectData.newTile.Height = 8;
+		TileObjectData.newTile.Origin = new Point16(1, 7);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(3, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.HookPlaceOverride = new PlacementHook(
+			WorldGen.PlaceXmasTree_Direct,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16, 16, 16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 0;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(171);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(64, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(38);
+		TileObjectData.newTile.CoordinateWidth = 32;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.DrawYOffset = -20;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.StyleDye;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.StyleDye = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleDye);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleDye);
+		TileObjectData.newSubTile.AnchorValidWalls = new Int32Array(1);
+		TileObjectData.addSubTile_Int32(3);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleDye);
+		TileObjectData.newSubTile.AnchorValidWalls = new Int32Array(1);
+		TileObjectData.addSubTile_Int32(4);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleDye);
+		TileObjectData.newSubTile.WaterPlacement = 3;
+		TileObjectData.addSubTile_Int32(5);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleDye);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(80);
+		TileObjectData.newSubTile.AnchorLeft = new AnchorData(64, 1, 1);
+		TileObjectData.newSubTile.AnchorRight = new AnchorData(64, 1, 1);
+		TileObjectData.addSubTile_Int32(6);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleDye);
+		TileObjectData.newSubTile.DrawYOffset = -6;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.newSubTile.AnchorTop = new AnchorData(1, TileObjectData.newSubTile.Width, 0);
+		TileObjectData.newSubTile.AnchorBottom = new AnchorData(64, TileObjectData.newSubTile.Width, 0);
+		TileObjectData.addSubTile_Int32(7);
+		TileObjectData.addTile(227);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleDye);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.CoordinateWidth = 20;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newTile.AnchorTop = AnchorData.Empty.clone();
+		TileObjectData.newTile.AnchorBottom = new AnchorData(5, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawFlipHorizontal = false;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(579);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = false;
+		TileObjectData.newTile.StyleWrapLimit = 36;
+		TileObjectData.newTile.StyleLineSkip = 3;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 1);
+		TileObjectData.addAlternate(0);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 2);
+		TileObjectData.addAlternate(0);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(19, 48));
+		TileObjectData.addTile(10);
+		TileObjectData.newTile.Width = 2;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(1, 1, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, 1, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = false;
+		TileObjectData.newTile.StyleWrapLimit = 36;
+		TileObjectData.newTile.StyleLineSkip = 2;
+		TileObjectData.newTile.Direction = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 1);
+		TileObjectData.addAlternate(0);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 2);
+		TileObjectData.addAlternate(0);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 0);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(1, 1, 1);
+		TileObjectData.newAlternate.AnchorBottom = new AnchorData(1, 1, 1);
+		TileObjectData.newAlternate.Direction = 1;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 1);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(1, 1, 1);
+		TileObjectData.newAlternate.AnchorBottom = new AnchorData(1, 1, 1);
+		TileObjectData.newAlternate.Direction = 1;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 2);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(1, 1, 1);
+		TileObjectData.newAlternate.AnchorBottom = new AnchorData(1, 1, 1);
+		TileObjectData.newAlternate.Direction = 1;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(19, 48));
+		TileObjectData.addTile(11);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 5;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(18, 16, 16, 16, 18);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newTile.StyleWrapLimit = 2;
+		for (let k: number = 1; k < 5; k++) {
+			TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+			TileObjectData.newAlternate.Origin = new Point16(0, k);
+			TileObjectData.addAlternate(0);
+		}
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		for (let l: number = 1; l < 5; l++) {
+			TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+			TileObjectData.newAlternate.Origin = new Point16(0, l);
+			TileObjectData.newAlternate.Direction = 2;
+			TileObjectData.addAlternate(1);
+		}
+		TileObjectData.addTile(388);
+		TileObjectData.newTile.FullCopyFrom_UInt16(388);
+		TileObjectData.addTile(389);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(4, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.StyleOnTable1x1;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.StyleOnTable1x1 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(13);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.DrawYOffset = -4;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(25, 41));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(39);
+		TileObjectData.addTile(33);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.DrawYOffset = -4;
+		TileObjectData.addTile(49);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(7, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TEFoodPlatter.Hook_AfterPlacement,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(520);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.DrawYOffset = -4;
+		TileObjectData.addTile(372);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.DrawYOffset = -4;
+		TileObjectData.addTile(646);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(50);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(707);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(7, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(494);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(15, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(78);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleOnTable1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.DrawYOffset = -4;
+		TileObjectData.addTile(174);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(0, 2);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style1xX;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style1xX = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1xX);
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 37;
+		TileObjectData.newTile.StyleLineSkip = 2;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.WaterDeath = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaPlacement = 1;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(23, 42));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(40);
+		TileObjectData.addTile(93);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1xX);
+		TileObjectData.newTile.Height = 6;
+		TileObjectData.newTile.Origin = new Point16(0, 5);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16, 16, 16);
+		TileObjectData.addTile(92);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1xX);
+		TileObjectData.newTile.LavaPlacement = 1;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(453);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(521, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style1x2Top;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style1x2Top = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2Top);
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(256, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(270);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2Top);
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(256, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(271);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2Top);
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(256, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(581);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2Top);
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(256, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(660);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2Top);
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawXOffset = 10;
+		TileObjectData.newTile.DrawFrameOffsets = new Array2D<Rectangle>(1, 2, () => new Rectangle());
+		TileObjectData.newTile.AnchorTop = new AnchorData(681, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorAlternateTiles = Int32Array.of(
+			213,
+			366,
+			365,
+			353,
+			214,
+			449,
+			450,
+			451
+		);
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TEDeadCellsDisplayJar.Hook_AfterPlacement,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(256, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.DrawFrameOffsets = new Array2D<Rectangle>(
+			1,
+			2,
+			() => new Rectangle()
+		);
+		TileObjectData.addSubTile_Int32(1);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.DrawFrameOffsets = new Array2D<Rectangle>(
+			1,
+			2,
+			() => new Rectangle()
+		);
+		TileObjectData.addSubTile_Int32(2);
+		TileObjectData.addTile(698);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2Top);
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newTile.StyleWrapLimit = 6;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(256, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(572);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2Top);
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 56;
+		TileObjectData.newTile.styleLineSkipVisualOverride = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(256, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(32, 48));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(46);
+		TileObjectData.addTile(42);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2Top);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.AnchorTop = new AnchorData(649, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleWrapLimit = 111;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(256, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(91);
+		TileObjectData.newTile.Width = 4;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(1, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(487);
+		TileObjectData.newTile.Width = 4;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(1, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newTile.StyleWrapLimit = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style4x2;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style4x2 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style4x2);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(25, 42));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.Alternates = [];
+		TileObjectData.newSubTile.DrawStyleOffset = -112;
+		TileObjectData.newSubTile.DrawFrameOffsets = new Array2D<Rectangle>(
+			4,
+			2,
+			() => new Rectangle()
+		);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newSubTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.newAlternate.Calculate();
+		TileObjectData.newAlternate.Style = 1;
+		TileObjectData.newAlternate._parent = TileObjectData.newSubTile;
+		TileObjectData.newSubTile.Alternates.push(TileObjectData.newAlternate);
+		TileObjectData.newAlternate = new TileObjectData(TileObjectData._baseObject);
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(56, 57, 58, 59, 60, 61, 62, 63, 64));
+		TileObjectData.addTile(90);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style4x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.CoordinatePaddingFix = new Point16(0, -2);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(8, 42));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.Alternates = [];
+		TileObjectData.newSubTile.DrawStyleOffset = -112;
+		TileObjectData.newSubTile.DrawFrameOffsets = new Array2D<Rectangle>(
+			4,
+			2,
+			() => new Rectangle()
+		);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newSubTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.newAlternate.Calculate();
+		TileObjectData.newAlternate.Style = 1;
+		TileObjectData.newAlternate._parent = TileObjectData.newSubTile;
+		TileObjectData.newSubTile.Alternates.push(TileObjectData.newAlternate);
+		TileObjectData.newAlternate = new TileObjectData(TileObjectData._baseObject);
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(56, 57, 58, 59, 60, 61, 62, 63, 64));
+		TileObjectData.addTile(79);
+		TileObjectData.newTile.Width = 4;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(3, 2, 1);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.addTile(209);
+		TileObjectData.newTile.Width = 3;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(1, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(13, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.StyleSmallCage;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.StyleSmallCage = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(285);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(286);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(582);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(619);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(298);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(299);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(310);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(532);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(533);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(339);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(538);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(555);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(556);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(629);
+		TileObjectData.newTile.Width = 6;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(3, 2);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(13, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style6x3;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style6x3 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(275);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(276);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(413);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(414);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(277);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(278);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(279);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(280);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(281);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(632);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(640);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(643);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(644);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(645);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(710);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(296);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(297);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(309);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(550);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(551);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(553);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(554);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(558);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(559);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(599);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(600);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(601);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(602);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(603);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(604);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(605);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(606);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(607);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(608);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(609);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(610);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(611);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(612);
+		TileObjectData.newTile.Width = 5;
+		TileObjectData.newTile.Height = 4;
+		TileObjectData.newTile.Origin = new Point16(2, 3);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style5x4;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style5x4 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style5x4);
+		TileObjectData.addTile(464);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style5x4);
+		TileObjectData.addTile(466);
+		TileObjectData.newTile.Width = 2;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style2x1;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style2x1 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(4, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(29);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(4, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(103);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(4, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(462);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 56;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(18);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(14, 43));
+		TileObjectData.addTile(18);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(18);
+		TileObjectData.addTile(16);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(134);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.AnchorLeft = new AnchorData(1, TileObjectData.newTile.Height, 0);
+		TileObjectData.newTile.AnchorRight = new AnchorData(1, TileObjectData.newTile.Height, 0);
+		TileObjectData.addTile(387);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleWrapLimit = 53;
+		TileObjectData.addTile(649);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(128, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -2;
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(128, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -2;
+		TileObjectData.addAlternate(3);
+		TileObjectData.addTile(443);
+		TileObjectData.newTile.Width = 2;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style2xX;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style2xX = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 5;
+		TileObjectData.newTile.Origin = new Point16(1, 4);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(547);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 5;
+		TileObjectData.newTile.Origin = new Point16(1, 4);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(623);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 4;
+		TileObjectData.newTile.Origin = new Point16(1, 3);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(207);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 18);
+		TileObjectData.addTile(410);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(480);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(509);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(657);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(658);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(720);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(721);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.Direction = 2;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 1;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(725);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.addTile(489);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleWrapLimit = 7;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(7);
+		TileObjectData.addTile(349);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.addTile(337);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(15, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(560);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData();
+		TileObjectData.newTile.AnchorTop = new AnchorData(649, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(3072, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(465);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData();
+		TileObjectData.newTile.AnchorTop = new AnchorData(137, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(531);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.addTile(320);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.addTile(456);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TETrainingDummy.Hook_AfterPlacement,
+			-1,
+			0,
+			false
+		);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newTile.StyleWrapLimit = 2;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(378);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleWrapLimit = 55;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(165);
+		TileObjectData.addTile(105);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Origin = new Point16(0, 2);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleWrapLimit = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(2);
+		TileObjectData.addTile(545);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.Height = 5;
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 56;
+		TileObjectData.newTile.Origin = new Point16(0, 4);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16, 16);
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(17, 43));
+		TileObjectData.addTile(104);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Origin = new Point16(0, 2);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(128);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Origin = new Point16(0, 2);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(506);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Origin = new Point16(0, 2);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(269);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.Origin = new Point16(0, 2);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.DrawStyleOffset = 4;
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TEDisplayDoll.Hook_AfterPlacement,
+			-1,
+			0,
+			false
+		);
+		TileObjectData.newTile.AnchorInvalidTiles = anchorInvalidTiles;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(470);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData();
+		TileObjectData.newTile.AnchorTop = new AnchorData(649, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(3072, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(591);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData();
+		TileObjectData.newTile.AnchorTop = new AnchorData(649, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(3072, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -10;
+		TileObjectData.addAlternate(0);
+		TileObjectData.addTile(592);
+		TileObjectData.newTile.Width = 3;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(15, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style3x3;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style3x3 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.Height = 6;
+		TileObjectData.newTile.Origin = new Point16(1, 5);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32(7);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32(8);
+		TileObjectData.addTile(548);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.Height = 5;
+		TileObjectData.newTile.Origin = new Point16(1, 4);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.LavaPlacement = 0;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(613);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.Height = 6;
+		TileObjectData.newTile.Origin = new Point16(1, 5);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16, 16, 16);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.LavaPlacement = 0;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(614);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.Origin = new Point16(1, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(9, 1, 1);
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.StyleWrapLimit = 37;
+		TileObjectData.newTile.StyleHorizontal = false;
+		TileObjectData.newTile.StyleLineSkip = 2;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(32, 48));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(46);
+		TileObjectData.addTile(34);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.Width = 4;
+		TileObjectData.newTile.Origin = new Point16(2, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(9, 1, 1);
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.addTile(454);
+		TileObjectData.newTile.Width = 3;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(1, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style3x2;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style3x2 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32(13);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newSubTile.Height = 1;
+		TileObjectData.newSubTile.Origin = new Point16(1, 0);
+		TileObjectData.newSubTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.addSubTile_Int32(25);
+		TileObjectData.addTile(14);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32(11);
+		TileObjectData.addTile(469);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 37;
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			Chest.FindEmptyChest,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			Chest.AfterPlacement_Hook,
+			-1,
+			0,
+			false
+		);
+		TileObjectData.newTile.AnchorInvalidTiles = anchorInvalidTiles;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(9, 42));
+		TileObjectData.addTile(88);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.LavaPlacement = 0;
+		TileObjectData.addTile(237);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(244);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(647);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleWrapLimit = 35;
+		TileObjectData.addTile(648);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(706);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(651);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.addTile(26);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.addTile(695);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.addTile(86);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(377);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 37;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(15, 42));
+		TileObjectData.addTile(87);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.addTile(486);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(488);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(704);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = 9;
+		TileObjectData.addTile(705);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = 9;
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.addTile(530);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 37;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(10, 46));
+		TileObjectData.addTile(89);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.addTile(114);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(59, 70);
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(32, 33, 34));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(147, 161, 163, 200, 164, 162, 224);
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(26, 27, 28, 29, 30, 31));
+		TileObjectData.addTile(186);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.StyleWrapLimit = 35;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(59, 60, 226);
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(0, 1, 2, 3, 4, 5));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(57, 58, 75, 76);
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(6, 7, 8));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(
+			53,
+			397,
+			396,
+			112,
+			398,
+			400,
+			234,
+			399,
+			401,
+			116,
+			402,
+			403
+		);
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(29, 30, 31, 32, 33, 34));
+		TileObjectData.addTile(187);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.AnchorValidTiles = Int32Array.of(53, 112, 234, 116);
+		TileObjectData.newTile.WaterDeath = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaPlacement = 1;
+		TileObjectData.addTile(552);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.StyleWrapLimit = 16;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaPlacement = 1;
+		TileObjectData.newTile.WaterDeath = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(1);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(4);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(9);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32((1 + TileObjectData.newTile.StyleWrapLimit) | 0);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32((4 + TileObjectData.newTile.StyleWrapLimit) | 0);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32((9 + TileObjectData.newTile.StyleWrapLimit) | 0);
+		TileObjectData.addTile(215);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(217);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(218);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.addTile(17);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(77);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(133);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.addTile(405);
+		TileObjectData.newTile.Width = 3;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = new Point16(1, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.addTile(235);
+		TileObjectData.newTile.Width = 3;
+		TileObjectData.newTile.Height = 4;
+		TileObjectData.newTile.Origin = new Point16(1, 3);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style3x4;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style3x4 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x4);
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 37;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(4, 43));
+		TileObjectData.addTile(101);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x4);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(102);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x4);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(463);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x4);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TEHatRack.Hook_AfterPlacement,
+			-1,
+			0,
+			false
+		);
+		TileObjectData.newTile.AnchorInvalidTiles = anchorInvalidTiles;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(475);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x4);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			TETeleportationPylon.PlacementPreviewHook_CheckIfCanPlace,
+			1,
+			0,
+			true
+		);
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TETeleportationPylon.PlacementPreviewHook_AfterPlacement,
+			-1,
+			0,
+			false
+		);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(597);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x4);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleHorizontal = false;
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 2;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newTile.StyleWrapLimit = 2;
+		TileObjectData.newTile.styleLineSkipVisualOverride = 0;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(617);
+		TileObjectData.newTile.Width = 4;
+		TileObjectData.newTile.Height = 4;
+		TileObjectData.newTile.Origin = new Point16(1, 3);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style4x4;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style4x4 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style4x4);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(699);
+		TileObjectData.newTile.Width = 2;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(15, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style2x2;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style2x2 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			Chest.FindEmptyChest,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			Chest.AfterPlacement_Hook,
+			-1,
+			0,
+			false
+		);
+		TileObjectData.newTile.AnchorInvalidTiles = anchorInvalidTiles;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(21);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			Chest.FindEmptyChest,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			Chest.AfterPlacement_Hook,
+			-1,
+			0,
+			false
+		);
+		TileObjectData.newTile.AnchorInvalidTiles = anchorInvalidTiles;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(467);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.AnchorInvalidTiles = anchorInvalidTiles;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(441);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.AnchorInvalidTiles = anchorInvalidTiles;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(468);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleWrapLimit = 6;
+		TileObjectData.newTile.StyleMultiplier = 6;
+		TileObjectData.newTile.RandomStyleRange = 6;
+		TileObjectData.newTile.AnchorValidTiles = Int32Array.of(2, 477, 109, 492);
+		TileObjectData.addTile(254);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(96);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleWrapLimit = 4;
+		TileObjectData.newTile.StyleMultiplier = 1;
+		TileObjectData.newTile.RandomStyleRange = 4;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(485);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(457);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(490);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 56;
+		TileObjectData.newTile.styleLineSkipVisualOverride = 2;
+		TileObjectData.addTile(139);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.addTile(35);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(652);
+		let styleWrapLimit: number = 3;
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = styleWrapLimit;
+		TileObjectData.addTile(653);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = styleWrapLimit;
+		TileObjectData.addTile(28);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(1, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.addTile(95);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(1, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.addTile(126);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(1, 0);
+		TileObjectData.newTile.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.addTile(444);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.WaterDeath = true;
+		TileObjectData.addTile(98);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 53;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(13, 43));
+		TileObjectData.addTile(172);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(94);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(411);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(97);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(99);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleWrapLimitVisualOverride = 56;
+		TileObjectData.newTile.StyleLineSkip = 2;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(25, 42));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(40);
+		TileObjectData.addTile(100);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(125);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(621);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(622);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(173);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(287);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(319);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(287);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(376);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(138);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(664);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawFrameOffsets = new Array2D<Rectangle>(2, 2, () => new Rectangle());
+		TileObjectData.addTile(711);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(712);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(654);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16);
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(484);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(142);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(143);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(282);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(543);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(598);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(568);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(569);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(570);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(288);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(289);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(290);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(291);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(292);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(293);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(294);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(295);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(316);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(317);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(318);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(360);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(580);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(620);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(565);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(521);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(522);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(523);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(524);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(525);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(526);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(527);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(505);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(358);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(359);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style6x3);
+		TileObjectData.addTile(542);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(361);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(362);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(363);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(364);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(544);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(391);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(392);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(393);
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSmallCage);
+		TileObjectData.addTile(394);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(287);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(335);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(564);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(594);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(354);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(355);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(491);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.addTile(356);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
+		TileObjectData.addTile(663);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.AnchorLeft = new AnchorData(1, 1, 1);
+		TileObjectData.newTile.AnchorRight = new AnchorData(1, 1, 1);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.addTile(386);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.addAlternate(2);
+		TileObjectData.addTile(132);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 0);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 0);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(3);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(55);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 0);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 0);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(3);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(573);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 0);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 0);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(3);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(425);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 0);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 0);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(3);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(510);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 0);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 0);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(3);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(511);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(85);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TEItemFrame.Hook_AfterPlacement,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 0);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(1, 0);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(9, 2, 0);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(3);
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = Point16.Zero.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(395);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(12);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(665);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.addTile(713);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(714);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(715);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(716);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(639);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.addTile(696);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.addTile(31);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(702);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.WaterDeath = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addTile(236);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.DrawXOffset = 9;
+		TileObjectData.newTile.DrawYOffset = -8;
+		TileObjectData.newTile.DrawFrameOffsets = new Array2D<Rectangle>(2, 2, () => new Rectangle());
+		TileObjectData.newTile.DrawFrameOffsets.set(0, 0, new Rectangle(0, 0, 34, 32));
+		TileObjectData.newTile.DrawFrameOffsets.set(1, 0, new Rectangle(0, 0, -16, -16));
+		TileObjectData.newTile.DrawFrameOffsets.set(0, 1, new Rectangle(0, 0, -16, -16));
+		TileObjectData.newTile.DrawFrameOffsets.set(1, 1, new Rectangle(0, 0, -16, -16));
+		TileObjectData.addTile(751);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.addTile(752);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.addTile(238);
+		TileObjectData.newTile.Width = 3;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 2);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style3x3;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style3x3 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.addTile(106);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(212);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(219);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(642);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(220);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(228);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(231);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(243);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(247);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(283);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(300);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(301);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(302);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(303);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(304);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(305);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(306);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(307);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(308);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.addTile(406);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.addTile(452);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(412);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(455);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(499);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.DrawFrameOffsets = new Array2D<Rectangle>(3, 3, () => new Rectangle());
+		TileObjectData.addTile(733);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(43, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorAlternateTiles = Int32Array.of(753);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(753);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style1x2;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style1x2 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleWrapLimit = 2;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newTile.CoordinatePaddingFix = new Point16(0, 2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(16, 47));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.Alternates = [];
+		TileObjectData.newSubTile.DrawStyleOffset = -102;
+		TileObjectData.newSubTile.DrawFrameOffsets = new Array2D<Rectangle>(
+			1,
+			2,
+			() => new Rectangle()
+		);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newSubTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.newAlternate.Calculate();
+		TileObjectData.newAlternate.Style = 1;
+		TileObjectData.newAlternate._parent = TileObjectData.newSubTile;
+		TileObjectData.newSubTile.Alternates.push(TileObjectData.newAlternate);
+		TileObjectData.newAlternate = new TileObjectData(TileObjectData._baseObject);
+		TileObjectData.addSubTile_Int32Array(
+			Int32Array.of(51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67)
+		);
+		TileObjectData.addTile(15);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleWrapLimit = 2;
+		TileObjectData.newTile.StyleMultiplier = 2;
+		TileObjectData.newTile.CoordinatePaddingFix = new Point16(0, 2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32Array(Int32Array.of(14, 42));
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.Alternates = [];
+		TileObjectData.newSubTile.DrawStyleOffset = -102;
+		TileObjectData.newSubTile.DrawFrameOffsets = new Array2D<Rectangle>(
+			1,
+			2,
+			() => new Rectangle()
+		);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newSubTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.newAlternate.Calculate();
+		TileObjectData.newAlternate.Style = 1;
+		TileObjectData.newAlternate._parent = TileObjectData.newSubTile;
+		TileObjectData.newSubTile.Alternates.push(TileObjectData.newAlternate);
+		TileObjectData.newAlternate = new TileObjectData(TileObjectData._baseObject);
+		TileObjectData.addSubTile_Int32Array(
+			Int32Array.of(51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64)
+		);
+		TileObjectData.addTile(497);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 20);
+		TileObjectData.addTile(216);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(15, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(390);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.addTile(338);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = 6;
+		TileObjectData.newTile.DrawStyleOffset = Math.imul(13, TileObjectData.newTile.StyleWrapLimit);
+		TileObjectData.addTile(493);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(18, 18);
+		TileObjectData.newTile.CoordinateWidth = 26;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.addTile(567);
+		let num: number = 39;
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.AnchorTop = new AnchorData(169, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleWrapLimit = num;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.Origin = new Point16(0, 1);
+		TileObjectData.newSubTile.AnchorTop = AnchorData.Empty.clone();
+		TileObjectData.newSubTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.addSubTileRange(num, num);
+		TileObjectData.addTile(694);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = anchorInvalidTiles;
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style1x1;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style1x1 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(0, 0, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = null!;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(420);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.addTile(624);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(9, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 20;
+		TileObjectData.newTile.DrawXOffset = 0;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.addTile(700);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.addTile(656);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(34);
+		TileObjectData.newTile.CoordinateWidth = 24;
+		TileObjectData.newTile.DrawXOffset = 0;
+		TileObjectData.newTile.DrawYOffset = -16;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.addTile(701);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.WaterDeath = false;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style1x1Plant_Height22;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style1x1Plant_Height22 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.WaterDeath = false;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style1x1Plant_Height34;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style1x1Plant_Height34 = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height22);
+		TileObjectData.addTile(703);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height22);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(3);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height22);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(24);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height22);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(71);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height22);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(110);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height22);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(201);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height22);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(61);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height22);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(637);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height34);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(73);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height34);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(74);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Plant_Height34);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.PlantCheck_CanPlaceHook,
+			0,
+			0,
+			false
+		);
+		TileObjectData.addTile(113);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(7, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(18);
+		TileObjectData.newTile.CoordinateWidth = 20;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(476);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(32, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorAlternateTiles = Int32Array.of(420, 419);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Origin = new Point16(0, 1);
+		TileObjectData.newAlternate.AnchorAlternateTiles = Int32Array.of(419);
+		TileObjectData.addTile(419);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(0, 0, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = null!;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TELogicSensor.Hook_AfterPlacement,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.addTile(423);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(0, 0, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = null!;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(424);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(0, 0, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = null!;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(445);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(0, 0, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = null!;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(429);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorTop = new AnchorData(64, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(26);
+		TileObjectData.newTile.CoordinateWidth = 24;
+		TileObjectData.newTile.DrawYOffset = -8;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(81);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(18);
+		TileObjectData.newTile.CoordinatePadding = 0;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(135);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(18);
+		TileObjectData.newTile.CoordinatePadding = 0;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(428);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(141);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(0, 0, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = null!;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(144);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(210);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.addTile(239);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(650);
+		let num2: number = 39;
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.AnchorTop = new AnchorData(169, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleWrapLimit = num2;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.AnchorTop = AnchorData.Empty.clone();
+		TileObjectData.newSubTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.addSubTileRange(num2, num2);
+		TileObjectData.addTile(693);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(36);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = 3;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.CoordinateWidth = 20;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(15, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(324);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(15, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(593);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(43, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorAlternateTiles = Int32Array.of(124, 561, 574, 575, 576, 577, 578);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(169, TileObjectData.newTile.Width, 0);
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(3);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(630);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(43, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorAlternateTiles = Int32Array.of(124, 561, 574, 575, 576, 577, 578);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(169, TileObjectData.newTile.Width, 0);
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(3);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(631);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(43, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = null!;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TEKiteAnchor.Hook_AfterPlacement,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(169, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.DrawYOffset = 0;
+		TileObjectData.newAlternate.DrawXOffset = 2;
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.DrawYOffset = 0;
+		TileObjectData.newAlternate.DrawXOffset = -2;
+		TileObjectData.addAlternate(3);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = new AnchorData(0, 0, 0);
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.newAlternate.DrawYOffset = 0;
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(723);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(43, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.AnchorInvalidTiles = null!;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleMultiplier = 5;
+		TileObjectData.newTile.StyleWrapLimit = 5;
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TECritterAnchor.Hook_AfterPlacement,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(169, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawYOffset = -2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.DrawYOffset = 0;
+		TileObjectData.newAlternate.DrawXOffset = 2;
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.DrawYOffset = 0;
+		TileObjectData.newAlternate.DrawXOffset = -2;
+		TileObjectData.addAlternate(3);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = new AnchorData(0, 0, 0);
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.newAlternate.DrawYOffset = 0;
+		TileObjectData.addAlternate(4);
+		TileObjectData.addTile(724);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.FlattenAnchors = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.StyleSwitch;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.StyleSwitch = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleSwitch);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(9, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleSwitch);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.AnchorAlternateTiles = Int32Array.of(
+			124,
+			561,
+			574,
+			575,
+			576,
+			577,
+			578
+		);
+		TileObjectData.newAlternate.DrawXOffset = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleSwitch);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.AnchorAlternateTiles = Int32Array.of(
+			124,
+			561,
+			574,
+			575,
+			576,
+			577,
+			578
+		);
+		TileObjectData.newAlternate.DrawXOffset = -2;
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleSwitch);
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.addAlternate(3);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(136);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.FlattenAnchors = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.DrawStepDown = 2;
+		TileObjectData.newTile.CoordinateWidth = 20;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleMultiplier = 6;
+		TileObjectData.newTile.StyleWrapLimit = 6;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaPlacement = 1;
+		TileObjectData.newTile.WaterDeath = true;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.StyleTorch;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.StyleTorch = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleTorch);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(9, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleTorch);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.AnchorAlternateTiles = Int32Array.of(
+			124,
+			561,
+			574,
+			575,
+			576,
+			577,
+			578
+		);
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleTorch);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(57, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.AnchorAlternateTiles = Int32Array.of(
+			124,
+			561,
+			574,
+			575,
+			576,
+			577,
+			578
+		);
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.StyleTorch);
+		TileObjectData.newAlternate.AnchorWall = true;
+		TileObjectData.addAlternate(0);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32(8);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32(11);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.LinkedAlternates = true;
+		TileObjectData.newSubTile.WaterDeath = false;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.addSubTile_Int32(17);
+		TileObjectData.addTile(4);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.FlattenAnchors = true;
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.DrawStepDown = 2;
+		TileObjectData.newTile.CoordinateWidth = 20;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.WaterDeath = false;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.StyleWrapLimit = 4;
+		TileObjectData.newTile.StyleMultiplier = 4;
+		TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(
+			WorldGen.CanPlaceProjectilePressurePad,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(255, TileObjectData.newTile.Width, 0);
+		TileObjectData.newAlternate.DrawStepDown = 0;
+		TileObjectData.newAlternate.DrawYOffset = -4;
+		TileObjectData.addAlternate(1);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(255, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.AnchorAlternateTiles = Int32Array.of(
+			124,
+			561,
+			574,
+			575,
+			576,
+			577,
+			578
+		);
+		TileObjectData.newAlternate.DrawXOffset = -2;
+		TileObjectData.newAlternate.DrawYOffset = -2;
+		TileObjectData.addAlternate(2);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(255, TileObjectData.newTile.Height, 0);
+		TileObjectData.newAlternate.AnchorAlternateTiles = Int32Array.of(
+			124,
+			561,
+			574,
+			575,
+			576,
+			577,
+			578
+		);
+		TileObjectData.newAlternate.DrawXOffset = 2;
+		TileObjectData.newAlternate.DrawYOffset = -2;
+		TileObjectData.addAlternate(3);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(255, TileObjectData.newTile.Width, 0);
+		TileObjectData.addTile(442);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.WaterDeath = false;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.StyleWrapLimit = 7;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(1, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(63);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.addAlternate(21);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(1, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(42);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(178);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = 11;
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.addAlternate(33);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(1, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(66);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(1, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(99);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.addTile(184);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.AnchorTop = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.WaterDeath = false;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style1x1Drip;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style1x1Drip = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Drip);
+		TileObjectData.addTile(373);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Drip);
+		TileObjectData.addTile(374);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Drip);
+		TileObjectData.addTile(375);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Drip);
+		TileObjectData.addTile(709);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1Drip);
+		TileObjectData.addTile(461);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.WaterDeath = false;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.StyleWrapLimit = 6;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorRight = new AnchorData(1, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(12);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorTop = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.addAlternate(6);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newAlternate.AnchorLeft = new AnchorData(1, TileObjectData.newTile.Height, 0);
+		TileObjectData.addAlternate(18);
+		TileObjectData.addTile(149);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 1;
+		TileObjectData.newTile.Origin = Point16.Zero.clone();
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(20);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.DrawYOffset = -2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.newTile.AnchorBottom = new AnchorData(33, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.LavaPlacement = 1;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.StyleAlch;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.StyleAlch = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.StyleAlch);
+		TileObjectData.newTile.AnchorValidTiles = Int32Array.of(2, 477, 109, 492);
+		TileObjectData.newTile.AnchorAlternateTiles = Int32Array.of(78);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleAlch);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(60);
+		TileObjectData.newSubTile.AnchorAlternateTiles = Int32Array.of(78);
+		TileObjectData.addSubTile_Int32(1);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleAlch);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(0, 59);
+		TileObjectData.newSubTile.AnchorAlternateTiles = Int32Array.of(78);
+		TileObjectData.addSubTile_Int32(2);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleAlch);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(199, 203, 25, 23);
+		TileObjectData.newSubTile.AnchorAlternateTiles = Int32Array.of(78);
+		TileObjectData.addSubTile_Int32(3);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleAlch);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(53, 116);
+		TileObjectData.newSubTile.AnchorAlternateTiles = Int32Array.of(78);
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(4);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleAlch);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(57, 633);
+		TileObjectData.newSubTile.AnchorAlternateTiles = Int32Array.of(78);
+		TileObjectData.newSubTile.LavaPlacement = 0;
+		TileObjectData.newSubTile.LavaDeath = false;
+		TileObjectData.addSubTile_Int32(5);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.StyleAlch);
+		TileObjectData.newSubTile.AnchorValidTiles = Int32Array.of(147, 161, 163, 164, 200);
+		TileObjectData.newSubTile.AnchorAlternateTiles = Int32Array.of(78);
+		TileObjectData.newSubTile.WaterPlacement = 0;
+		TileObjectData.addSubTile_Int32(6);
+		TileObjectData.addTile(82);
+		TileObjectData.newTile.FullCopyFrom_UInt16(82);
+		TileObjectData.addTile(83);
+		TileObjectData.newTile.FullCopyFrom_UInt16(83);
+		TileObjectData.addTile(84);
+		TileObjectData.newTile.Width = 3;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 1);
+		TileObjectData.newTile.AnchorWall = true;
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.addBaseTile({
+			get v() {
+				return TileObjectData.Style3x3Wall;
+			},
+			set v($v: TileObjectData) {
+				TileObjectData.Style3x3Wall = $v;
+			}
+		});
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = 36;
+		TileObjectData.addTile(240);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.StyleWrapLimit = 36;
+		TileObjectData.addTile(440);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(334);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
+		TileObjectData.newTile.Direction = 1;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(
+			TEWeaponsRack.Hook_AfterPlacement,
+			-1,
+			0,
+			true
+		);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.Direction = 2;
+		TileObjectData.addAlternate(1);
+		TileObjectData.addTile(471);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
+		TileObjectData.newTile.Width = 2;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.RandomStyleRange = 4;
+		TileObjectData.addSubTile_Int32(15);
+		TileObjectData.addTile(245);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
+		TileObjectData.newTile.Width = 3;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(1, 0);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16);
+		TileObjectData.addTile(246);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
+		TileObjectData.newTile.Width = 4;
+		TileObjectData.newTile.Height = 3;
+		TileObjectData.newTile.Origin = new Point16(1, 1);
+		TileObjectData.addTile(241);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
+		TileObjectData.newTile.Width = 6;
+		TileObjectData.newTile.Height = 4;
+		TileObjectData.newTile.Origin = new Point16(2, 2);
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 16);
+		TileObjectData.newTile.StyleWrapLimit = 27;
+		TileObjectData.addTile(242);
+		TileObjectData.newTile.Width = 2;
+		TileObjectData.newTile.Height = 4;
+		TileObjectData.newTile.Origin = new Point16(0, 3);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 16, 16, 18);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.AnchorValidTiles = Int32Array.of(2, 477, 109, 60, 492, 633);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.RandomStyleRange = 3;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.addTile(27);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.AnchorValidTiles = Int32Array.of(2, 477);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaDeath = true;
+		TileObjectData.newTile.RandomStyleRange = 3;
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(147);
+		TileObjectData.addAlternate(3);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(60);
+		TileObjectData.addAlternate(6);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(23, 661);
+		TileObjectData.addAlternate(9);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(199, 662);
+		TileObjectData.addAlternate(12);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(109, 492);
+		TileObjectData.addAlternate(15);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(53);
+		TileObjectData.addAlternate(18);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(116);
+		TileObjectData.addAlternate(21);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(234);
+		TileObjectData.addAlternate(24);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(112);
+		TileObjectData.addAlternate(27);
+		TileObjectData.newAlternate.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newAlternate.AnchorValidTiles = Int32Array.of(633);
+		TileObjectData.addAlternate(30);
+		TileObjectData.addTile(20);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.AnchorValidTiles = Int32Array.of(
+			1,
+			25,
+			117,
+			203,
+			182,
+			180,
+			179,
+			381,
+			183,
+			181,
+			534,
+			536,
+			539,
+			625,
+			627
+		);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.RandomStyleRange = 3;
+		TileObjectData.newTile.StyleMultiplier = 3;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(590);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.AnchorValidTiles = Int32Array.of(2, 477, 492, 60, 109, 199, 23);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.RandomStyleRange = 3;
+		TileObjectData.newTile.StyleMultiplier = 3;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(595);
+		TileObjectData.newTile.Width = 1;
+		TileObjectData.newTile.Height = 2;
+		TileObjectData.newTile.Origin = new Point16(0, 1);
+		TileObjectData.newTile.AnchorBottom = new AnchorData(1, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.UsesCustomCanPlace = true;
+		TileObjectData.newTile.CoordinateHeights = Int32Array.of(16, 18);
+		TileObjectData.newTile.CoordinateWidth = 16;
+		TileObjectData.newTile.CoordinatePadding = 2;
+		TileObjectData.newTile.AnchorValidTiles = Int32Array.of(2, 477, 492, 60, 109, 199, 23);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.DrawFlipHorizontal = true;
+		TileObjectData.newTile.WaterPlacement = 1;
+		TileObjectData.newTile.LavaDeath = false;
+		TileObjectData.newTile.RandomStyleRange = 3;
+		TileObjectData.newTile.StyleMultiplier = 3;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.addTile(615);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.GetStyleOverride = TileObjectData.GetStyle_Detritus;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.Style2x2);
+		TileObjectData.newSubTile.DrawYOffset = 2;
+		TileObjectData.newSubTile.StyleHorizontal = true;
+		TileObjectData.newSubTile.ApplyNaturalObjectRules();
+		TileObjectData.addSubTile_Int32(0);
+		TileObjectData.addTile(233);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newTile.DrawYOffset = 2;
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.GetStyleOverride = TileObjectData.GetStyle_SmallPiles;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.Style2x1);
+		TileObjectData.newSubTile.DrawYOffset = 2;
+		TileObjectData.newSubTile.StyleWrapLimit = 53;
+		TileObjectData.newSubTile.ApplyNaturalObjectRules();
+		TileObjectData.addSubTile_Int32(0);
+		TileObjectData.addTile(185);
+		TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
+		TileObjectData.newTile.StyleHorizontal = true;
+		TileObjectData.newTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newTile.AnchorTop = new AnchorData(169, TileObjectData.newTile.Width, 0);
+		TileObjectData.newTile.StyleWrapLimit = num;
+		TileObjectData.newTile.Origin = new Point16(0, 0);
+		TileObjectData.newTile.ApplyNaturalObjectRules();
+		TileObjectData.newTile.GetStyleOverride = TileObjectData.GetStyle_Stalactite;
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.newTile);
+		TileObjectData.newSubTile.ApplyNaturalObjectRules();
+		TileObjectData.newSubTile.Origin = new Point16(0, 1);
+		TileObjectData.newSubTile.AnchorTop = AnchorData.Empty.clone();
+		TileObjectData.newSubTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.addSubTile_Int32(0);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newSubTile.ApplyNaturalObjectRules();
+		TileObjectData.newSubTile.StyleHorizontal = true;
+		TileObjectData.newSubTile.AnchorBottom = AnchorData.Empty.clone();
+		TileObjectData.newSubTile.AnchorTop = new AnchorData(169, TileObjectData.newTile.Width, 0);
+		TileObjectData.addSubTile_Int32(1);
+		TileObjectData.newSubTile.CopyFrom(TileObjectData.Style1x1);
+		TileObjectData.newSubTile.StyleHorizontal = true;
+		TileObjectData.newSubTile.ApplyNaturalObjectRules();
+		TileObjectData.newSubTile.AnchorTop = AnchorData.Empty.clone();
+		TileObjectData.newSubTile.AnchorBottom = new AnchorData(11, TileObjectData.newTile.Width, 0);
+		TileObjectData.addSubTile_Int32(2);
+		TileObjectData.addTile(165);
+		TileObjectData.readOnlyData = true;
+	}
+
+	static CustomPlace(type: number, style: number): boolean {
+		if (type < 0 || type >= TileObjectData._data.length || style < 0) {
+			return false;
+		}
+		let tileObjectData: TileObjectData = TileObjectData._data[type];
+		if (tileObjectData === null!) {
+			return false;
+		}
+		let subTiles: TileObjectData[] = tileObjectData.SubTiles;
+		if (subTiles !== null! && style < subTiles.length) {
+			let tileObjectData2: TileObjectData = subTiles[style];
+			if (tileObjectData2 !== null!) {
+				return tileObjectData2._usesCustomCanPlace;
+			}
+		}
+		return tileObjectData._usesCustomCanPlace;
+	}
+
+	static PlatformFrameWidth(): number {
+		return TileObjectData._data[19].CoordinateFullWidth;
+	}
+
+	static GetTileData_Int32_Int32_Int32(
+		type: number,
+		style: number,
+		alternate: number
+	): TileObjectData {
+		if (type < 0 || type >= TileObjectData._data.length) {
+			throw new Error(
+				'throw new ArgumentOutOfRangeException(\u0022Function called with a bad type argument\u0022);'
+			);
+		}
+		if (style < 0) {
+			throw new Error(
+				'throw new ArgumentOutOfRangeException(\u0022Function called with a bad style argument\u0022);'
+			);
+		}
+		let tileObjectData: TileObjectData = TileObjectData._data[type];
+		if (tileObjectData === null!) {
 			return null!;
 		}
-		$hit('TileObjectData.GetTileData');
-		return null!;
+		let subTiles: TileObjectData[] = tileObjectData.SubTiles;
+		if (subTiles !== null! && style < subTiles.length) {
+			let tileObjectData2: TileObjectData = subTiles[style];
+			if (tileObjectData2 !== null!) {
+				tileObjectData = tileObjectData2;
+			}
+		}
+		alternate--;
+		let alternates: TileObjectData[] = tileObjectData.Alternates;
+		if (alternates !== null! && alternate >= 0 && alternate < alternates.length) {
+			let tileObjectData3: TileObjectData = alternates[alternate];
+			if (tileObjectData3 !== null!) {
+				tileObjectData = tileObjectData3;
+			}
+		}
+		return tileObjectData;
+	}
+
+	static GetStyle_Detritus(tile: Tile, current: TileObjectData): TileObjectData {
+		if (tile.frameY >= 36) {
+			return current.SubTiles[0];
+		}
+		return current;
+	}
+
+	static GetStyle_SmallPiles(tile: Tile, current: TileObjectData): TileObjectData {
+		if (tile.frameY >= 18) {
+			return current.SubTiles[0];
+		}
+		return current;
+	}
+
+	static GetStyle_Stalactite(tile: Tile, current: TileObjectData): TileObjectData {
+		if (tile.frameY >= 90) {
+			return current.SubTiles[2];
+		}
+		if (tile.frameY >= 72) {
+			return current.SubTiles[1];
+		}
+		if (tile.frameY >= 36) {
+			return current.SubTiles[0];
+		}
+		return current;
+	}
+}
+
+export class TileObjectDrawModule {
+	xOffset: number = 0;
+
+	yOffset: number = 0;
+
+	flipHorizontal: boolean = false;
+
+	flipVertical: boolean = false;
+
+	stepDown: number = 0;
+
+	constructor(copyFrom: TileObjectDrawModule) {
+		if (copyFrom === null!) {
+			this.xOffset = 0;
+			this.yOffset = 0;
+			this.flipHorizontal = false;
+			this.flipVertical = false;
+			this.stepDown = 0;
+		} else {
+			this.xOffset = copyFrom.xOffset;
+			this.yOffset = copyFrom.yOffset;
+			this.flipHorizontal = copyFrom.flipHorizontal;
+			this.flipVertical = copyFrom.flipVertical;
+			this.stepDown = copyFrom.stepDown;
+		}
+	}
+}
+
+export class TileObjectStyleModule {
+	style: number = 0;
+
+	horizontal: boolean = false;
+
+	styleWrapLimit: number = 0;
+
+	styleMultiplier: number = 0;
+
+	styleLineSkip: number = 0;
+
+	styleWrapLimitVisualOverride: number | null = null!;
+
+	styleLineSkipVisualoverride: number | null = null!;
+
+	constructor(copyFrom: TileObjectStyleModule) {
+		if (copyFrom === null!) {
+			this.style = 0;
+			this.horizontal = false;
+			this.styleWrapLimit = 0;
+			this.styleWrapLimitVisualOverride = null!;
+			this.styleLineSkipVisualoverride = null!;
+			this.styleMultiplier = 1;
+			this.styleLineSkip = 1;
+		} else {
+			this.style = copyFrom.style;
+			this.horizontal = copyFrom.horizontal;
+			this.styleWrapLimit = copyFrom.styleWrapLimit;
+			this.styleMultiplier = copyFrom.styleMultiplier;
+			this.styleLineSkip = copyFrom.styleLineSkip;
+			this.styleWrapLimitVisualOverride = copyFrom.styleWrapLimitVisualOverride;
+			this.styleLineSkipVisualoverride = copyFrom.styleLineSkipVisualoverride;
+		}
+	}
+}
+
+export class TileObjectSubTilesModule {
+	data: TileObjectData[] = null!;
+
+	constructor(copyFrom: TileObjectSubTilesModule, newData: TileObjectData[]) {
+		if (copyFrom === null!) {
+			this.data = null!;
+			return;
+		}
+		if (copyFrom.data === null!) {
+			this.data = null!;
+			return;
+		}
+		this.data = [];
+		for (let i: number = 0; i < this.data.length; i++) {
+			this.data.push(new TileObjectData(copyFrom.data[i]));
+		}
+	}
+}
+
+export class TilePlacementHooksModule {
+	check: PlacementHook = new PlacementHook();
+
+	postPlaceEveryone: PlacementHook = new PlacementHook();
+
+	postPlaceMyPlayer: PlacementHook = new PlacementHook();
+
+	placeOverride: PlacementHook = new PlacementHook();
+
+	getStyleMethod: ((tile: Tile, data: TileObjectData) => TileObjectData) | null = null!;
+
+	constructor(copyFrom: TilePlacementHooksModule) {
+		if (copyFrom === null!) {
+			this.check = new PlacementHook();
+			this.postPlaceEveryone = new PlacementHook();
+			this.postPlaceMyPlayer = new PlacementHook();
+			this.placeOverride = new PlacementHook();
+			this.getStyleMethod = null!;
+		} else {
+			this.check = copyFrom.check.clone();
+			this.postPlaceEveryone = copyFrom.postPlaceEveryone.clone();
+			this.postPlaceMyPlayer = copyFrom.postPlaceMyPlayer.clone();
+			this.placeOverride = copyFrom.placeOverride.clone();
+			this.getStyleMethod = copyFrom.getStyleMethod;
+		}
 	}
 }
 
@@ -1484,6 +8209,58 @@ export class Utils {
 			Utils.NextVector2Unit(r, 0, 6.2831854820251465),
 			new Vector2(circleHalfWidth, circleHalfHeight)
 		);
+	}
+
+	static deepCompare_Int32Array_Int32Array(
+		firstArray: Int32Array,
+		secondArray: Int32Array
+	): boolean {
+		if (firstArray === null! && secondArray === null!) {
+			return true;
+		}
+		if (firstArray !== null! && secondArray !== null!) {
+			if (firstArray.length !== secondArray.length) {
+				return false;
+			}
+			for (let i: number = 0; i < firstArray.length; i++) {
+				if (firstArray[i] !== secondArray[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+
+	static deepCompare_RectangleArray2D_RectangleArray2D(
+		firstArray: Array2D<Rectangle>,
+		secondArray: Array2D<Rectangle>
+	): boolean {
+		if (firstArray === null! && secondArray === null!) {
+			return true;
+		}
+		if (firstArray !== null! && secondArray !== null!) {
+			if (firstArray.length !== secondArray.length) {
+				return false;
+			}
+			if (firstArray.GetLength(0) !== secondArray.GetLength(0)) {
+				return false;
+			}
+			if (firstArray.GetLength(1) !== secondArray.GetLength(1)) {
+				return false;
+			}
+			for (let i: number = 0; i < firstArray.GetLength(0); i++) {
+				for (let j: number = 0; j < firstArray.GetLength(1); j++) {
+					if (
+						Rectangle.op_Inequality(firstArray.get(i, j).clone(), secondArray.get(i, j).clone())
+					) {
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 
 	static Clamp_T_T_T(value: any, min: any, max: any): any {
@@ -1623,6 +8400,26 @@ export class WorldGen {
 		WorldGen.TileFrame((i + 1) | 0, (j - 1) | 0, false, false);
 		WorldGen.TileFrame((i + 1) | 0, j, false, false);
 		WorldGen.TileFrame((i + 1) | 0, (j + 1) | 0, false, false);
+	}
+
+	static SolidTile_Tile(testTile: Tile): boolean {
+		try {
+			if (testTile === null!) {
+				return true;
+			}
+			if (
+				testTile.nactive() &&
+				Main.tileSolid[testTile.type] &&
+				!Main.tileSolidTop[testTile.type] &&
+				!testTile.halfBrick_() &&
+				testTile.slope_() === 0
+			) {
+				return true;
+			}
+		} catch (__caught) {
+			$caught(__caught);
+		}
+		return false;
 	}
 
 	static SolidTile_Int32_Int32_Boolean(i: number, j: number, noDoors: boolean): boolean {
@@ -4929,8 +11726,12 @@ export class WorldGen {
 						if (num === 4 && style !== 8 && style !== 11 && style !== 17) {
 							return false;
 						}
-						let tileData: TileObjectData = TileObjectData.GetTileData(num, style, 0);
-						if (!!(tileData !== null! && $hole('Terraria.TileObjectData.WaterPlacement') !== 0)) {
+						let tileData: TileObjectData = TileObjectData.GetTileData_Int32_Int32_Int32(
+							num,
+							style,
+							0
+						);
+						if (tileData !== null! && tileData.WaterPlacement !== 0) {
 							return false;
 						}
 					} else if (
@@ -5012,10 +11813,30 @@ export class WorldGen {
 							tile.type = num & 0xffff;
 							let num2: number = Utils.NextFromList(
 								WorldGen.genRand,
-								[
-									6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 27, 30, 33, 36, 39,
+								Int32Array.of(
+									6,
+									7,
+									9,
+									10,
+									11,
+									12,
+									13,
+									14,
+									15,
+									16,
+									17,
+									18,
+									19,
+									20,
+									21,
+									24,
+									27,
+									30,
+									33,
+									36,
+									39,
 									42
-								]
+								)
 							);
 							switch (num2) {
 								case 21:
@@ -5057,16 +11878,16 @@ export class WorldGen {
 								tile.type = num & 0xffff;
 								let num3: number = Utils.NextFromList(
 									WorldGen.genRand,
-									[6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+									Int32Array.of(6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
 								);
 								if (num === 201) {
 									num3 = Utils.NextFromList(
 										WorldGen.genRand,
-										[6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22]
+										Int32Array.of(6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22)
 									);
 								}
 								if (num === 637) {
-									num3 = Utils.NextFromList(WorldGen.genRand, [6, 7, 8, 9, 10]);
+									num3 = Utils.NextFromList(WorldGen.genRand, Int32Array.of(6, 7, 8, 9, 10));
 								}
 								tile.frameX = (Math.imul(num3, 18) << 16) >> 16;
 							} else {
@@ -9894,6 +16715,4449 @@ export class WorldGen {
 		return false;
 	}
 
+	static CheckProjectilePressurePad_GetPossiblePlacementDirections(
+		i: number,
+		j: number,
+		canUp: { v: boolean },
+		canLeft: { v: boolean },
+		canRight: { v: boolean },
+		canDown: { v: boolean }
+	): void {
+		canUp.v = false;
+		canLeft.v = false;
+		canRight.v = false;
+		canDown.v = false;
+		void Rt.tile.get(i, j);
+		let tile: Tile = Rt.tile.get(i, (j - 1) | 0);
+		let tile2: Tile = Rt.tile.get(i, (j + 1) | 0);
+		let tile3: Tile = Rt.tile.get((i - 1) | 0, j);
+		let tile4: Tile = Rt.tile.get((i + 1) | 0, j);
+		let tile5: Tile = Rt.tile.get((i - 1) | 0, (j + 1) | 0);
+		let tile6: Tile = Rt.tile.get((i + 1) | 0, (j + 1) | 0);
+		let tile7: Tile = Rt.tile.get((i - 1) | 0, (j - 1) | 0);
+		let tile8: Tile = Rt.tile.get((i + 1) | 0, (j - 1) | 0);
+		let num: number = -1;
+		let num2: number = -1;
+		let num3: number = -1;
+		let num4: number = -1;
+		let tree: number = -1;
+		let tree2: number = -1;
+		let tree3: number = -1;
+		let tree4: number = -1;
+		if (tile !== null! && tile.nactive() && !tile.bottomSlope()) {
+			num2 = tile.type;
+		}
+		if (tile2 !== null! && tile2.nactive() && !tile2.halfBrick_() && !tile2.topSlope()) {
+			num = tile2.type;
+		}
+		if (
+			tile3 !== null! &&
+			tile3.nactive() &&
+			(tile3.slope_() === 0 || ((tile3.slope_() % 2) | 0) !== 1)
+		) {
+			num3 = tile3.type;
+		}
+		if (
+			tile4 !== null! &&
+			tile4.nactive() &&
+			(tile4.slope_() === 0 || ((tile4.slope_() % 2) | 0) !== 0)
+		) {
+			num4 = tile4.type;
+		}
+		if (tile5 !== null! && tile5.nactive()) {
+			tree = tile5.type;
+		}
+		if (tile6 !== null! && tile6.nactive()) {
+			tree2 = tile6.type;
+		}
+		if (tile7 !== null! && tile7.nactive()) {
+			tree3 = tile7.type;
+		}
+		if (tile8 !== null! && tile8.nactive()) {
+			tree4 = tile8.type;
+		}
+		if (
+			num >= 0 &&
+			Main.tileSolid[num] &&
+			(!Main.tileNoAttach[num] || TileID_Sets.Platforms[num]) &&
+			(tile2.bottomSlope() || tile2.slope_() === 0) &&
+			!tile2.halfBrick_()
+		) {
+			canDown.v = true;
+		}
+		if (
+			num2 >= 0 &&
+			Main.tileSolid[num2] &&
+			(!Main.tileNoAttach[num2] || (TileID_Sets.Platforms[num2] && tile.halfBrick_())) &&
+			(tile.topSlope() || tile.slope_() === 0 || tile.halfBrick_())
+		) {
+			canUp.v = true;
+		}
+		if (
+			(num3 >= 0 &&
+				Main.tileSolid[num3] &&
+				!Main.tileNoAttach[num3] &&
+				(tile3.leftSlope() || tile3.slope_() === 0) &&
+				!tile3.halfBrick_()) ||
+			(num3 >= 0 && TileID_Sets.IsBeam[num3]) ||
+			(WorldGen.IsTreeType(num3) && WorldGen.IsTreeType(tree3) && WorldGen.IsTreeType(tree))
+		) {
+			canLeft.v = true;
+		}
+		if (
+			(num4 >= 0 &&
+				Main.tileSolid[num4] &&
+				!Main.tileNoAttach[num4] &&
+				(tile4.rightSlope() || tile4.slope_() === 0) &&
+				!tile4.halfBrick_()) ||
+			(num4 >= 0 && TileID_Sets.IsBeam[num4]) ||
+			(WorldGen.IsTreeType(num4) && WorldGen.IsTreeType(tree4) && WorldGen.IsTreeType(tree2))
+		) {
+			canRight.v = true;
+		}
+	}
+
+	static CheckDoorClosed(i: number, j: number, tileCache: Tile, type: number): void {
+		if (WorldGen.destroyObject) {
+			return;
+		}
+		let num: number = j;
+		let flag: boolean = false;
+		let frameY: number = tileCache.frameY;
+		let num2: number = (frameY / 54) | 0;
+		num2 = (num2 + Math.imul((tileCache.frameX / 54) | 0, 36)) | 0;
+		num = (j - ((((frameY % 54) | 0) / 18) | 0)) | 0;
+		let tile: Tile = Rt.tile.get(i, (num - 1) | 0);
+		let tile2: Tile = Rt.tile.get(i, num);
+		let tile3: Tile = Rt.tile.get(i, (num + 1) | 0);
+		let tile4: Tile = Rt.tile.get(i, (num + 2) | 0);
+		let tile5: Tile = Rt.tile.get(i, (num + 3) | 0);
+		if (tile === null!) {
+			tile = new Tile();
+			Rt.tile.set(i, (num - 1) | 0, tile);
+		}
+		if (tile2 === null!) {
+			tile2 = new Tile();
+			Rt.tile.set(i, num, tile2);
+		}
+		if (tile3 === null!) {
+			tile3 = new Tile();
+			Rt.tile.set(i, (num + 1) | 0, tile3);
+		}
+		if (tile4 === null!) {
+			tile4 = new Tile();
+			Rt.tile.set(i, (num + 2) | 0, tile4);
+		}
+		if (tile5 === null!) {
+			tile5 = new Tile();
+			Rt.tile.set(i, (num + 3) | 0, tile5);
+		}
+		if (!WorldGen.SolidTile_Tile(tile)) {
+			flag = true;
+		}
+		if (!WorldGen.SolidTile_Tile(tile5)) {
+			flag = true;
+		}
+		if (!tile2.active_() || tile2.type !== type) {
+			flag = true;
+		}
+		if (!tile3.active_() || tile3.type !== type) {
+			flag = true;
+		}
+		if (!tile4.active_() || tile4.type !== type) {
+			flag = true;
+		}
+		if (flag) {
+			WorldGen.destroyObject = true;
+			if (tile2.type === 10) {
+				WorldGen.KillTile(i, num, false, false, false);
+			}
+			if (tile3.type === 10) {
+				WorldGen.KillTile(i, (num + 1) | 0, false, false, false);
+			}
+			if (tile4.type === 10) {
+				WorldGen.KillTile(i, (num + 2) | 0, false, false, false);
+			}
+			WorldGen.DropDoorItem(i, j, num2);
+		}
+		WorldGen.destroyObject = false;
+		WorldGen.CheckExploitDestroyQueue();
+	}
+
+	static CheckDoorOpen(i: number, j: number, tileCache: Tile): void {
+		if (WorldGen.destroyObject) {
+			return;
+		}
+		let num: number = 0;
+		let num2: number = i;
+		let num3: number = j;
+		let frameX: number = tileCache.frameX;
+		let frameY: number = tileCache.frameY;
+		let num4: number = (frameY / 54) | 0;
+		num4 = (num4 + Math.imul((tileCache.frameX / 72) | 0, 36)) | 0;
+		num3 = (j - ((((frameY % 54) | 0) / 18) | 0)) | 0;
+		let flag: boolean = false;
+		switch ((frameX % 72) | 0) {
+			case 0:
+				num2 = i;
+				num = 1;
+				break;
+			case 18:
+				num2 = (i - 1) | 0;
+				num = 1;
+				break;
+			case 36:
+				num2 = (i + 1) | 0;
+				num = -1;
+				break;
+			case 54:
+				num2 = i;
+				num = -1;
+				break;
+		}
+		let tile: Tile = Rt.tile.get(num2, (num3 - 1) | 0);
+		let tile2: Tile = Rt.tile.get(num2, (num3 + 3) | 0);
+		if (tile === null!) {
+			tile = new Tile();
+			Rt.tile.set(num2, (num3 - 1) | 0, tile);
+		}
+		if (tile2 === null!) {
+			tile2 = new Tile();
+			Rt.tile.set(num2, (num3 + 3) | 0, tile2);
+		}
+		if (!WorldGen.SolidTile_Tile(tile) || !WorldGen.SolidTile_Tile(tile2)) {
+			flag = true;
+		}
+		let num5: number = num2;
+		if (num === -1) {
+			num5 = (num2 - 1) | 0;
+		}
+		if (!flag) {
+			for (let k: number = num5; k < ((num5 + 2) | 0); k++) {
+				for (let l: number = num3; l < ((num3 + 3) | 0); l++) {
+					let tile3: Tile = Rt.tile.get(k, l);
+					if (tile3 !== null! && (!tile3.active_() || tile3.type !== 11)) {
+						flag = true;
+						break;
+					}
+				}
+				if (flag) {
+					break;
+				}
+			}
+		}
+		if (flag) {
+			WorldGen.destroyObject = true;
+			WorldGen.DropDoorItem(i, j, num4);
+			for (let m: number = num5; m < ((num5 + 2) | 0); m++) {
+				for (let n: number = num3; n < ((num3 + 3) | 0); n++) {
+					let tile4: Tile = Rt.tile.get(m, n);
+					if (tile4 !== null! && tile4.active_() && tile4.type === 11) {
+						WorldGen.KillTile(m, n, false, false, false);
+					}
+				}
+			}
+		}
+		WorldGen.destroyObject = false;
+		WorldGen.CheckExploitDestroyQueue();
+	}
+
+	static Check3x2(i: number, j: number, type: number): void {
+		if (WorldGen.destroyObject) {
+			return;
+		}
+		let flag: boolean = false;
+		let flag2: boolean = false;
+		let num: number = j;
+		if (Rt.tile.get(i, j) === null!) {
+			Rt.tile.set(i, j, new Tile());
+		}
+		let num2: number = 36;
+		let num3: number = (Rt.tile.get(i, j).frameY / num2) | 0;
+		let num4: number = (Rt.tile.get(i, j).frameY % num2) | 0;
+		num = (num - ((num4 / 18) | 0)) | 0;
+		let num5: number = (Rt.tile.get(i, j).frameX / 18) | 0;
+		let num6: number = 0;
+		while (num5 > 2) {
+			num5 = (num5 - 3) | 0;
+			num6++;
+		}
+		num5 = (i - num5) | 0;
+		let num7: number = Math.imul(num6, 54);
+		if (type === 14 && num6 === 25) {
+			flag2 = true;
+		}
+		let num8: number = (num + 2) | 0;
+		if (flag2) {
+			num8--;
+		}
+		for (let k: number = num5; k < ((num5 + 3) | 0); k++) {
+			for (let l: number = num; l < num8; l++) {
+				if (Rt.tile.get(k, l) === null!) {
+					Rt.tile.set(k, l, new Tile());
+				}
+				if (
+					!Rt.tile.get(k, l).active_() ||
+					Rt.tile.get(k, l).type !== type ||
+					Rt.tile.get(k, l).frameX !== ((Math.imul((k - num5) | 0, 18) + num7) | 0) ||
+					Rt.tile.get(k, l).frameY !== ((Math.imul((l - num) | 0, 18) + Math.imul(num3, 36)) | 0)
+				) {
+					flag = true;
+				}
+			}
+			if (
+				type === 285 ||
+				type === 286 ||
+				type === 298 ||
+				type === 299 ||
+				type === 310 ||
+				type === 339 ||
+				type === 538 ||
+				(type >= 361 && type <= 364) ||
+				type === 532 ||
+				type === 544 ||
+				type === 533 ||
+				type === 555 ||
+				type === 556 ||
+				type === 582 ||
+				type === 619 ||
+				type === 629
+			) {
+				if (
+					!WorldGen.SolidTileAllowBottomSlope(k, num8) &&
+					(Rt.tile.get(k, num8) === null! ||
+						!Rt.tile.get(k, num8).nactive() ||
+						!Main.tileSolidTop[Rt.tile.get(k, num8).type] ||
+						Rt.tile.get(k, num8).frameY !== 0) &&
+					(Rt.tile.get(k, num8) === null! ||
+						!Rt.tile.get(k, num8).active_() ||
+						!TileID_Sets.Platforms[Rt.tile.get(k, num8).type])
+				) {
+					flag = true;
+				}
+			} else {
+				switch (type) {
+					case 704:
+					case 705:
+						if (!WorldGen.SolidTileAllowBottomSlope(k, num8)) {
+							flag = true;
+						}
+						break;
+					case 488: {
+						let num9: number = 0;
+						if (Rt.tile.get(k, num8) !== null! && Rt.tile.get(k, num8).active_()) {
+							num9 = Rt.tile.get(k, num8).type;
+						}
+						let flag3: boolean =
+							num9 === 2 ||
+							num9 === 477 ||
+							num9 === 109 ||
+							num9 === 492 ||
+							num9 === 147 ||
+							num9 === 53 ||
+							num9 === 60 ||
+							num9 === 70;
+						if (Main.infectedSeed && (num9 === 23 || num9 === 199)) {
+							flag3 = true;
+						}
+						if (!flag3) {
+							flag = true;
+						}
+						break;
+					}
+					case 26:
+					case 695: {
+						let tile2: Tile = Rt.tile.get(k, num8);
+						if (
+							!WorldGen.SolidTileAllowBottomSlope(k, num8) ||
+							(tile2 !== null! && tile2.active_() && TileID_Sets.Boulders[tile2.type])
+						) {
+							flag = true;
+						}
+						break;
+					}
+					case 186: {
+						if (!WorldGen.SolidTileAllowBottomSlope(k, num8)) {
+							flag = true;
+							break;
+						}
+						if (WorldGen.InvalidTileForPilesOrSpeleothems(k, num8)) {
+							flag = true;
+							break;
+						}
+						let tile: Tile = Rt.tile.get(k, num8);
+						if (tile === null! || !tile.active_()) {
+							break;
+						}
+						switch (num6) {
+							case 26:
+							case 27:
+							case 28:
+							case 29:
+							case 30:
+							case 31:
+								if (
+									!TileID_Sets.Snow[tile.type] &&
+									!TileID_Sets_Conversion.Ice[tile.type] &&
+									tile.type !== 162 &&
+									tile.type !== 224
+								) {
+									flag = true;
+								}
+								break;
+							case 32:
+							case 33:
+							case 34:
+								if (!TileID_Sets.Mud[tile.type] && tile.type !== 70) {
+									flag = true;
+								}
+								break;
+						}
+						break;
+					}
+				}
+			}
+			if (type === 187) {
+				if (!WorldGen.SolidTileAllowBottomSlope(k, num8)) {
+					flag = true;
+					continue;
+				}
+				if (WorldGen.InvalidTileForPilesOrSpeleothems(k, num8)) {
+					flag = true;
+					continue;
+				}
+				let tile3: Tile = Rt.tile.get(k, num8);
+				if (tile3 === null! || !tile3.active_()) {
+					continue;
+				}
+				switch (num6) {
+					case 0:
+					case 1:
+					case 2:
+					case 3:
+					case 4:
+					case 5:
+						if (!TileID_Sets.Mud[tile3.type] && tile3.type !== 60 && tile3.type !== 226) {
+							flag = true;
+						}
+						break;
+					case 6:
+					case 7:
+					case 8:
+						if (tile3.type !== 57 && tile3.type !== 58 && tile3.type !== 75 && tile3.type !== 76) {
+							flag = true;
+						}
+						break;
+					case 29:
+					case 30:
+					case 31:
+					case 32:
+					case 33:
+					case 34:
+						if (
+							!TileID_Sets_Conversion.Sand[tile3.type] &&
+							!TileID_Sets_Conversion.HardenedSand[tile3.type] &&
+							!TileID_Sets_Conversion.Sandstone[tile3.type]
+						) {
+							flag = true;
+						}
+						break;
+				}
+			} else if (!WorldGen.SolidTileAllowBottomSlope(k, num8)) {
+				flag = true;
+			}
+		}
+		if (
+			type === 187 &&
+			Rt.tile.get(num5, num) !== null! &&
+			Rt.tile.get(num5, num).frameX >= 756 &&
+			Rt.tile.get(num5, num).frameX <= 900 &&
+			Rt.tile.get(num5, (num + 2) | 0).type !== 2 &&
+			Rt.tile.get((num5 + 1) | 0, (num + 2) | 0).type !== 2 &&
+			Rt.tile.get((num5 + 2) | 0, (num + 2) | 0).type !== 2 &&
+			Rt.tile.get(num5, (num + 2) | 0).type !== 477 &&
+			Rt.tile.get((num5 + 1) | 0, (num + 2) | 0).type !== 477 &&
+			Rt.tile.get((num5 + 2) | 0, (num + 2) | 0).type !== 477 &&
+			Rt.tile.get(num5, (num + 2) | 0).type !== 492 &&
+			Rt.tile.get((num5 + 1) | 0, (num + 2) | 0).type !== 492 &&
+			Rt.tile.get((num5 + 2) | 0, (num + 2) | 0).type !== 492
+		) {
+			Rt.tile.get(num5, num).frameX = (((Rt.tile.get(num5, num).frameX - 378) | 0) << 16) >> 16;
+			Rt.tile.get((num5 + 1) | 0, num).frameX =
+				(((Rt.tile.get((num5 + 1) | 0, num).frameX - 378) | 0) << 16) >> 16;
+			Rt.tile.get((num5 + 2) | 0, num).frameX =
+				(((Rt.tile.get((num5 + 2) | 0, num).frameX - 378) | 0) << 16) >> 16;
+			Rt.tile.get(num5, (num + 1) | 0).frameX =
+				(((Rt.tile.get(num5, (num + 1) | 0).frameX - 378) | 0) << 16) >> 16;
+			Rt.tile.get((num5 + 1) | 0, (num + 1) | 0).frameX =
+				(((Rt.tile.get((num5 + 1) | 0, (num + 1) | 0).frameX - 378) | 0) << 16) >> 16;
+			Rt.tile.get((num5 + 2) | 0, (num + 1) | 0).frameX =
+				(((Rt.tile.get((num5 + 2) | 0, (num + 1) | 0).frameX - 378) | 0) << 16) >> 16;
+			Rt.tile.get(num5, num).type = 186;
+			Rt.tile.get((num5 + 1) | 0, num).type = 186;
+			Rt.tile.get((num5 + 2) | 0, num).type = 186;
+			Rt.tile.get(num5, (num + 1) | 0).type = 186;
+			Rt.tile.get((num5 + 1) | 0, (num + 1) | 0).type = 186;
+			Rt.tile.get((num5 + 2) | 0, (num + 1) | 0).type = 186;
+		}
+		if (flag && type === 488 && WorldGen.isGeneratingOrLoadingWorld) {
+			for (let m: number = num5; m < ((num5 + 3) | 0); m++) {
+				for (let n: number = num; n < ((num + 2) | 0); n++) {
+					Rt.tile.get(m, n).active_Boolean(true);
+					Rt.tile.get(m, n).type = 488;
+					Rt.tile.get(m, n).frameX = (Math.imul((m - num5) | 0, 18) << 16) >> 16;
+					Rt.tile.get(m, n).frameY = (Math.imul((n - num) | 0, 18) << 16) >> 16;
+				}
+				Rt.tile.get(m, (num + 2) | 0).active_Boolean(true);
+				Rt.tile.get(m, (num + 2) | 0).type = 2;
+				Rt.tile.get(m, (num + 2) | 0).slope_Byte(0);
+				Rt.tile.get(m, (num + 2) | 0).halfBrick_Boolean(false);
+			}
+			flag = false;
+		}
+		if (!flag) {
+			return;
+		}
+		let frameX: number = Rt.tile.get(i, j).frameX;
+		WorldGen.destroyObject = true;
+		for (let num10: number = num5; num10 < ((num5 + 3) | 0); num10++) {
+			for (let num11: number = num; num11 < num8; num11++) {
+				if (Rt.tile.get(num10, num11) === null!) {
+					Rt.tile.set(num10, num11, new Tile());
+				}
+				if (Rt.tile.get(num10, num11).type === type && Rt.tile.get(num10, num11).active_()) {
+					WorldGen.KillTile(num10, num11, false, false, false);
+				}
+			}
+		}
+		if (type === 14) {
+			let itemDrop_Tables: number = WorldGen.GetItemDrop_Tables(num6, false);
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(i, j),
+				Math.imul(i, 16),
+				Math.imul(j, 16),
+				32,
+				32,
+				itemDrop_Tables,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+		switch (type) {
+			case 469: {
+				let itemDrop_Tables2: number = WorldGen.GetItemDrop_Tables(num6, true);
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(i, j),
+					Math.imul(i, 16),
+					Math.imul(j, 16),
+					32,
+					32,
+					itemDrop_Tables2,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				break;
+			}
+			case 114:
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(i, j),
+					Math.imul(i, 16),
+					Math.imul(j, 16),
+					32,
+					32,
+					398,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				break;
+			case 26:
+				if (!WorldGen.generatingWorld && !WorldGen.TransformingWorld) {
+					WorldGen.SmashAltar(i, j);
+				}
+				break;
+			case 705: {
+				num6 = (num6 + Math.imul(num3, 9)) | 0;
+				let num15: number = 276;
+				num15 =
+					((num6 >= 0 && num6 <= 8
+						? 276
+						: num6 >= 9 && num6 <= 17
+							? 369
+							: num6 < 18 || num6 > 26
+								? 59
+								: 2171) <<
+						16) >>
+					16;
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(i, j),
+					Math.imul(i, 16),
+					Math.imul(j, 16),
+					48,
+					32,
+					num15,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				break;
+			}
+			case 695:
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(i, j),
+					Math.imul(i, 16),
+					Math.imul(j, 16),
+					32,
+					32,
+					num6 === 0 ? 5467 : 5468,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				break;
+			case 298:
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(i, j),
+					Math.imul(i, 16),
+					Math.imul(j, 16),
+					32,
+					32,
+					2190,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				break;
+			default:
+				switch (type) {
+					case 298:
+						$newItem(
+							WorldGen.GetItemSource_FromTileBreak(i, j),
+							Math.imul(i, 16),
+							Math.imul(j, 16),
+							32,
+							32,
+							2190,
+							1,
+							false,
+							0,
+							0,
+							null!,
+							null!
+						);
+						break;
+					case 299:
+						$newItem(
+							WorldGen.GetItemSource_FromTileBreak(i, j),
+							Math.imul(i, 16),
+							Math.imul(j, 16),
+							32,
+							32,
+							2191,
+							1,
+							false,
+							0,
+							0,
+							null!,
+							null!
+						);
+						break;
+					case 361:
+					case 362:
+					case 363:
+					case 364:
+						$newItem(
+							WorldGen.GetItemSource_FromTileBreak(i, j),
+							Math.imul(i, 16),
+							Math.imul(j, 16),
+							32,
+							32,
+							(((3073 + type) | 0) - 361) | 0,
+							1,
+							false,
+							0,
+							0,
+							null!,
+							null!
+						);
+						break;
+					default:
+						if (type >= 391 && type <= 394) {
+							$newItem(
+								WorldGen.GetItemSource_FromTileBreak(i, j),
+								Math.imul(i, 16),
+								Math.imul(j, 16),
+								48,
+								32,
+								(((3254 + type) | 0) - 391) | 0,
+								1,
+								false,
+								0,
+								0,
+								null!,
+								null!
+							);
+							break;
+						}
+						switch (type) {
+							case 285:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									2174,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 286:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									2175,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 582:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4850,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 619:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4963,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 310:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									2207,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 339:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									2741,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 538:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4380,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 544:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4399,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 532:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4364,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 533:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4376,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 555:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4475,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 556:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4476,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 629:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									5133,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 217:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									995,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 218:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									996,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 219:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									997,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 642:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									5296,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 220:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									998,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 377:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									3198,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 228:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									1120,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 405:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									3364,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 486:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4063,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 488:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									9,
+									WorldGen.genRand.Next_Int32_Int32(10, 21),
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 704:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									501,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 215:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									WorldGen.GetCampfireItemDrop(num6),
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 244:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									1449,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 647: {
+								let num13: number = 0;
+								if (num6 < 7) {
+									num13 = 154;
+								} else if (num6 < 13) {
+									num13 = 3;
+								} else if (num6 < 16) {
+									num13 = 3;
+								} else if (num6 < 18) {
+									num13 = 71;
+								} else if (num6 < 20) {
+									num13 = 72;
+								} else if (num6 < 22) {
+									num13 = 73;
+								} else if (num6 < 26) {
+									num13 = 9;
+								} else if (num6 < 32) {
+									num13 = 593;
+								} else if (num6 < 35) {
+									num13 = 183;
+								}
+								if (num13 !== 0) {
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										num13,
+										1,
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+								}
+								break;
+							}
+							case 648: {
+								num6 = (num6 + Math.imul(num3, 35)) | 0;
+								let num14: number = 0;
+								if (num6 < 6) {
+									num14 = 195;
+								} else if (num6 < 9) {
+									num14 = 174;
+								} else if (num6 < 14) {
+									num14 = 150;
+								} else if (num6 < 17) {
+									num14 = 3;
+								} else if (num6 < 18) {
+									num14 = 989;
+								} else if (num6 < 21) {
+									num14 = 1101;
+								} else if (num6 < 29) {
+									num14 = 9;
+								} else if (num6 < 35) {
+									num14 = 3271;
+								} else if (num6 < 41) {
+									num14 = 3086;
+								} else if (num6 < 47) {
+									num14 = 3081;
+								} else if (num6 < 52) {
+									num14 = 62;
+								} else if (num6 < 55) {
+									num14 = 154;
+								}
+								if (num14 !== 0) {
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										num14,
+										1,
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+								}
+								break;
+							}
+							case 706:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									4144,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 651: {
+								let num12: number = 0;
+								num12 = num6 < 3 ? 195 : num6 >= 6 ? 331 : 62;
+								if (num12 !== 0) {
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										num12,
+										1,
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+								}
+								break;
+							}
+							case 17:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									33,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 77:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									221,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 86:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									332,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 237:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									1292,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 87: {
+								let itemDrop_Pianos: number = WorldGen.GetItemDrop_Pianos(num6);
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									itemDrop_Pianos,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							}
+							case 88: {
+								let itemDrop_Dressers: number = WorldGen.GetItemDrop_Dressers(num6);
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									itemDrop_Dressers,
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							}
+							case 89:
+								$newItem(
+									WorldGen.GetItemSource_FromTileBreak(i, j),
+									Math.imul(i, 16),
+									Math.imul(j, 16),
+									32,
+									32,
+									WorldGen.GetItemDrop_Benches(num6),
+									1,
+									false,
+									0,
+									0,
+									null!,
+									null!
+								);
+								break;
+							case 133:
+								if (frameX >= 54) {
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										1221,
+										1,
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+								} else {
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										524,
+										1,
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+								}
+								break;
+							case 186:
+								if (frameX < 864) {
+									break;
+								}
+								if (frameX <= 954) {
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										71,
+										WorldGen.genRand.Next_Int32_Int32(20, 100),
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										71,
+										WorldGen.genRand.Next_Int32_Int32(30, 100),
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										71,
+										WorldGen.genRand.Next_Int32_Int32(40, 100),
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+									if (WorldGen.genRand.Next_Int32(3) !== 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(20, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(3) !== 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(30, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(3) !== 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(40, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(2) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(20, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(2) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(30, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(2) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(40, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(3) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(20, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(3) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(30, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(3) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(40, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(4) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(20, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(4) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(30, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(4) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(40, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(5) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(20, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(5) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(30, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(5) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											71,
+											WorldGen.genRand.Next_Int32_Int32(40, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+								} else if (frameX <= 1062) {
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										72,
+										WorldGen.genRand.Next_Int32_Int32(10, 100),
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+									if (WorldGen.genRand.Next_Int32(2) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											72,
+											WorldGen.genRand.Next_Int32_Int32(20, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(3) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											72,
+											WorldGen.genRand.Next_Int32_Int32(30, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(4) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											72,
+											WorldGen.genRand.Next_Int32_Int32(40, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(5) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											72,
+											WorldGen.genRand.Next_Int32_Int32(50, 100),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+								} else if (frameX <= 1170) {
+									$newItem(
+										WorldGen.GetItemSource_FromTileBreak(i, j),
+										Math.imul(i, 16),
+										Math.imul(j, 16),
+										32,
+										32,
+										73,
+										WorldGen.genRand.Next_Int32_Int32(1, 7),
+										false,
+										0,
+										0,
+										null!,
+										null!
+									);
+									if (WorldGen.genRand.Next_Int32(2) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											73,
+											WorldGen.genRand.Next_Int32_Int32(2, 7),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(3) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											73,
+											WorldGen.genRand.Next_Int32_Int32(3, 7),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(4) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											73,
+											WorldGen.genRand.Next_Int32_Int32(4, 7),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+									if (WorldGen.genRand.Next_Int32(5) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											73,
+											WorldGen.genRand.Next_Int32_Int32(5, 7),
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+								}
+								break;
+							case 187:
+								if (frameX >= 918 && frameX <= 970) {
+									if (Main.rand.Next_Int32(30) === 0) {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											4144,
+											1,
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									} else {
+										$newItem(
+											WorldGen.GetItemSource_FromTileBreak(i, j),
+											Math.imul(i, 16),
+											Math.imul(j, 16),
+											32,
+											32,
+											989,
+											1,
+											false,
+											0,
+											0,
+											null!,
+											null!
+										);
+									}
+								}
+								break;
+						}
+						break;
+				}
+				break;
+		}
+		WorldGen.destroyObject = false;
+		for (let num16: number = (num5 - 1) | 0; num16 < ((num5 + 4) | 0); num16++) {
+			for (let num17: number = (num - 1) | 0; num17 < ((num + 4) | 0); num17++) {
+				WorldGen.TileFrame(num16, num17, false, false);
+			}
+		}
+		if (type === 488) {
+			$hole('Terraria.MysticLogFairiesEvent.FallenLogDestroyed');
+		}
+	}
+
+	static Check1x2(x: number, j: number, type: number): void {
+		if (WorldGen.destroyObject) {
+			return;
+		}
+		let num: number = j;
+		let flag: boolean = true;
+		if (Rt.tile.get(x, num) === null!) {
+			Rt.tile.set(x, num, new Tile());
+		}
+		if (Rt.tile.get(x, (num + 1) | 0) === null!) {
+			Rt.tile.set(x, (num + 1) | 0, new Tile());
+		}
+		let num2: number = Rt.tile.get(x, num).frameY;
+		let num3: number = 0;
+		while (num2 >= 40) {
+			num2 = (((num2 - 40) | 0) << 16) >> 16;
+			num3++;
+		}
+		if (num2 === 18) {
+			num--;
+		}
+		if (Rt.tile.get(x, num) === null!) {
+			Rt.tile.set(x, num, new Tile());
+		}
+		let num4: number = (Rt.tile.get(x, num).frameX / 18) | 0;
+		if (Rt.tile.get(x, num).frameX === -1) {
+			num4 = (Rt.tile.get(x, (num + 1) | 0).frameX / 18) | 0;
+		}
+		if (
+			Rt.tile.get(x, num).frameY === Math.imul(40, num3) &&
+			Rt.tile.get(x, (num + 1) | 0).frameY === ((Math.imul(40, num3) + 18) | 0) &&
+			Rt.tile.get(x, num).type === type &&
+			Rt.tile.get(x, (num + 1) | 0).type === type
+		) {
+			flag = false;
+		}
+		if (Rt.tile.get(x, (num + 2) | 0) === null!) {
+			Rt.tile.set(x, (num + 2) | 0, new Tile());
+		}
+		if (
+			!WorldGen.SolidTileAllowBottomSlope(x, (num + 2) | 0) &&
+			!TileID_Sets.Platforms[Rt.tile.get(x, (num + 2) | 0).type]
+		) {
+			flag = true;
+		}
+		if (Rt.tile.get(x, num).type === 20) {
+			let num5: number = (Rt.tile.get(x, num).frameX / 54) | 0;
+			let type2: number = Rt.tile.get(x, (num + 2) | 0).type;
+			let num6: number = -1;
+			switch (type2) {
+				case 2:
+				case 477:
+					num6 = 0;
+					break;
+				case 147:
+					num6 = 1;
+					break;
+				case 60:
+					num6 = 2;
+					break;
+				case 23:
+				case 661:
+					num6 = 3;
+					break;
+				case 199:
+				case 662:
+					num6 = 4;
+					break;
+				case 109:
+				case 492:
+					num6 = 5;
+					break;
+				case 53:
+					num6 = 6;
+					break;
+				case 116:
+					num6 = 7;
+					break;
+				case 234:
+					num6 = 8;
+					break;
+				case 112:
+					num6 = 9;
+					break;
+				case 633:
+					num6 = 10;
+					break;
+				default:
+					flag = true;
+					break;
+			}
+			if (!flag && num5 !== num6) {
+				let num7: number = Math.imul(54, num6);
+				num7 = (num7 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0;
+				Rt.tile.get(x, num).frameX = (num7 << 16) >> 16;
+				Rt.tile.get(x, (num + 1) | 0).frameX = (num7 << 16) >> 16;
+			}
+		}
+		if (!flag) {
+			return;
+		}
+		WorldGen.destroyObject = true;
+		if (Rt.tile.get(x, num).type === type) {
+			WorldGen.KillTile(x, num, false, false, false);
+		}
+		if (Rt.tile.get(x, (num + 1) | 0).type === type) {
+			WorldGen.KillTile(x, (num + 1) | 0, false, false, false);
+		}
+		if (type === 216) {
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(x, num),
+				Math.imul(x, 16),
+				Math.imul(num, 16),
+				32,
+				32,
+				(970 + num3) | 0,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+		if (type === 338) {
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(x, num),
+				Math.imul(x, 16),
+				Math.imul(num, 16),
+				32,
+				32,
+				2738,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+		if (type === 390) {
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(x, num),
+				Math.imul(x, 16),
+				Math.imul(num, 16),
+				16,
+				32,
+				3253,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+		if (type === 493) {
+			let num8: number = 0;
+			switch (num4) {
+				case 0:
+					num8 = 4083;
+					break;
+				case 1:
+					num8 = 4084;
+					break;
+				case 2:
+					num8 = 4085;
+					break;
+				case 3:
+					num8 = 4086;
+					break;
+				case 4:
+					num8 = 4087;
+					break;
+				case 5:
+					num8 = 4088;
+					break;
+			}
+			if (num8 > 0) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(x, num),
+					Math.imul(x, 16),
+					Math.imul(num, 16),
+					32,
+					32,
+					num8,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			}
+		}
+		if (type === 15) {
+			let itemDrop_Chair: number = WorldGen.GetItemDrop_Chair(num3);
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(x, num),
+				Math.imul(x, 16),
+				Math.imul(num, 16),
+				32,
+				32,
+				itemDrop_Chair,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+		if (type === 497) {
+			let itemDrop_Toilet: number = WorldGen.GetItemDrop_Toilet(num3);
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(x, num),
+				Math.imul(x, 16),
+				Math.imul(num, 16),
+				32,
+				32,
+				itemDrop_Toilet,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+		WorldGen.destroyObject = false;
+	}
+
+	static Check2x1(i: number, y: number, type: number): void {
+		if (WorldGen.destroyObject) {
+			return;
+		}
+		let num: number = i;
+		let flag: boolean = true;
+		if (Rt.tile.get(num, y) === null!) {
+			Rt.tile.set(num, y, new Tile());
+		}
+		let num2: number = (Rt.tile.get(num, y).frameX / 18) | 0;
+		let num3: number = (num2 >> 1) | 0;
+		let num4: number = (Rt.tile.get(num, y).frameY / 18) | 0;
+		num2 = (num2 % 2) | 0;
+		num = (num - num2) | 0;
+		if (Rt.tile.get(num, y) === null!) {
+			Rt.tile.set(num, y, new Tile());
+		}
+		if (Rt.tile.get((num + 1) | 0, y) === null!) {
+			Rt.tile.set((num + 1) | 0, y, new Tile());
+		}
+		if (Rt.tile.get(num, (y + 1) | 0) === null!) {
+			Rt.tile.set(num, (y + 1) | 0, new Tile());
+		}
+		if (Rt.tile.get((num + 1) | 0, (y + 1) | 0) === null!) {
+			Rt.tile.set((num + 1) | 0, (y + 1) | 0, new Tile());
+		}
+		if (
+			Rt.tile.get((num + 1) | 0, y).frameX === ((Rt.tile.get(num, y).frameX + 18) | 0) &&
+			Rt.tile.get(num, y).type === type &&
+			Rt.tile.get((num + 1) | 0, y).type === type &&
+			Rt.tile.get(num, y).active_() &&
+			Rt.tile.get((num + 1) | 0, y).active_()
+		) {
+			flag = false;
+		}
+		switch (type) {
+			case 103: {
+				let tile: Tile = Rt.tile.get(num, (y + 1) | 0);
+				let tile2: Tile = Rt.tile.get((num + 1) | 0, (y + 1) | 0);
+				if (
+					(!tile.active_() || !Main.tileTable[tile.type] || tile.halfBrick_() || tile.topSlope()) &&
+					!WorldGen.AnchorValid(tile, 4)
+				) {
+					flag = true;
+				}
+				if (
+					(!tile2.active_() ||
+						!Main.tileTable[tile2.type] ||
+						tile2.halfBrick_() ||
+						tile2.topSlope()) &&
+					!WorldGen.AnchorValid(tile2, 4)
+				) {
+					flag = true;
+				}
+				break;
+			}
+			case 29:
+			case 462:
+				if (
+					!Rt.tile.get(num, (y + 1) | 0).active_() ||
+					!Main.tileTable[Rt.tile.get(num, (y + 1) | 0).type] ||
+					Rt.tile.get(num, (y + 1) | 0).halfBrick_() ||
+					Rt.tile.get(num, (y + 1) | 0).topSlope()
+				) {
+					flag = true;
+				}
+				if (
+					!Rt.tile.get((num + 1) | 0, (y + 1) | 0).active_() ||
+					!Main.tileTable[Rt.tile.get((num + 1) | 0, (y + 1) | 0).type] ||
+					Rt.tile.get((num + 1) | 0, (y + 1) | 0).halfBrick_() ||
+					Rt.tile.get((num + 1) | 0, (y + 1) | 0).topSlope()
+				) {
+					flag = true;
+				}
+				break;
+			default:
+				if (!WorldGen.SolidTileAllowBottomSlope(num, (y + 1) | 0)) {
+					flag = true;
+				}
+				if (!WorldGen.SolidTileAllowBottomSlope((num + 1) | 0, (y + 1) | 0)) {
+					flag = true;
+				}
+				break;
+		}
+		if (type === 185) {
+			if (
+				Rt.tile.get(num, y).frameX >= 1368 &&
+				Rt.tile.get(num, y).frameX <= 1458 &&
+				Rt.tile.get(num, (y + 1) | 0).type !== 2 &&
+				Rt.tile.get((num + 1) | 0, (y + 1) | 0).type !== 2 &&
+				Rt.tile.get(num, (y + 1) | 0).type !== 477 &&
+				Rt.tile.get((num + 1) | 0, (y + 1) | 0).type !== 477 &&
+				Rt.tile.get(num, (y + 1) | 0).type !== 492 &&
+				Rt.tile.get((num + 1) | 0, (y + 1) | 0).type !== 492
+			) {
+				Rt.tile.get(num, y).frameX = (((Rt.tile.get(num, y).frameX - 1368) | 0) << 16) >> 16;
+				Rt.tile.get((num + 1) | 0, y).frameX =
+					(((Rt.tile.get((num + 1) | 0, y).frameX - 1368) | 0) << 16) >> 16;
+			}
+			let tile3: Tile = Rt.tile.get(num, y);
+			let num5: number = (tile3.frameX / 36) | 0;
+			num5 = (num5 + Math.imul((((tile3.frameY / 18) | 0) - 1) | 0, 52)) | 0;
+			for (let j: number = num; j < ((num + 2) | 0); j++) {
+				if (WorldGen.InvalidTileForPilesOrSpeleothems(j, (y + 1) | 0)) {
+					flag = true;
+					break;
+				}
+				let tile4: Tile = Rt.tile.get(j, (y + 1) | 0);
+				if (tile4 === null! || !tile4.active_() || tile4.type < 0 || tile4.type >= TileID.Count) {
+					continue;
+				}
+				let type2: number = tile4.type;
+				switch (num5) {
+					case 25:
+					case 26:
+					case 27:
+					case 28:
+					case 29:
+					case 30:
+						if (
+							!TileID_Sets.Snow[type2] &&
+							!TileID_Sets_Conversion.Ice[type2] &&
+							type2 !== 162 &&
+							type2 !== 224
+						) {
+							flag = true;
+						}
+						break;
+					case 41:
+					case 42:
+					case 43:
+					case 44:
+					case 45:
+					case 46:
+					case 62:
+					case 63:
+					case 64:
+						if (
+							!TileID_Sets_Conversion.Sand[type2] &&
+							!TileID_Sets_Conversion.HardenedSand[type2] &&
+							!TileID_Sets_Conversion.Sandstone[type2]
+						) {
+							flag = true;
+						}
+						break;
+				}
+			}
+		}
+		if (!flag) {
+			return;
+		}
+		let frameX: number = Rt.tile.get(num, y).frameX;
+		if (!Rt.tile.get(num, y).active_()) {
+			frameX = Rt.tile.get((num + 1) | 0, y).frameX;
+		}
+		WorldGen.destroyObject = true;
+		if (Rt.tile.get(num, y).type === type) {
+			WorldGen.KillTile(num, y, false, false, false);
+		}
+		if (Rt.tile.get((num + 1) | 0, y).type === type) {
+			WorldGen.KillTile((num + 1) | 0, y, false, false, false);
+		}
+		if (type === 16) {
+			if (num3 === 1) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					716,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			} else {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					35,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			}
+		}
+		if (type === 18) {
+			let itemDrop_Workbenches: number = WorldGen.GetItemDrop_Workbenches(num3);
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(num, y),
+				Math.imul(num, 16),
+				Math.imul(y, 16),
+				32,
+				32,
+				itemDrop_Workbenches,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+		if (type === 185) {
+			if (frameX >= 576 && frameX <= 610) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					71,
+					WorldGen.genRand.Next_Int32_Int32(10, 100),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					71,
+					WorldGen.genRand.Next_Int32_Int32(20, 100),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				if (WorldGen.genRand.Next_Int32(3) !== 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(10, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(3) !== 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(20, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(2) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(10, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(2) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(20, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(3) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(10, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(3) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(20, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(4) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(10, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(4) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(20, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(5) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(10, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(5) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						71,
+						WorldGen.genRand.Next_Int32_Int32(20, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+			}
+			if (frameX >= 612 && frameX <= 646) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					72,
+					WorldGen.genRand.Next_Int32_Int32(10, 100),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				if (WorldGen.genRand.Next_Int32(2) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						72,
+						WorldGen.genRand.Next_Int32_Int32(20, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(3) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						72,
+						WorldGen.genRand.Next_Int32_Int32(30, 100),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+			}
+			if (frameX >= 648 && frameX <= 682) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					73,
+					WorldGen.genRand.Next_Int32_Int32(1, 6),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				if (WorldGen.genRand.Next_Int32(2) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						73,
+						WorldGen.genRand.Next_Int32_Int32(2, 6),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				if (WorldGen.genRand.Next_Int32(3) === 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						73,
+						WorldGen.genRand.Next_Int32_Int32(3, 6),
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+			}
+			if (frameX >= 684 && frameX <= 718) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					181,
+					WorldGen.genRand.Next_Int32_Int32(1, 4),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			}
+			if (frameX >= 720 && frameX <= 754) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					180,
+					WorldGen.genRand.Next_Int32_Int32(1, 4),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			}
+			if (frameX >= 756 && frameX <= 790) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					177,
+					WorldGen.genRand.Next_Int32_Int32(1, 4),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			}
+			if (frameX >= 792 && frameX <= 826) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					179,
+					WorldGen.genRand.Next_Int32_Int32(1, 4),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			}
+			if (frameX >= 828 && frameX <= 862) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					178,
+					WorldGen.genRand.Next_Int32_Int32(1, 4),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			}
+			if (frameX >= 864 && frameX <= 898) {
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					182,
+					WorldGen.genRand.Next_Int32_Int32(1, 4),
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+			}
+		}
+		if (type === 462) {
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(num, y),
+				Math.imul(num, 16),
+				Math.imul(y, 16),
+				32,
+				32,
+				3795,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+		if (type === 29) {
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(num, y),
+				Math.imul(num, 16),
+				Math.imul(y, 16),
+				32,
+				32,
+				87,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+			$sound(13, Math.imul(i, 16), Math.imul(y, 16), 1, 1, 0);
+		}
+		switch (type) {
+			case 103: {
+				let type3: number = 356;
+				if (num3 === 1) {
+					type3 = 2235;
+				}
+				if (num3 === 2) {
+					type3 = 2242;
+				}
+				if (num3 === 3) {
+					type3 = 2243;
+				}
+				$newItem(
+					WorldGen.GetItemSource_FromTileBreak(num, y),
+					Math.imul(num, 16),
+					Math.imul(y, 16),
+					32,
+					32,
+					type3,
+					1,
+					false,
+					0,
+					0,
+					null!,
+					null!
+				);
+				$sound(13, Math.imul(i, 16), Math.imul(y, 16), 1, 1, 0);
+				break;
+			}
+			case 134:
+				if (num3 === 1) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						1220,
+						1,
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				} else {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						525,
+						1,
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				break;
+			case 649: {
+				num3 = (num3 + Math.imul(num4, 53)) | 0;
+				let num6: number = 0;
+				if (num3 < 6) {
+					num6 = 3;
+				} else if (num3 < 16) {
+					num6 = 154;
+				} else if (num3 < 17) {
+					num6 = 71;
+				} else if (num3 < 18) {
+					num6 = 72;
+				} else if (num3 < 19) {
+					num6 = 73;
+				} else if (num3 < 20) {
+					num6 = 181;
+				} else if (num3 < 21) {
+					num6 = 180;
+				} else if (num3 < 22) {
+					num6 = 177;
+				} else if (num3 < 23) {
+					num6 = 179;
+				} else if (num3 < 24) {
+					num6 = 178;
+				} else if (num3 < 25) {
+					num6 = 182;
+				} else if (num3 < 31) {
+					num6 = 593;
+				} else if (num3 < 34) {
+					num6 = 9;
+				} else if (num3 < 38) {
+					num6 = 150;
+				} else if (num3 < 41) {
+					num6 = 3;
+				} else if (num3 < 47) {
+					num6 = 3271;
+				} else if (num3 < 53) {
+					num6 = 3086;
+				} else if (num3 < 59) {
+					num6 = 3081;
+				} else if (num3 < 62) {
+					num6 = 62;
+				} else if (num3 < 64 || (num3 >= 65 && num3 <= 67)) {
+					num6 = 169;
+				} else if (num3 === 64) {
+					num6 = 276;
+				}
+				if (num6 !== 0) {
+					$newItem(
+						WorldGen.GetItemSource_FromTileBreak(num, y),
+						Math.imul(num, 16),
+						Math.imul(y, 16),
+						32,
+						32,
+						num6,
+						1,
+						false,
+						0,
+						0,
+						null!,
+						null!
+					);
+				}
+				break;
+			}
+		}
+		WorldGen.destroyObject = false;
+		WorldGen.SquareTileFrame(num, y, true);
+		WorldGen.SquareTileFrame((num + 1) | 0, y, true);
+	}
+
+	static OpenDoor(i: number, j: number, direction: number): boolean {
+		let num: number = 0;
+		if (Rt.tile.get(i, (j - 1) | 0) === null!) {
+			Rt.tile.set(i, (j - 1) | 0, new Tile());
+		}
+		if (Rt.tile.get(i, (j - 2) | 0) === null!) {
+			Rt.tile.set(i, (j - 2) | 0, new Tile());
+		}
+		if (Rt.tile.get(i, (j + 1) | 0) === null!) {
+			Rt.tile.set(i, (j + 1) | 0, new Tile());
+		}
+		if (Rt.tile.get(i, j) === null!) {
+			Rt.tile.set(i, j, new Tile());
+		}
+		let tile: Tile = Rt.tile.get(i, j);
+		if (tile.type !== 10) {
+			return false;
+		}
+		if (WorldGen.IsLockedDoor_Tile(tile)) {
+			return false;
+		}
+		let num2: number = 0;
+		let num3: number = tile.frameY;
+		let num4: number = 0;
+		while (num3 >= 54) {
+			num3 = (num3 - 54) | 0;
+			num4++;
+		}
+		if (tile.frameX >= 54) {
+			let num5: number = (tile.frameX / 54) | 0;
+			num4 = (num4 + Math.imul(36, num5)) | 0;
+			num2 = (((num2 + ((Math.imul(72, num5) << 16) >> 16)) | 0) << 16) >> 16;
+		}
+		num = (j - ((num3 / 18) | 0)) | 0;
+		let num6: number = i;
+		if (!WorldGen.ValidateTileSquareIsActiveAndOfType(num6, num, 1, 3, 10)) {
+			return false;
+		}
+		let cache: TileColorCache = Rt.tile.get(num6, num).BlockColorAndCoating();
+		if (Rt.tile.get(num6, (num + 1) | 0) === null!) {
+			Rt.tile.set(num6, (num + 1) | 0, new Tile());
+		}
+		let cache2: TileColorCache = Rt.tile.get(num6, (num + 1) | 0).BlockColorAndCoating();
+		if (Rt.tile.get(num6, (num + 2) | 0) === null!) {
+			Rt.tile.set(num6, (num + 2) | 0, new Tile());
+		}
+		let cache3: TileColorCache = Rt.tile.get(num6, (num + 2) | 0).BlockColorAndCoating();
+		let num7: number = 0;
+		if (direction === -1) {
+			num6 = (i - 1) | 0;
+			num2 = (((num2 + 36) | 0) << 16) >> 16;
+			num7 = (i - 1) | 0;
+		} else {
+			num6 = i;
+			num7 = (i + 1) | 0;
+		}
+		for (let k: number = num; k < ((num + 3) | 0); k++) {
+			tile = Framing.GetTileSafely(num7, k);
+			if (
+				tile.active_() &&
+				!Main.tileCut[tile.type] &&
+				tile.type !== 165 &&
+				!TileID_Sets.IsADripTile[tile.type]
+			) {
+				return false;
+			}
+		}
+		for (let l: number = num; l < ((num + 3) | 0); l++) {
+			tile = Rt.tile.get(num7, l);
+			if (
+				tile !== null! &&
+				tile.active_() &&
+				(Main.tileCut[tile.type] || tile.type === 165 || TileID_Sets.IsADripTile[tile.type])
+			) {
+				WorldGen.KillTile(num7, l, false, false, false);
+			}
+		}
+		if (!!(Main.netMode !== 1 && $hole('Terraria.Wiring.running'))) {
+			$hole('Terraria.Wiring.SkipWire');
+			$hole('Terraria.Wiring.SkipWire');
+			$hole('Terraria.Wiring.SkipWire');
+			$hole('Terraria.Wiring.SkipWire');
+			$hole('Terraria.Wiring.SkipWire');
+			$hole('Terraria.Wiring.SkipWire');
+		}
+		let num8: number = Math.imul((num4 % 36) | 0, 54);
+		$sound(8, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+		Rt.tile.get(num6, num).active_Boolean(true);
+		Rt.tile.get(num6, num).type = 11;
+		Rt.tile.get(num6, num).frameY = (num8 << 16) >> 16;
+		Rt.tile.get(num6, num).frameX = num2;
+		Rt.tile.get(num6, num).UseBlockColors(cache.clone());
+		if (Rt.tile.get((num6 + 1) | 0, num) === null!) {
+			Rt.tile.set((num6 + 1) | 0, num, new Tile());
+		}
+		Rt.tile.get((num6 + 1) | 0, num).active_Boolean(true);
+		Rt.tile.get((num6 + 1) | 0, num).type = 11;
+		Rt.tile.get((num6 + 1) | 0, num).frameY = (num8 << 16) >> 16;
+		Rt.tile.get((num6 + 1) | 0, num).frameX = (((num2 + 18) | 0) << 16) >> 16;
+		Rt.tile.get((num6 + 1) | 0, num).UseBlockColors(cache.clone());
+		if (Rt.tile.get(num6, (num + 1) | 0) === null!) {
+			Rt.tile.set(num6, (num + 1) | 0, new Tile());
+		}
+		Rt.tile.get(num6, (num + 1) | 0).active_Boolean(true);
+		Rt.tile.get(num6, (num + 1) | 0).type = 11;
+		Rt.tile.get(num6, (num + 1) | 0).frameY = (((num8 + 18) | 0) << 16) >> 16;
+		Rt.tile.get(num6, (num + 1) | 0).frameX = num2;
+		Rt.tile.get(num6, (num + 1) | 0).UseBlockColors(cache2.clone());
+		if (Rt.tile.get((num6 + 1) | 0, (num + 1) | 0) === null!) {
+			Rt.tile.set((num6 + 1) | 0, (num + 1) | 0, new Tile());
+		}
+		Rt.tile.get((num6 + 1) | 0, (num + 1) | 0).active_Boolean(true);
+		Rt.tile.get((num6 + 1) | 0, (num + 1) | 0).type = 11;
+		Rt.tile.get((num6 + 1) | 0, (num + 1) | 0).frameY = (((num8 + 18) | 0) << 16) >> 16;
+		Rt.tile.get((num6 + 1) | 0, (num + 1) | 0).frameX = (((num2 + 18) | 0) << 16) >> 16;
+		Rt.tile.get((num6 + 1) | 0, (num + 1) | 0).UseBlockColors(cache2.clone());
+		if (Rt.tile.get(num6, (num + 2) | 0) === null!) {
+			Rt.tile.set(num6, (num + 2) | 0, new Tile());
+		}
+		Rt.tile.get(num6, (num + 2) | 0).active_Boolean(true);
+		Rt.tile.get(num6, (num + 2) | 0).type = 11;
+		Rt.tile.get(num6, (num + 2) | 0).frameY = (((num8 + 36) | 0) << 16) >> 16;
+		Rt.tile.get(num6, (num + 2) | 0).frameX = num2;
+		Rt.tile.get(num6, (num + 2) | 0).UseBlockColors(cache3.clone());
+		if (Rt.tile.get((num6 + 1) | 0, (num + 2) | 0) === null!) {
+			Rt.tile.set((num6 + 1) | 0, (num + 2) | 0, new Tile());
+		}
+		Rt.tile.get((num6 + 1) | 0, (num + 2) | 0).active_Boolean(true);
+		Rt.tile.get((num6 + 1) | 0, (num + 2) | 0).type = 11;
+		Rt.tile.get((num6 + 1) | 0, (num + 2) | 0).frameY = (((num8 + 36) | 0) << 16) >> 16;
+		Rt.tile.get((num6 + 1) | 0, (num + 2) | 0).frameX = (((num2 + 18) | 0) << 16) >> 16;
+		Rt.tile.get((num6 + 1) | 0, (num + 2) | 0).UseBlockColors(cache3.clone());
+		for (let m: number = (num6 - 1) | 0; m <= ((num6 + 2) | 0); m++) {
+			for (let n: number = (num - 1) | 0; n <= ((num + 2) | 0); n++) {
+				WorldGen.TileFrame(m, n, false, false);
+			}
+		}
+		return true;
+	}
+
+	static CloseDoor(i: number, j: number, forced: boolean): boolean {
+		let num: number = 0;
+		let num2: number = i;
+		let num3: number = j;
+		if (Rt.tile.get(i, j) === null!) {
+			Rt.tile.set(i, j, new Tile());
+		}
+		let frameX: number = Rt.tile.get(i, j).frameX;
+		let tile: Tile = Rt.tile.get(i, j);
+		if (tile.type !== 11) {
+			return false;
+		}
+		let num4: number = tile.frameY;
+		let num5: number = 0;
+		let num6: number = 0;
+		while (num4 >= 54) {
+			num4 = (num4 - 54) | 0;
+			num5++;
+		}
+		if (frameX >= 72) {
+			num5 = (num5 + Math.imul(36, (frameX / 72) | 0)) | 0;
+			num6 = (num6 + Math.imul(54, (frameX / 72) | 0)) | 0;
+		}
+		num3 = (j - ((num4 / 18) | 0)) | 0;
+		switch ((frameX % 72) | 0) {
+			case 0:
+				num2 = i;
+				num = 1;
+				break;
+			case 18:
+				num2 = (i - 1) | 0;
+				num = 1;
+				break;
+			case 36:
+				num2 = (i + 1) | 0;
+				num = -1;
+				break;
+			case 54:
+				num2 = i;
+				num = -1;
+				break;
+		}
+		let num7: number = num2;
+		if (num === -1) {
+			num7 = (num2 - 1) | 0;
+		}
+		if (!forced) {
+			for (let k: number = num3; k < ((num3 + 3) | 0); k++) {
+				if (!Collision.EmptyTile(num2, k, true)) {
+					return false;
+				}
+			}
+		}
+		if (!WorldGen.ValidateTileSquareIsActiveAndOfType(num7, num3, 2, 3, 11)) {
+			return false;
+		}
+		for (let l: number = num7; l < ((num7 + 2) | 0); l++) {
+			for (let m: number = num3; m < ((num3 + 3) | 0); m++) {
+				if (Rt.tile.get(l, m) === null!) {
+					Rt.tile.set(l, m, new Tile());
+				}
+				let tile2: Tile = Rt.tile.get(l, m);
+				if (tile2.active_() && tile2.type === 11) {
+					if (l === num2) {
+						tile2.type = 10;
+						tile2.frameX =
+							(((Math.imul(WorldGen.genRand.Next_Int32(3), 18) + num6) | 0) << 16) >> 16;
+					} else {
+						tile2.active_Boolean(false);
+					}
+				}
+			}
+		}
+		if (!!(Main.netMode !== 1 && $hole('Terraria.Wiring.running'))) {
+			$hole('Terraria.Wiring.SkipWire');
+			$hole('Terraria.Wiring.SkipWire');
+			$hole('Terraria.Wiring.SkipWire');
+		}
+		for (let n: number = (num2 - 1) | 0; n <= ((num2 + 1) | 0); n++) {
+			for (let num8: number = (num3 - 1) | 0; num8 <= ((num3 + 2) | 0); num8++) {
+				WorldGen.TileFrame(n, num8, false, false);
+			}
+		}
+		$sound(9, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+		return true;
+	}
+
+	static PlaceDoor(i: number, j: number, type: number, style: number): boolean {
+		let num: number = (style / 36) | 0;
+		let num2: number = (style % 36) | 0;
+		let num3: number = Math.imul(54, num);
+		let num4: number = Math.imul(54, num2);
+		try {
+			if (
+				Rt.tile.get(i, (j - 2) | 0).nactive() &&
+				Main.tileSolid[Rt.tile.get(i, (j - 2) | 0).type] &&
+				WorldGen.SolidTile_Int32_Int32_Boolean(i, (j + 2) | 0, false)
+			) {
+				Rt.tile.get(i, (j - 1) | 0).active_Boolean(true);
+				Rt.tile.get(i, (j - 1) | 0).type = 10;
+				Rt.tile.get(i, (j - 1) | 0).frameY = (num4 << 16) >> 16;
+				Rt.tile.get(i, (j - 1) | 0).frameX =
+					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
+				Rt.tile.get(i, j).active_Boolean(true);
+				Rt.tile.get(i, j).type = 10;
+				Rt.tile.get(i, j).frameY = (((num4 + 18) | 0) << 16) >> 16;
+				Rt.tile.get(i, j).frameX =
+					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
+				Rt.tile.get(i, (j + 1) | 0).active_Boolean(true);
+				Rt.tile.get(i, (j + 1) | 0).type = 10;
+				Rt.tile.get(i, (j + 1) | 0).frameY = (((num4 + 36) | 0) << 16) >> 16;
+				Rt.tile.get(i, (j + 1) | 0).frameX =
+					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
+				return true;
+			}
+			return false;
+		} catch (_e) {
+			return false;
+		}
+	}
+
+	static PlaceWall(i: number, j: number, type: number, mute: boolean): void {
+		if (i <= 1 || j <= 1 || i >= ((Main.maxTilesX - 2) | 0) || j >= ((Main.maxTilesY - 2) | 0)) {
+			return;
+		}
+		if (Rt.tile.get(i, j) === null!) {
+			Rt.tile.set(i, j, new Tile());
+		}
+		if (Rt.tile.get(i, j).wall === 0) {
+			Rt.tile.get(i, j).wall = type & 0xffff;
+			WorldGen.SquareWallFrame(i, j, true);
+			if (!mute) {
+				$sound(0, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+			}
+		}
+	}
+
+	static AnchorValid(tileCache: Tile, anchor: number): boolean {
+		let flag: boolean = false;
+		if (tileCache.nactive()) {
+			if (
+				((anchor & 1) | 0) === 1 &&
+				Main.tileSolid[tileCache.type] &&
+				!Main.tileSolidTop[tileCache.type] &&
+				!Main.tileNoAttach[tileCache.type] &&
+				tileCache.blockType() === 0
+			) {
+				flag = true;
+			}
+			if (
+				((anchor & 128) | 0) === 128 &&
+				((Main.tileSolid[tileCache.type] &&
+					(!Main.tileSolidTop[tileCache.type] ||
+						(TileID_Sets.Platforms[tileCache.type] &&
+							(tileCache.halfBrick_() || tileCache.topSlope())))) ||
+					tileCache.topSlope() ||
+					tileCache.halfBrick_()) &&
+				!TileID_Sets.NotReallySolid[tileCache.type] &&
+				!tileCache.bottomSlope()
+			) {
+				flag = true;
+			}
+			if (!flag && (((anchor & 2) | 0) === 2 || ((anchor & 4) | 0) === 4)) {
+				if (TileID_Sets.Platforms[tileCache.type]) {
+					let num: number = (tileCache.frameX / TileObjectData.PlatformFrameWidth()) | 0;
+					if (
+						(!tileCache.halfBrick_() && num >= 0 && num <= 7) ||
+						(num >= 12 && num <= 16) ||
+						(num >= 25 && num <= 26)
+					) {
+						flag = true;
+					}
+				} else if (Main.tileSolid[tileCache.type] && Main.tileSolidTop[tileCache.type]) {
+					flag = true;
+				}
+			}
+			if (
+				!flag &&
+				((anchor & 4) | 0) === 4 &&
+				!TileID_Sets.Platforms[tileCache.type] &&
+				Main.tileTable[tileCache.type] &&
+				tileCache.blockType() === 0
+			) {
+				flag = true;
+			}
+			if (
+				!flag &&
+				((anchor & 8) | 0) === 8 &&
+				Main.tileSolid[tileCache.type] &&
+				!Main.tileSolidTop[tileCache.type]
+			) {
+				let num2: number = tileCache.blockType();
+				if (((num2 - 4) | 0) >>> 0 <= 1) {
+					flag = true;
+				}
+			}
+		} else if (!flag && ((anchor & 64) | 0) === 64) {
+			flag = true;
+		}
+		return flag;
+	}
+
+	static GetDoorItem(doorStyle: number): number {
+		let result: number = 0;
+		switch (doorStyle) {
+			case 0:
+				result = 25;
+				break;
+			case 1:
+				result = 650;
+				break;
+			case 2:
+				result = 651;
+				break;
+			case 3:
+				result = 652;
+				break;
+			case 4:
+			case 5:
+			case 6:
+			case 7:
+			case 8:
+				result = (812 + doorStyle) | 0;
+				break;
+			default:
+				switch (doorStyle) {
+					case 9:
+						result = 837;
+						break;
+					case 10:
+						result = 912;
+						break;
+					case 12:
+						result = 1137;
+						break;
+					case 13:
+						result = 1138;
+						break;
+					case 14:
+						result = 1139;
+						break;
+					case 15:
+						result = 1140;
+						break;
+					case 16:
+						result = 1411;
+						break;
+					case 17:
+						result = 1412;
+						break;
+					case 18:
+						result = 1413;
+						break;
+					case 19:
+						result = 1458;
+						break;
+					case 20:
+					case 21:
+					case 22:
+					case 23:
+						result = (((1709 + doorStyle) | 0) - 20) | 0;
+						break;
+					default:
+						switch (doorStyle) {
+							case 24:
+								result = 1793;
+								break;
+							case 25:
+								result = 1815;
+								break;
+							case 26:
+								result = 1924;
+								break;
+							case 27:
+								result = 2044;
+								break;
+							case 28:
+								result = 2265;
+								break;
+							case 29:
+								result = 2528;
+								break;
+							case 30:
+								result = 2561;
+								break;
+							case 31:
+								result = 2576;
+								break;
+							case 32:
+								result = 2815;
+								break;
+							case 33:
+								result = 3129;
+								break;
+							case 34:
+								result = 3131;
+								break;
+							case 35:
+								result = 3130;
+								break;
+							case 36:
+								result = 3888;
+								break;
+							case 37:
+								result = 3941;
+								break;
+							case 38:
+								result = 3967;
+								break;
+							case 39:
+								result = 4155;
+								break;
+							case 40:
+								result = 4176;
+								break;
+							case 41:
+								result = 4197;
+								break;
+							case 42:
+								result = 4218;
+								break;
+							case 43:
+								result = 4307;
+								break;
+							case 44:
+								result = 4415;
+								break;
+							case 45:
+								result = 4576;
+								break;
+							case 46:
+								result = 5158;
+								break;
+							case 47:
+								result = 5179;
+								break;
+							case 48:
+								result = 5200;
+								break;
+							case 49:
+								result = 5558;
+								break;
+							case 50:
+								result = 5611;
+								break;
+							case 51:
+								result = 5699;
+								break;
+							case 52:
+								result = 5722;
+								break;
+							case 53:
+								result = 5747;
+								break;
+							case 54:
+								result = 5765;
+								break;
+							case 55:
+								result = 5786;
+								break;
+							case 56:
+								result = 5807;
+								break;
+							case 57:
+								result = 5828;
+								break;
+							case 58:
+								result = 5867;
+								break;
+							case 59:
+								result = 5907;
+								break;
+							case 60:
+								result = 5941;
+								break;
+							case 61:
+								result = 5964;
+								break;
+							case 62:
+								result = 5984;
+								break;
+							case 63:
+								result = 6007;
+								break;
+							case 64:
+								result = 6030;
+								break;
+							case 65:
+								result = 6053;
+								break;
+							case 66:
+								result = 6076;
+								break;
+							case 67:
+								result = 6098;
+								break;
+							case 68:
+								result = 6120;
+								break;
+						}
+						break;
+				}
+				break;
+		}
+		return result;
+	}
+
+	static GetItemDrop_Benches(style: number): number {
+		return (($v) =>
+			$v === 1
+				? 2397
+				: $v === 2
+					? 2398
+					: $v === 3
+						? 2399
+						: $v === 4
+							? 2400
+							: $v === 5
+								? 2401
+								: $v === 6
+									? 2402
+									: $v === 7
+										? 2403
+										: $v === 8
+											? 2404
+											: $v === 9
+												? 2405
+												: $v === 10
+													? 2406
+													: $v === 11
+														? 2407
+														: $v === 12
+															? 2408
+															: $v === 13
+																? 2409
+																: $v === 14
+																	? 2410
+																	: $v === 15
+																		? 2411
+																		: $v === 16
+																			? 2412
+																			: $v === 17
+																				? 2413
+																				: $v === 18
+																					? 2414
+																					: $v === 19
+																						? 2415
+																						: $v === 20
+																							? 2416
+																							: $v === 21
+																								? 2521
+																								: $v === 22
+																									? 2527
+																									: $v === 23
+																										? 2539
+																										: $v === 24
+																											? 858
+																											: $v === 25
+																												? 2582
+																												: $v === 26
+																													? 2634
+																													: $v === 27
+																														? 2635
+																														: $v === 28
+																															? 2636
+																															: $v === 29
+																																? 2823
+																																: $v === 30
+																																	? 3150
+																																	: $v === 31
+																																		? 3152
+																																		: $v === 32
+																																			? 3151
+																																			: $v === 33
+																																				? 3918
+																																				: $v === 34
+																																					? 3919
+																																					: $v === 35
+																																						? 3947
+																																						: $v === 36
+																																							? 3973
+																																							: $v === 37
+																																								? 4161
+																																								: $v === 38
+																																									? 4182
+																																									: $v === 39
+																																										? 4203
+																																										: $v === 40
+																																											? 4224
+																																											: $v === 41
+																																												? 4313
+																																												: $v === 42
+																																													? 4582
+																																													: $v ===
+																																														  43
+																																														? 4993
+																																														: $v ===
+																																															  44
+																																															? 5164
+																																															: $v ===
+																																																  45
+																																																? 5185
+																																																: $v ===
+																																																	  46
+																																																	? 5206
+																																																	: $v ===
+																																																		  47
+																																																		? 5564
+																																																		: $v ===
+																																																			  48
+																																																			? 5617
+																																																			: $v ===
+																																																				  49
+																																																				? 5705
+																																																				: $v ===
+																																																					  50
+																																																					? 5728
+																																																					: $v ===
+																																																						  51
+																																																						? 5753
+																																																						: $v ===
+																																																							  52
+																																																							? 5772
+																																																							: $v ===
+																																																								  53
+																																																								? 5793
+																																																								: $v ===
+																																																									  54
+																																																									? 5814
+																																																									: $v ===
+																																																										  55
+																																																										? 5835
+																																																										: $v ===
+																																																											  56
+																																																											? 5854
+																																																											: $v ===
+																																																												  57
+																																																												? 5874
+																																																												: $v ===
+																																																													  58
+																																																													? 5893
+																																																													: $v ===
+																																																														  59
+																																																														? 5914
+																																																														: $v ===
+																																																															  60
+																																																															? 5948
+																																																															: $v ===
+																																																																  61
+																																																																? 5970
+																																																																: $v ===
+																																																																	  62
+																																																																	? 5991
+																																																																	: $v ===
+																																																																		  63
+																																																																		? 6014
+																																																																		: $v ===
+																																																																			  64
+																																																																			? 6037
+																																																																			: $v ===
+																																																																				  65
+																																																																				? 6060
+																																																																				: $v ===
+																																																																					  66
+																																																																					? 6083
+																																																																					: $v ===
+																																																																						  67
+																																																																						? 6105
+																																																																						: $v ===
+																																																																							  68
+																																																																							? 6127
+																																																																							: 335)(
+			style
+		);
+	}
+
+	static GetItemDrop_Chair(style: number): number {
+		switch (style) {
+			default:
+				return 34;
+			case 1:
+				return 358;
+			case 2:
+				return 628;
+			case 3:
+				return 629;
+			case 4:
+				return 630;
+			case 5:
+				return 806;
+			case 6:
+				return 807;
+			case 7:
+				return 808;
+			case 8:
+				return 809;
+			case 9:
+				return 810;
+			case 10:
+				return 826;
+			case 11:
+				return 915;
+			case 12:
+				return 1143;
+			case 13:
+				return 1396;
+			case 14:
+				return 1399;
+			case 15:
+				return 1402;
+			case 16:
+				return 1459;
+			case 17:
+				return 1509;
+			case 18:
+			case 19:
+			case 20:
+			case 21:
+			case 22:
+			case 23:
+				return (((1703 + style) | 0) - 18) | 0;
+			case 24:
+				return 1792;
+			case 25:
+				return 1814;
+			case 26:
+				return 1925;
+			case 27:
+				return 2228;
+			case 28:
+				return 2288;
+			case 29:
+				return 2524;
+			case 30:
+				return 2557;
+			case 31:
+				return 2572;
+			case 32:
+				return 2812;
+			case 33:
+				return 3174;
+			case 34:
+				return 3176;
+			case 35:
+				return 3175;
+			case 36:
+				return 3889;
+			case 37:
+				return 3937;
+			case 38:
+				return 3963;
+			case 39:
+				return 4151;
+			case 40:
+				return 4172;
+			case 41:
+				return 4193;
+			case 42:
+				return 4214;
+			case 43:
+				return 4304;
+			case 44:
+				return 4572;
+			case 45:
+				return 5154;
+			case 46:
+				return 5175;
+			case 47:
+				return 5196;
+			case 48:
+				return 5554;
+			case 49:
+				return 5607;
+			case 50:
+				return 5695;
+			case 51:
+				return 5718;
+			case 52:
+				return 5761;
+			case 53:
+				return 5782;
+			case 54:
+				return 5803;
+			case 55:
+				return 5824;
+			case 56:
+				return 5863;
+			case 57:
+				return 5884;
+			case 58:
+				return 5903;
+			case 59:
+				return 5937;
+			case 60:
+				return 5960;
+			case 61:
+				return 5980;
+			case 62:
+				return 6003;
+			case 63:
+				return 6026;
+			case 64:
+				return 6049;
+			case 65:
+				return 6072;
+			case 66:
+				return 6095;
+			case 67:
+				return 6116;
+		}
+	}
+
+	static GetItemDrop_Pianos(style: number): number {
+		let result: number = 333;
+		if (style >= 1 && style <= 3) {
+			result = (640 + style) | 0;
+		} else {
+			switch (style) {
+				case 4:
+					result = 919;
+					break;
+				case 5:
+				case 6:
+				case 7:
+					result = (((2245 + style) | 0) - 5) | 0;
+					break;
+				default:
+					if (style >= 8 && style <= 10) {
+						result = (((2254 + style) | 0) - 8) | 0;
+						break;
+					}
+					if (style >= 11 && style <= 20) {
+						result = (((2376 + style) | 0) - 11) | 0;
+						break;
+					}
+					switch (style) {
+						case 21:
+							result = 2531;
+							break;
+						case 22:
+							result = 2548;
+							break;
+						case 23:
+							result = 2565;
+							break;
+						case 24:
+							result = 2580;
+							break;
+						case 25:
+							result = 2671;
+							break;
+						case 26:
+							result = 2821;
+							break;
+						case 27:
+							result = 3141;
+							break;
+						case 28:
+							result = 3143;
+							break;
+						case 29:
+							result = 3142;
+							break;
+						case 30:
+							result = 3915;
+							break;
+						case 31:
+							result = 3916;
+							break;
+						case 32:
+							result = 3944;
+							break;
+						case 33:
+							result = 3971;
+							break;
+						case 34:
+							result = 4158;
+							break;
+						case 35:
+							result = 4179;
+							break;
+						case 36:
+							result = 4200;
+							break;
+						case 37:
+							result = 4221;
+							break;
+						case 38:
+							result = 4310;
+							break;
+						case 39:
+							result = 4579;
+							break;
+						case 40:
+							result = 5161;
+							break;
+						case 41:
+							result = 5182;
+							break;
+						case 42:
+							result = 5203;
+							break;
+						case 43:
+							result = 5561;
+							break;
+						case 44:
+							result = 5614;
+							break;
+						case 45:
+							result = 5702;
+							break;
+						case 46:
+							result = 5725;
+							break;
+						case 47:
+							result = 5750;
+							break;
+						case 48:
+							result = 5769;
+							break;
+						case 49:
+							result = 5790;
+							break;
+						case 50:
+							result = 5811;
+							break;
+						case 51:
+							result = 5832;
+							break;
+						case 52:
+							result = 5851;
+							break;
+						case 53:
+							result = 5871;
+							break;
+						case 54:
+							result = 5891;
+							break;
+						case 55:
+							result = 5911;
+							break;
+						case 56:
+							result = 5945;
+							break;
+						case 57:
+							result = 5968;
+							break;
+						case 58:
+							result = 5988;
+							break;
+						case 59:
+							result = 6011;
+							break;
+						case 60:
+							result = 6034;
+							break;
+						case 61:
+							result = 6057;
+							break;
+						case 62:
+							result = 6080;
+							break;
+						case 63:
+							result = 6102;
+							break;
+						case 64:
+							result = 6124;
+							break;
+					}
+					break;
+			}
+		}
+		return result;
+	}
+
+	static GetItemDrop_Tables(style: number, secondType: boolean): number {
+		let num: number = 0;
+		if (secondType) {
+			num = 3920;
+			switch (style) {
+				case 1:
+					num = 3948;
+					break;
+				case 2:
+					num = 3974;
+					break;
+				case 3:
+					num = 4162;
+					break;
+				case 4:
+					num = 4183;
+					break;
+				case 5:
+					num = 4204;
+					break;
+				case 6:
+					num = 4225;
+					break;
+				case 7:
+					num = 4314;
+					break;
+				case 8:
+					num = 4583;
+					break;
+				case 9:
+					num = 5165;
+					break;
+				case 10:
+					num = 5186;
+					break;
+				case 11:
+					num = 5207;
+					break;
+				case 12:
+					num = 5565;
+					break;
+				case 13:
+					num = 5618;
+					break;
+				case 14:
+					num = 5706;
+					break;
+				case 15:
+					num = 5729;
+					break;
+				case 16:
+					num = 5773;
+					break;
+				case 17:
+					num = 5794;
+					break;
+				case 18:
+					num = 5815;
+					break;
+				case 19:
+					num = 5836;
+					break;
+				case 20:
+					num = 5875;
+					break;
+				case 21:
+					num = 5894;
+					break;
+				case 22:
+					num = 5915;
+					break;
+				case 23:
+					num = 5949;
+					break;
+				case 24:
+					num = 5971;
+					break;
+				case 25:
+					num = 5992;
+					break;
+				case 26:
+					num = 6015;
+					break;
+				case 27:
+					num = 6038;
+					break;
+				case 28:
+					num = 6061;
+					break;
+				case 29:
+					num = 6084;
+					break;
+				case 30:
+					num = 6106;
+					break;
+				case 31:
+					num = 6128;
+					break;
+			}
+		} else {
+			num = 32;
+			if (style >= 1 && style <= 3) {
+				num = (637 + style) | 0;
+			} else if (style >= 15 && style <= 20) {
+				num = (1698 + style) | 0;
+			} else if (style >= 4 && style <= 7) {
+				num = (823 + style) | 0;
+			} else {
+				switch (style) {
+					case 8:
+						num = 917;
+						break;
+					case 9:
+						num = 1144;
+						break;
+					case 10:
+						num = 1397;
+						break;
+					case 11:
+						num = 1400;
+						break;
+					case 12:
+						num = 1403;
+						break;
+					case 13:
+						num = 1460;
+						break;
+					case 14:
+						num = 1510;
+						break;
+					case 23:
+						num = 1926;
+						break;
+					case 21:
+						num = 1794;
+						break;
+					case 22:
+						num = 1816;
+						break;
+					case 24:
+						num = 2248;
+						break;
+					case 25:
+						num = 2259;
+						break;
+					case 26:
+						num = 2532;
+						break;
+					case 27:
+						num = 2550;
+						break;
+					case 28:
+						num = 677;
+						break;
+					case 29:
+						num = 2583;
+						break;
+					case 30:
+						num = 2743;
+						break;
+					case 31:
+						num = 2824;
+						break;
+					case 32:
+						num = 3153;
+						break;
+					case 33:
+						num = 3155;
+						break;
+					case 34:
+						num = 3154;
+						break;
+				}
+			}
+		}
+		return num;
+	}
+
+	static GetItemDrop_Toilet(style: number): number {
+		let result: number = 4096;
+		if (style >= 0 && style <= 31) {
+			result = (4096 + style) | 0;
+		}
+		switch (style) {
+			case 32:
+				result = 4141;
+				break;
+			case 33:
+				result = 4165;
+				break;
+			case 34:
+				result = 4186;
+				break;
+			case 35:
+				result = 4207;
+				break;
+			case 36:
+				result = 4228;
+				break;
+			case 37:
+				result = 4316;
+				break;
+			case 38:
+				result = 4586;
+				break;
+			case 39:
+				result = 4731;
+				break;
+			case 40:
+				result = 5168;
+				break;
+			case 41:
+				result = 5189;
+				break;
+			case 42:
+				result = 5210;
+				break;
+			case 43:
+				result = 5568;
+				break;
+			case 44:
+				result = 5621;
+				break;
+			case 45:
+				result = 5709;
+				break;
+			case 46:
+				result = 5732;
+				break;
+			case 47:
+				result = 5755;
+				break;
+			case 48:
+				result = 5774;
+				break;
+			case 49:
+				result = 5795;
+				break;
+			case 50:
+				result = 5816;
+				break;
+			case 51:
+				result = 5837;
+				break;
+			case 52:
+				result = 5855;
+				break;
+			case 53:
+				result = 5876;
+				break;
+			case 54:
+				result = 5895;
+				break;
+			case 55:
+				result = 5916;
+				break;
+			case 56:
+				result = 5950;
+				break;
+			case 57:
+				result = 5972;
+				break;
+			case 58:
+				result = 5993;
+				break;
+			case 59:
+				result = 6016;
+				break;
+			case 60:
+				result = 6039;
+				break;
+			case 61:
+				result = 6062;
+				break;
+			case 62:
+				result = 6085;
+				break;
+			case 63:
+				result = 6107;
+				break;
+			case 64:
+				result = 6129;
+				break;
+		}
+		return result;
+	}
+
+	static GetItemDrop_Workbenches(style: number): number {
+		let result: number = 36;
+		if (style >= 1 && style <= 3) {
+			result = (634 + style) | 0;
+		} else if (style >= 4 && style <= 8) {
+			result = (807 + style) | 0;
+		} else {
+			switch (style) {
+				case 9:
+					result = 916;
+					break;
+				case 10:
+					result = 1145;
+					break;
+				case 11:
+					result = 1398;
+					break;
+				case 12:
+					result = 1401;
+					break;
+				case 13:
+					result = 1404;
+					break;
+				case 14:
+					result = 1461;
+					break;
+				case 15:
+					result = 1511;
+					break;
+				case 16:
+					result = 1795;
+					break;
+				case 17:
+					result = 1817;
+					break;
+				case 18:
+					result = 2229;
+					break;
+				case 19:
+					result = 2251;
+					break;
+				case 20:
+					result = 2252;
+					break;
+				case 21:
+					result = 2253;
+					break;
+				case 22:
+					result = 2534;
+					break;
+				case 23:
+					result = 673;
+					break;
+				case 24:
+					result = 2631;
+					break;
+				case 25:
+					result = 2632;
+					break;
+				case 26:
+					result = 2633;
+					break;
+				case 27:
+					result = 2826;
+					break;
+				case 28:
+					result = 3156;
+					break;
+				case 29:
+					result = 3158;
+					break;
+				case 30:
+					result = 3157;
+					break;
+				case 31:
+					result = 3909;
+					break;
+				case 32:
+					result = 3910;
+					break;
+				case 33:
+					result = 3949;
+					break;
+				case 34:
+					result = 3975;
+					break;
+				case 35:
+					result = 4163;
+					break;
+				case 36:
+					result = 4184;
+					break;
+				case 37:
+					result = 4205;
+					break;
+				case 38:
+					result = 4226;
+					break;
+				case 39:
+					result = 4315;
+					break;
+				case 40:
+					result = 4584;
+					break;
+				case 41:
+					result = 5166;
+					break;
+				case 42:
+					result = 5187;
+					break;
+				case 43:
+					result = 5208;
+					break;
+				case 44:
+					result = 5566;
+					break;
+				case 45:
+					result = 5619;
+					break;
+				case 46:
+					result = 5707;
+					break;
+				case 47:
+					result = 5730;
+					break;
+				case 48:
+					result = 5775;
+					break;
+				case 49:
+					result = 5796;
+					break;
+				case 50:
+					result = 5817;
+					break;
+				case 51:
+					result = 5838;
+					break;
+				case 52:
+					result = 5856;
+					break;
+				case 53:
+					result = 5877;
+					break;
+				case 54:
+					result = 5896;
+					break;
+				case 55:
+					result = 5917;
+					break;
+				case 56:
+					result = 5951;
+					break;
+				case 57:
+					result = 5973;
+					break;
+				case 58:
+					result = 5994;
+					break;
+				case 59:
+					result = 6017;
+					break;
+				case 60:
+					result = 6040;
+					break;
+				case 61:
+					result = 6063;
+					break;
+				case 62:
+					result = 6086;
+					break;
+				case 63:
+					result = 6108;
+					break;
+				case 64:
+					result = 6130;
+					break;
+			}
+		}
+		return result;
+	}
+
+	static ValidateTileSquareIsActiveAndOfType(
+		topLeftX: number,
+		topLeftY: number,
+		width: number,
+		height: number,
+		type: number
+	): boolean {
+		let flag: boolean = false;
+		for (let i: number = 0; i < width; i++) {
+			for (let j: number = 0; j < height; j++) {
+				let num: number = (topLeftX + i) | 0;
+				let num2: number = (topLeftY + j) | 0;
+				if (!WorldGen.InWorld_Int32_Int32_Int32(num, num2, 0)) {
+					return false;
+				}
+				let tile: Tile = Rt.tile.get(num, num2);
+				if (tile !== null! && (!tile.active_() || tile.type !== type)) {
+					flag = true;
+					break;
+				}
+			}
+			if (flag) {
+				break;
+			}
+		}
+		if (flag) {
+			for (let k: number = 0; k < width; k++) {
+				for (let l: number = 0; l < height; l++) {
+					let num3: number = (topLeftX + k) | 0;
+					let num4: number = (topLeftY + l) | 0;
+					let tile2: Tile = Rt.tile.get(num3, num4);
+					if (tile2 !== null! && tile2.active_() && tile2.type === type) {
+						WorldGen.KillTile(num3, num4, false, false, false);
+						if (Main.netMode !== 0) {
+							NetMessage.SendData(17, -1, -1, null!, 0, num3, num4, 0, 0, 0, 0);
+						}
+					}
+				}
+			}
+			return false;
+		}
+		return true;
+	}
+
+	static DropDoorItem(x: number, y: number, doorStyle: number): void {
+		let doorItem: number = WorldGen.GetDoorItem(doorStyle);
+		if (doorItem !== 0) {
+			$newItem(
+				WorldGen.GetItemSource_FromTileBreak(x, y),
+				Math.imul(x, 16),
+				Math.imul(y, 16),
+				16,
+				16,
+				doorItem,
+				1,
+				false,
+				0,
+				0,
+				null!,
+				null!
+			);
+		}
+	}
+
+	static InvalidTileForPilesOrSpeleothems(x: number, y: number): boolean {
+		if (!WorldGen.InWorld_Int32_Int32_Int32(x, y, 2)) {
+			return false;
+		}
+		if (Rt.tile.get(x, y) === null!) {
+			return false;
+		}
+		if (Rt.tile.get(x, y).active_()) {
+			return TileID_Sets.Boulders[Rt.tile.get(x, y).type];
+		}
+		return false;
+	}
+
 	static AshTreeGroundTest(tileType: number): boolean {
 		if (tileType < 0) {
 			return false;
@@ -9949,6 +21213,82 @@ export class WorldGen {
 			return false;
 		}
 		return TileID_Sets.CanBeClearedDuringGeneration[tileType];
+	}
+
+	static CanPlaceProjectilePressurePad(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		let canUp: boolean = false;
+		let canLeft: boolean = false;
+		let canRight: boolean = false;
+		let canDown: boolean = false;
+		WorldGen.CheckProjectilePressurePad_GetPossiblePlacementDirections(
+			x,
+			y,
+			{
+				get v() {
+					return canUp;
+				},
+				set v($v: boolean) {
+					canUp = $v;
+				}
+			},
+			{
+				get v() {
+					return canLeft;
+				},
+				set v($v: boolean) {
+					canLeft = $v;
+				}
+			},
+			{
+				get v() {
+					return canRight;
+				},
+				set v($v: boolean) {
+					canRight = $v;
+				}
+			},
+			{
+				get v() {
+					return canDown;
+				},
+				set v($v: boolean) {
+					canDown = $v;
+				}
+			}
+		);
+		if (!canUp && !canDown && !canLeft && !canRight) {
+			return -1;
+		}
+		switch (alternate) {
+			case 0:
+				if (!canDown) {
+					return -1;
+				}
+				break;
+			case 1:
+				if (!canUp) {
+					return -1;
+				}
+				break;
+			case 2:
+				if (!canLeft) {
+					return -1;
+				}
+				break;
+			case 3:
+				if (!canRight) {
+					return -1;
+				}
+				break;
+		}
+		return style;
 	}
 
 	static CanUnderwaterPlantGrowHere(
@@ -10810,40 +22150,6 @@ export class WorldGen {
 		}
 	}
 
-	static PlaceDoor(i: number, j: number, type: number, style: number): boolean {
-		let num: number = (style / 36) | 0;
-		let num2: number = (style % 36) | 0;
-		let num3: number = Math.imul(54, num);
-		let num4: number = Math.imul(54, num2);
-		try {
-			if (
-				Rt.tile.get(i, (j - 2) | 0).nactive() &&
-				Main.tileSolid[Rt.tile.get(i, (j - 2) | 0).type] &&
-				WorldGen.SolidTile_Int32_Int32_Boolean(i, (j + 2) | 0, false)
-			) {
-				Rt.tile.get(i, (j - 1) | 0).active_Boolean(true);
-				Rt.tile.get(i, (j - 1) | 0).type = 10;
-				Rt.tile.get(i, (j - 1) | 0).frameY = (num4 << 16) >> 16;
-				Rt.tile.get(i, (j - 1) | 0).frameX =
-					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
-				Rt.tile.get(i, j).active_Boolean(true);
-				Rt.tile.get(i, j).type = 10;
-				Rt.tile.get(i, j).frameY = (((num4 + 18) | 0) << 16) >> 16;
-				Rt.tile.get(i, j).frameX =
-					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
-				Rt.tile.get(i, (j + 1) | 0).active_Boolean(true);
-				Rt.tile.get(i, (j + 1) | 0).type = 10;
-				Rt.tile.get(i, (j + 1) | 0).frameY = (((num4 + 36) | 0) << 16) >> 16;
-				Rt.tile.get(i, (j + 1) | 0).frameX =
-					(((num3 + Math.imul(WorldGen.genRand.Next_Int32(3), 18)) | 0) << 16) >> 16;
-				return true;
-			}
-			return false;
-		} catch (_e) {
-			return false;
-		}
-	}
-
 	static PlaceGnome(x: number, y: number, style: number): void {
 		WorldGen.PlaceObject(x, y, 567, false, style, 0, -1, -1);
 	}
@@ -10961,20 +22267,92 @@ export class WorldGen {
 		}
 	}
 
-	static PlaceWall(i: number, j: number, type: number, mute: boolean): void {
-		if (i <= 1 || j <= 1 || i >= ((Main.maxTilesX - 2) | 0) || j >= ((Main.maxTilesY - 2) | 0)) {
-			return;
-		}
-		if (Rt.tile.get(i, j) === null!) {
-			Rt.tile.set(i, j, new Tile());
-		}
-		if (Rt.tile.get(i, j).wall === 0) {
-			Rt.tile.get(i, j).wall = type & 0xffff;
-			WorldGen.SquareWallFrame(i, j, true);
-			if (!mute) {
-				$sound(0, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+	static PlaceXmasTree_Direct(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		dir: number,
+		alternate: number
+	): number {
+		for (let num: number = 0; num < 4; num = ((num + 1) << 16) >> 16) {
+			for (let num2: number = 0; num2 < 8; num2 = ((num2 + 1) << 16) >> 16) {
+				if (
+					Rt.tile.get((x + num) | 0, (y + num2) | 0) !== null! &&
+					Rt.tile.get((x + num) | 0, (y + num2) | 0).active_()
+				) {
+					WorldGen.KillTile((x + num) | 0, (y + num2) | 0, false, false, false);
+				}
 			}
 		}
+		for (let num3: number = 0; num3 < 4; num3 = ((num3 + 1) << 16) >> 16) {
+			for (let num4: number = 0; num4 < 8; num4 = ((num4 + 1) << 16) >> 16) {
+				let tile: Tile = Rt.tile.get((x + num3) | 0, (y + num4) | 0);
+				tile.active_Boolean(true);
+				tile.type = type & 0xffff;
+				if (num3 === 0 && num4 === 0) {
+					tile.frameX = 10;
+					tile.frameY = 0;
+				} else {
+					tile.frameX = num3;
+					tile.frameY = num4;
+				}
+			}
+		}
+		return 0;
+	}
+
+	static PlantCheck_CanPlaceHook(
+		x: number,
+		y: number,
+		type: number,
+		style: number,
+		direction: number,
+		alternate: number
+	): number {
+		let down: number = -1;
+		if (((y + 1) | 0) >= Main.maxTilesY) {
+			down = type;
+		}
+		if (
+			((y + 1) | 0) < Main.maxTilesY &&
+			Rt.tile.get(x, (y + 1) | 0) !== null! &&
+			Rt.tile.get(x, (y + 1) | 0).nactive() &&
+			!Rt.tile.get(x, (y + 1) | 0).halfBrick_() &&
+			Rt.tile.get(x, (y + 1) | 0).slope_() === 0
+		) {
+			down = Rt.tile.get(x, (y + 1) | 0).type;
+		}
+		if (type === 703) {
+			if (!WorldGen.SolidTileAllowBottomSlope(x, (y + 1) | 0)) {
+				return 0;
+			}
+			return 1;
+		}
+		if (WorldGen.PlantCheck_IsBadTypeMatch(down, type)) {
+			return 0;
+		}
+		return 1;
+	}
+
+	static PlantCheck_IsBadTypeMatch(down: number, type: number): boolean {
+		if (
+			(type !== 3 || down === 2 || down === 477 || down === 78 || down === 380 || down === 579) &&
+			(type !== 73 || down === 2 || down === 477 || down === 78 || down === 380 || down === 579) &&
+			(type !== 24 || down === 23 || down === 661) &&
+			(type !== 61 || down === 60 || down === 226) &&
+			(type !== 74 || down === 60 || down === 226) &&
+			(type !== 71 || down === 70) &&
+			(type !== 110 || down === 109 || down === 492) &&
+			(type !== 113 || down === 109 || down === 492) &&
+			(type !== 201 || down === 199 || down === 662)
+		) {
+			if (type === 637) {
+				return down !== 633;
+			}
+			return false;
+		}
+		return true;
 	}
 
 	static PlantSeaOat(x: number, y: number): boolean {
@@ -11009,7 +22387,7 @@ export class WorldGen {
 	}
 
 	static PlatformProperTopFrame(frameX: number): boolean {
-		let num: number = $hole('frameX / TileObjectData.PlatformFrameWidth()');
+		let num: number = (frameX / TileObjectData.PlatformFrameWidth()) | 0;
 		if ((num < 0 || num > 7) && (num < 12 || num > 16)) {
 			if (num >= 25) {
 				return num <= 26;
@@ -11055,6 +22433,56 @@ export class WorldGen {
 		}
 	}
 
+	static SlopeTile(
+		i: number,
+		j: number,
+		slope: number,
+		noEffects: boolean,
+		quiet: boolean
+	): boolean {
+		if (!WorldGen.CanPoundTile(i, j)) {
+			return false;
+		}
+		Rt.tile.get(i, j).halfBrick_Boolean(false);
+		Rt.tile.get(i, j).slope_Byte(slope & 0xff);
+		if (!WorldGen.isGeneratingOrLoadingWorld) {
+			if (!noEffects) {
+				WorldGen.KillTile(i, j, true, true, false);
+			}
+			$sound(0, Math.imul(i, 16), Math.imul(j, 16), 1, 1, 0);
+			WorldGen.SquareTileFrame(i, j, true);
+			slope = Rt.tile.get(i, j).slope_();
+			if (slope === 0) {
+				let val: Rectangle = new Rectangle();
+				val = new Rectangle(Math.imul(i, 16), Math.imul(j, 16), 16, 16);
+				for (let k: number = 0; k < 255; k++) {
+					if (
+						Main.player[k].active &&
+						!Main.player[k].dead &&
+						val.Intersects(
+							new Rectangle(
+								Math.trunc(Main.player[k].position.X) | 0,
+								Math.trunc(Main.player[k].position.Y) | 0,
+								Main.player[k].width,
+								Main.player[k].height
+							)
+						)
+					) {
+						Main.player[k].gfxOffY = Math.fround(
+							Main.player[k].gfxOffY +
+								Math.fround(Math.fround(Main.player[k].position.Y + Main.player[k].height) - val.Y)
+						);
+						Main.player[k].position.Y = (val.Y - Main.player[k].height) | 0;
+					}
+				}
+			}
+		}
+		if (!quiet) {
+			NetMessage.SendData(17, -1, -1, null!, 14, i, j, slope, 0, 0, 0);
+		}
+		return true;
+	}
+
 	static SolidTileAllowBottomSlope(i: number, j: number): boolean {
 		try {
 			if (!WorldGen.InWorld_Int32_Int32_Int32(i, j, 0)) {
@@ -11092,12 +22520,18 @@ export class WorldGen {
 		Framing.WallFrame((i + 1) | 0, (j + 1) | 0, false);
 	}
 
+	static get TransformingWorld(): boolean {
+		return WorldGen._transformingWorld > 0;
+	}
+
 	static TreeTypeDropsAcorns(treeType: number): boolean {
 		if (treeType === 0 || treeType === 3 || treeType === 5) {
 			return false;
 		}
 		return true;
 	}
+
+	static _transformingWorld: number = 0;
 
 	static beachDistance: number = 380;
 
@@ -12386,6 +23820,10 @@ export class WorldGen {
 		return false;
 	}
 
+	static SmashAltar(i: number, j: number): void {
+		$hit('WorldGen.SmashAltar');
+	}
+
 	static KillTile_DropBait(i: number, j: number, tileCache: Tile): void {}
 
 	static TreeGrowFX(
@@ -12395,6 +23833,11 @@ export class WorldGen {
 		treeGore: number,
 		hitTree: boolean
 	): void {}
+
+	static CanPoundTile(x: number, y: number): boolean {
+		$hit('WorldGen.CanPoundTile');
+		return false;
+	}
 
 	static TryConvertingOrKillingTreesAboveIfTheyWouldBecomeInvalid(
 		i: number,
@@ -12438,6 +23881,21 @@ export class WorldGen {
 			return;
 		}
 		switch (type) {
+			case 10:
+				WorldGen.CheckDoorClosed(i, j, tileCache, type);
+				return;
+			case 11:
+				WorldGen.CheckDoorOpen(i, j, tileCache);
+				return;
+			case 14:
+				WorldGen.Check3x2(i, j, type & 0xffff);
+				return;
+			case 15:
+				WorldGen.Check1x2(i, j, type & 0xffff);
+				return;
+			case 18:
+				WorldGen.Check2x1(i, j, type & 0xffff);
+				return;
 			case 5:
 				WorldGen.CheckTree(i, j);
 				return;

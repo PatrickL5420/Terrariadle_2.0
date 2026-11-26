@@ -145,6 +145,12 @@ public struct Rectangle
 {
 	public int X, Y, Width, Height;
 
+	public static bool operator ==(Rectangle a, Rectangle b) =>
+		a.X == b.X && a.Y == b.Y && a.Width == b.Width && a.Height == b.Height;
+	public static bool operator !=(Rectangle a, Rectangle b) => !(a == b);
+	public override bool Equals(object o) => o is Rectangle r && r == this;
+	public override int GetHashCode() => X ^ (Y << 8) ^ (Width << 16) ^ (Height << 24);
+
 	public Rectangle(int x, int y, int w, int h)
 	{
 		X = x;

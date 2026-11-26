@@ -34,6 +34,7 @@ import {
 	type TileGrid
 } from './framing';
 import { holding, WorldGen } from './gen';
+import { TileObject, TileObjectData } from './gen/game';
 import { Rt } from './gen/runtime';
 import { HitTile, TILE } from './hit-tile';
 import type { Player } from './player';
@@ -116,6 +117,10 @@ export const ITEMS: Record<number, ItemStats> = {
 	},
 	/** Wood (the item), which places wood blocks. */
 	9: { ...BLOCK, createTile: 30, frame: [24, 22] },
+	/** Work Bench, Wooden Table, Wooden Chair. */
+	36: { ...BLOCK, createTile: 18, frame: [32, 18] },
+	32: { ...BLOCK, createTile: 14, frame: [30, 22] },
+	34: { ...BLOCK, createTile: 15, frame: [16, 32] },
 	/** Torch. */
 	8: { ...BLOCK, createTile: 4, holdStyle: 1, frame: [14, 16] },
 	/** Copper Axe. */
@@ -397,6 +402,17 @@ function placeThing(p: Player, s: ItemStats, w: ItemWorld) {
 	// Only into the open (no liquids here); and only as a use's time comes round.
 	if (w.tiles.at(x, y) !== AIR) return;
 	if (p.itemTime !== 0 || p.itemAnimation <= 0 || !p.controls.use) return;
+	// PlaceThing_Tiles_TryPlacing: an object of more than one tile (furniture) by its object
+	// data (TileObject.CanPlace, then PlaceIt's TileObject.Place: the game's, converted).
+	if (TileObjectData.CustomPlace(s.createTile, 0) && ![82, 227, TORCH].includes(s.createTile)) {
+		const data = { v: new TileObject() };
+		if (!TileObject.CanPlace(x, y, s.createTile, 0, p.direction, data, false, null)) return;
+		const placed = TileObject.Place(data.v);
+		WorldGen.SquareTileFrame(x, y, true);
+		w.sound({ type: 0, style: 1, x: x * 16, y: y * 16 });
+		if (placed) p.itemTime = p.itemTimeMax = Math.max(Math.trunc(f(s.useTime * 1)), 1);
+		return;
+	}
 	// PlaceThing_Tiles_BlockPlacementForAssortedThings: next to a block or a wall, or on a wall.
 	if (!(s.createTile === TORCH ? canPlaceTorch(w, x, y) : canPlaceAt(w, x, y))) return;
 	if (!placeTile(p, w, x, y, s.createTile)) return;
@@ -446,6 +462,7 @@ export function overlapsPlayer(p: Player, i: number, j: number): boolean {
 
 /** PlaceThing_Tiles_PlaceIt_KillGrassForSolids: grass shut in by the new block turns to dirt. */
 function killGrassForSolids(w: ItemWorld, x: number, y: number, created: number) {
+	if (!isSolid(created)) return;
 	const t = w.tiles;
 	for (let i = x - 1; i <= x + 1; i++)
 		for (let j = y - 1; j <= y + 1; j++) {

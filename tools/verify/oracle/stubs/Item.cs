@@ -49,6 +49,16 @@ public partial class Item
 				return new Rectangle(0, 0, 16, 16);
 			case 9: // Wood
 				return new Rectangle(0, 0, 24, 22);
+			case 36: // a Work Bench
+				return new Rectangle(0, 0, 32, 18);
+			case 32: // a Wooden Table
+				return new Rectangle(0, 0, 30, 22);
+			case 34: // a Wooden Chair
+				return new Rectangle(0, 0, 16, 32);
+			case 25: // a Wooden Door
+				return new Rectangle(0, 0, 18, 32);
+			case 93: // a Wood Wall
+				return new Rectangle(0, 0, 24, 24);
 			case 8: // a Torch
 				return new Rectangle(0, 0, 14, 16);
 			case 3506: // the Copper Axe

@@ -6,7 +6,23 @@
  * is applied afterwards by the caller (see MiniWorld.svelte): per tile for walls and blocks, one
  * colour each for everything else. Textures are the game's (static/world).
  */
-import { CLAY, DIRT, GRASS, isSolid, STONE, TORCH, TREES, WOOD_BLOCK } from './framing';
+import {
+	CHAIR,
+	CLAY,
+	DIRT,
+	DOOR_CLOSED,
+	DOOR_OPEN,
+	FURNITURE,
+	GRASS,
+	isSolid,
+	STONE,
+	TABLE,
+	TORCH,
+	TREES,
+	WOOD_BLOCK,
+	WORK_BENCH
+} from './framing';
+import { TileObjectData } from './gen/game';
 import { stats } from './item-check';
 import type { RGB } from './light';
 import type { World } from './sim';
@@ -154,6 +170,20 @@ export async function loadTextures(): Promise<Textures> {
 				'Tiles_30'
 			].map(w)
 		);
+	const [doorClosed, doorOpen, table, chair, bench, ...furnitureItems] = await Promise.all(
+		[
+			'Tiles_10',
+			'Tiles_11',
+			'Tiles_14',
+			'Tiles_15',
+			'Tiles_18',
+			'Item_25',
+			'Item_32',
+			'Item_34',
+			'Item_36',
+			'Item_93'
+		].map(w)
+	);
 	const tops = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Tops_${n}`)));
 	const branches = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Branches_${n}`)));
 	return {
@@ -163,7 +193,12 @@ export async function loadTextures(): Promise<Textures> {
 			[GRASS]: tiles2,
 			[CLAY]: clay,
 			[TORCH]: torch,
-			[WOOD_BLOCK]: planks
+			[WOOD_BLOCK]: planks,
+			[DOOR_CLOSED]: doorClosed,
+			[DOOR_OPEN]: doorOpen,
+			[TABLE]: table,
+			[CHAIR]: chair,
+			[WORK_BENCH]: bench
 		},
 		flame,
 		trunks: { 5: trunk, 596: sakura, 616: willow },
@@ -180,7 +215,8 @@ export async function loadTextures(): Promise<Textures> {
 			27: acorn,
 			133: clayItem,
 			3506: axe,
-			3509: pickaxe
+			3509: pickaxe,
+			...Object.fromEntries([25, 32, 34, 36, 93].map((n, k) => [n, furnitureItems[k]]))
 		},
 		player: Object.fromEntries(sheets.map((n, i) => [n, tint(player[i], COLORS[SHEETS[n]])])),
 		hair: tint(hair, COLORS.hair)
@@ -276,11 +312,23 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 		}
 	}
 
+	// Furniture: each tile its own size on its sheet (16 wide; as high as its row of the object
+	// is: TileObjectData.CoordinateHeights).
+	for (let j = j0; j < j1; j++) {
+		for (let i = i0; i < i1; i++) {
+			const type = tiles.at(i, j);
+			if (!FURNITURE.includes(type)) continue;
+			const k = j * tiles.width + i;
+			const h = rowHeight(type, tiles.frameY[k]);
+			sprite(ctx, t.tiles[type], [tiles.frameX[k], tiles.frameY[k], 16, h], i * 16, j * 16);
+		}
+	}
+
 	// Blocks.
 	for (let j = j0; j < j1; j++) {
 		for (let i = i0; i < i1; i++) {
 			const type = tiles.at(i, j);
-			if (!isSolid(type)) continue;
+			if (!isSolid(type) || FURNITURE.includes(type)) continue;
 			const k = j * tiles.width + i;
 			sprite(ctx, t.tiles[type], [tiles.frameX[k], tiles.frameY[k], 16, 16], i * 16, j * 16);
 		}
@@ -300,7 +348,8 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 	// The miner's wobble: a block just hit swells and settles over 10 frames.
 	for (const h of hits) {
 		const type = tiles.at(h.x, h.y);
-		if (h.damage < 20 || h.animationTimeElapsed >= 10 || !isSolid(type)) continue;
+		if (h.damage < 20 || h.animationTimeElapsed >= 10 || !isSolid(type) || FURNITURE.includes(type))
+			continue;
 		const time = h.animationTimeElapsed / 10;
 		let wave = (time % 0.5) * 2;
 		if (Math.trunc(time / 0.5) % 2 === 1) wave = 1 - wave;
@@ -331,6 +380,18 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 		);
 		ctx.globalAlpha = 1;
 	}
+}
+
+/** The height of a furniture tile's row on its sheet, from its frame (the object's data). */
+function rowHeight(type: number, frameY: number): number {
+	const d = TileObjectData.GetTileData_Int32_Int32_Int32(type, 0, 0);
+	if (!d) return 16;
+	let y = frameY % d.CoordinateFullHeight;
+	for (const h of d.CoordinateHeights) {
+		if (y < h + d.CoordinatePadding) return h;
+		y -= h + d.CoordinatePadding;
+	}
+	return 16;
 }
 
 /**
