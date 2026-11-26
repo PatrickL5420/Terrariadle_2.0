@@ -1,11 +1,12 @@
 /**
  * Draws the little world like Terraria 1.4.5 does, in game pixels: walls and blocks (Main.DrawTiles) with
- * their cracks and miner's wobble (DrawTileCracks, HitTile.DrawFreshAnimations), dropped items
+ * their cracks and miner's wobble (DrawTileCracks, HitTile.DrawFreshAnimations), trees' trunks
+ * and their tops and branches (TileDrawing.DrawTrees, without the wind), dropped items
  * (Main.DrawItem), the player in its layers (PlayerDrawLayers, composite body) and dust. Lighting
  * is applied afterwards by the caller (see MiniWorld.svelte): per tile for walls and blocks, one
  * colour each for everything else. Textures are the game's (static/world).
  */
-import { CLAY, DIRT, GRASS, isSolid, STONE } from './framing';
+import { CLAY, DIRT, GRASS, isSolid, STONE, TREES } from './framing';
 import { stats } from './item-check';
 import type { RGB } from './light';
 import type { World } from './sim';
@@ -70,6 +71,11 @@ const FRONT_ARM: [number, number][] = [
 
 export interface Textures {
 	tiles: Record<number, Img>;
+	/** Tiles_5: tree trunks (a column of 176 px per biome; the forest's is the first). */
+	trunk: Img;
+	/** Tree_Tops_N and Tree_Branches_N, by tree style. */
+	tops: Record<number, Img>;
+	branches: Record<number, Img>;
 	wall: Img;
 	cracks: Img;
 	dust: Img;
@@ -105,8 +111,11 @@ function tint(img: HTMLImageElement, [r, g, b]: RGB): HTMLCanvasElement {
 	return c;
 }
 
-/** A stand-in tint for clay, until its textures are added (static/world/Tiles_40, Item_133). */
-const CLAY_COLOR: RGB = [255, 170, 140];
+/**
+ * The tree styles drawn: the forest's (Tree_Tops_0, 6-10: WorldGen.GetCommonTreeFoliageData) and
+ * the sakura's and yellow willow's (29, 30: GetVanityTreeFoliageData).
+ */
+const TREE_STYLES = [0, 6, 7, 8, 9, 10, 29, 30];
 
 export async function loadTextures(): Promise<Textures> {
 	const w = (name: string) => load(`/world/${name}.png`);
@@ -125,17 +134,20 @@ export async function loadTextures(): Promise<Textures> {
 		]);
 	const sheets = Object.keys(SHEETS).map(Number);
 	const player = await Promise.all(sheets.map((n) => w(`Player_0_${n}`)));
-	// Clay's textures, if they're there; until then, stone and dirt tinted clay's colour.
-	const [clay, clayItem] = await Promise.all([
-		w('Tiles_40').catch(() => tint(tiles1, CLAY_COLOR)),
-		w('Item_133').catch(() => tint(item2, CLAY_COLOR))
-	]);
+	const [clay, clayItem, trunk, wood, acorn, axe] = await Promise.all(
+		['Tiles_40', 'Item_133', 'Tiles_5', 'Item_9', 'Item_27', 'Item_3506'].map(w)
+	);
+	const tops = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Tops_${n}`)));
+	const branches = await Promise.all(TREE_STYLES.map((n) => w(`Tree_Branches_${n}`)));
 	return {
 		tiles: { [DIRT]: tiles0, [STONE]: tiles1, [GRASS]: tiles2, [CLAY]: clay },
+		trunk,
+		tops: Object.fromEntries(TREE_STYLES.map((n, i) => [n, tops[i]])),
+		branches: Object.fromEntries(TREE_STYLES.map((n, i) => [n, branches[i]])),
 		wall,
 		cracks,
 		dust,
-		items: { 2: item2, 3: item3, 133: clayItem, 3509: pickaxe },
+		items: { 2: item2, 3: item3, 9: wood, 27: acorn, 133: clayItem, 3506: axe, 3509: pickaxe },
 		player: Object.fromEntries(sheets.map((n, i) => [n, tint(player[i], COLORS[SHEETS[n]])])),
 		hair: tint(hair, COLORS.hair)
 	};
@@ -204,6 +216,17 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 		}
 	}
 
+	// Tree trunks (and the stumps of their tops and branches): 20x20, 2 px over each side. The
+	// sakura's and yellow willow's own trunks (Tiles_596, Tiles_616) aren't here: a forest
+	// trunk stands in.
+	for (let j = j0; j < j1; j++) {
+		for (let i = i0; i < i1; i++) {
+			if (!TREES.includes(tiles.at(i, j))) continue;
+			const k = j * tiles.width + i;
+			sprite(ctx, t.trunk, [tiles.frameX[k], tiles.frameY[k], 20, 20], i * 16 - 2, j * 16);
+		}
+	}
+
 	// Blocks.
 	for (let j = j0; j < j1; j++) {
 		for (let i = i0; i < i1; i++) {
@@ -221,7 +244,8 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 	};
 	const hits = [...world.player.hitTile.blocks()];
 	for (const h of hits) {
-		if (h.damage < 20 || !isSolid(tiles.at(h.x, h.y))) continue;
+		const type = tiles.at(h.x, h.y);
+		if (h.damage < 20 || !(isSolid(type) || TREES.includes(type))) continue;
 		sprite(ctx, t.cracks, crackRect(h.damage, h.crackStyle), h.x * 16, h.y * 16);
 	}
 	// The miner's wobble: a block just hit swells and settles over 10 frames.
@@ -261,6 +285,52 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 }
 
 /**
+ * Trees' tops and branches (TileDrawing.DrawTrees, still: no wind), each in its tile's light
+ * (Lighting.GetColor); returns where each was drawn, for that.
+ */
+export function drawTrees(
+	ctx: CanvasRenderingContext2D,
+	world: World,
+	t: Textures,
+	view: View
+): Lit[] {
+	const { tiles } = world;
+	const lit: Lit[] = [];
+	// A top can reach 4 tiles either side and 6 up of its tile.
+	const i0 = Math.max(0, view.i0 - 4);
+	const i1 = Math.min(tiles.width, view.i1 + 4);
+	const j0 = Math.max(0, view.j0);
+	const j1 = Math.min(tiles.height, view.j1 + 6);
+	for (let j = j0; j < j1; j++) {
+		for (let i = i0; i < i1; i++) {
+			const type = tiles.at(i, j);
+			if (!TREES.includes(type)) continue;
+			const k = j * tiles.width + i;
+			const fx = tiles.frameX[k];
+			const fy = tiles.frameY[k];
+			if (fy < 198 || fx < 22) continue;
+			// WorldGen.GetTreeFrame: which of 3 looks.
+			const frame = fy === 220 ? 1 : fy === 242 ? 2 : 0;
+			// The foliage data: the style by the tree's kind (the grass under it is forest grass).
+			const vanity = type !== TREES[0];
+			const style = type === 596 ? 29 : type === 616 ? 30 : world.treeStyle;
+			if (fx === 22) {
+				const [w, h] = vanity ? [118, 96] : [80, 80];
+				lit.push({ x: i * 16 + 8 - w / 2, y: j * 16 + 16 - h, w, h, i, j });
+				sprite(ctx, t.tops[style], [frame * (w + 2), 0, w, h], i * 16 + 8, j * 16 + 16, [w / 2, h]);
+			} else if (fx === 44) {
+				lit.push({ x: i * 16 - 24, y: j * 16 - 12, w: 40, h: 40, i, j });
+				sprite(ctx, t.branches[style], [0, frame * 42, 40, 40], i * 16 + 16, j * 16 + 12, [40, 24]);
+			} else if (fx === 66) {
+				lit.push({ x: i * 16, y: j * 16 - 12, w: 40, h: 40, i, j });
+				sprite(ctx, t.branches[style], [42, frame * 42, 40, 40], i * 16, j * 16 + 18, [0, 30]);
+			}
+		}
+	}
+	return lit;
+}
+
+/**
  * Dropped items, the player and dust. Each is lit by one colour, its tile's
  * (Lighting.GetColor at its centre); returns where each was drawn, for that.
  */
@@ -275,10 +345,13 @@ export function drawThings(ctx: CanvasRenderingContext2D, world: World, t: Textu
 		j: Math.trunc(y / 16)
 	});
 
-	// Dropped blocks: standing on their hitbox, tilted as they move.
+	// Dropped items: standing on their hitbox, tilted as they move.
+	// (A shaken tree can drop things there are no textures for here, such as coins and fruit:
+	// they're picked up unseen.)
 	for (const d of world.drops) {
-		lit.push(at(d.x + d.w / 2, d.y + d.h / 2, 12));
 		const img = t.items[d.item];
+		if (!img) continue;
+		lit.push(at(d.x + d.w / 2, d.y + d.h / 2, 12));
 		const fw = img.width;
 		const fh = img.height;
 		sprite(

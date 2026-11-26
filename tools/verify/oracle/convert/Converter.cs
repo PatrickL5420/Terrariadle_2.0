@@ -139,8 +139,14 @@ class Emitter
 	static bool IsHole(ISymbol s) =>
 		s != null && (holeKeys.Contains(Key(s)) || s.Locations.Any(l => l.IsInSource && l.SourceTree.FilePath.EndsWith("AutoStubs.cs")));
 
+	/// A member of a type the runtime stands in for (externalTypes): used as it is named.
+	bool IsExternalMember(ISymbol s) =>
+		s.ContainingType != null && config.externalTypes.ContainsKey(s.ContainingType.OriginalDefinition.ToDisplayString());
+
 	bool IsData(ISymbol s) =>
-		s is IFieldSymbol f && f.IsStatic && f.Type is IArrayTypeSymbol { Rank: 1 }
+		s is IFieldSymbol f && f.IsStatic && f.Type is IArrayTypeSymbol { Rank: 1 } at
+		&& (IsNumeric(at.ElementType) || at.ElementType.SpecialType == SpecialType.System_Boolean || at.ElementType.TypeKind == TypeKind.Enum
+			|| at.ElementType is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T })
 		&& config.data.Any(d => f.ContainingType.ToDisplayString() == d || f.ContainingType.ToDisplayString().StartsWith(d + "."));
 
 	public void Convert()
@@ -253,7 +259,7 @@ class Emitter
 		{
 			if (m.MethodKind == MethodKind.PropertyGet && m.AssociatedSymbol is IPropertySymbol ip && ip.IsIndexer) return "get_Item";
 			if (m.MethodKind == MethodKind.PropertySet && m.AssociatedSymbol is IPropertySymbol sp && sp.IsIndexer) return "set_Item";
-			if (m.MethodKind == MethodKind.UserDefinedOperator || m.MethodKind == MethodKind.Conversion) return m.Name;
+			if (m.MethodKind == MethodKind.Conversion) return m.Name;
 			var overloads = m.ContainingType.GetMembers(m.Name).OfType<IMethodSymbol>().Count();
 			if (overloads > 1)
 				return Id(m.Name) + "_" + string.Join("_", m.Parameters.Select(p => p.Type.Name + (p.RefKind != RefKind.None ? "Ref" : "")));
@@ -272,17 +278,27 @@ class Emitter
 			case SpecialType.System_Object: return "unknown";
 		}
 		if (IsNumeric(t) || t.TypeKind == TypeKind.Enum) return "number";
+		if (t.TypeKind == TypeKind.Delegate && t is INamedTypeSymbol dt && dt.DelegateInvokeMethod is { } inv)
+			return $"(({string.Join(", ", inv.Parameters.Select(p => $"{LocalId(p.Name)}: {Ts(p.Type)}"))}) => {Ts(inv.ReturnType)}) | null";
 		if (t is IArrayTypeSymbol a)
 		{
 			if (a.Rank > 1) return $"Array2D<{Ts(a.ElementType)}>";
+			// A generic T[]: whatever array it's given (a typed array for numbers).
+			if (a.ElementType.TypeKind == TypeKind.TypeParameter) return "ArrayLike<any>";
 			return TypedArray(a.ElementType) ?? $"{Ts(a.ElementType)}[]";
 		}
 		if (t is INamedTypeSymbol n)
 		{
 			if (config.externalTypes.TryGetValue(n.OriginalDefinition.ToDisplayString(), out var et)) return et;
-			if (n.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.List<T>") return Ts(n.TypeArguments[0]) + "[]";
+			var od = n.OriginalDefinition.ToDisplayString();
+			if (od is "System.Collections.Generic.List<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>") return Ts(n.TypeArguments[0]) + "[]";
+			if (od == "System.Collections.Generic.HashSet<T>") return $"Set<{Ts(n.TypeArguments[0])}>";
 			if (n.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T) return Ts(n.TypeArguments[0]) + " | null";
-			if (InSource(n)) return TypeName(n);
+			if (InSource(n))
+			{
+				NeedType(n);
+				return TypeName(n);
+			}
 		}
 		return "any";
 	}
@@ -316,7 +332,7 @@ class Emitter
 		if (IsNumeric(t) || t.TypeKind == TypeKind.Enum) return "0";
 		if (t.SpecialType == SpecialType.System_Boolean) return "false";
 		if (IsStruct(t)) return $"new {TypeName((INamedTypeSymbol)t)}()";
-		return "null";
+		return "null!";
 	}
 
 	// ---- Members -----------------------------------------------------------------------------
@@ -434,14 +450,12 @@ class Emitter
 			if (m.IsAbstract) Add(m, $"{MemberName(m)}({string.Join(", ", m.Parameters.Select(x => $"_{x.Name}: {Ts(x.Type)}"))}): {Ts(m.ReturnType)} {{ throw new Error('abstract'); }}");
 			return;
 		}
-		foreach (var p in m.Parameters)
-			if (p.RefKind != RefKind.None && p.RefKind != RefKind.In)
-				throw new Refused($"{p.RefKind} parameter {p.Name} of {Key(m)}", syntax);
 		var body = new Body(this, m.MethodKind == MethodKind.StaticConstructor ? Owner(m) : null) { Method = m };
 		string ps = string.Join(", ", m.Parameters.Select(p =>
 		{
 			string d = "";
 			if (m.MethodKind == MethodKind.Constructor && m.ContainingType.TypeKind == TypeKind.Struct) d = " = " + Default(p.Type);
+			if (p.RefKind is RefKind.Ref or RefKind.Out) return $"{LocalId(p.Name)}: {{ v: {Ts(p.Type)} }}";
 			return $"{LocalId(p.Name)}: {Ts(p.Type)}{d}";
 		}));
 		if (m.MethodKind == MethodKind.StaticConstructor)
@@ -595,9 +609,25 @@ class Emitter
 
 		// ---- Statements ----
 
+		/// The expressions a statement evaluates itself (not those of the statements inside it).
+		static IEnumerable<IOperation> OwnExpressions(IOperation op) => op switch
+		{
+			IExpressionStatementOperation es => new[] { es.Operation },
+			IConditionalOperation c => new[] { c.Condition },
+			IReturnOperation r when r.ReturnedValue != null => new[] { r.ReturnedValue },
+			IVariableDeclarationGroupOperation g => g.Declarations.SelectMany(x => x.Declarators).Select(v => v.Initializer?.Value).Where(v => v != null),
+			IWhileLoopOperation w when w.Condition != null => new[] { w.Condition },
+			ISwitchOperation sw => new[] { sw.Value },
+			_ => Array.Empty<IOperation>()
+		};
+
 		public void Statement(IOperation op, StringBuilder sb, int d)
 		{
 			string p = Pad(d);
+			// `out var x` declares x in the statement's block: declared just before it.
+			foreach (var x in OwnExpressions(op).SelectMany(o => o.DescendantsAndSelf()).OfType<IDeclarationExpressionOperation>())
+				if (x.Expression is ILocalReferenceOperation lr)
+					sb.Append($"{p}let {LocalId(lr.Local.Name)}: {e.Ts(lr.Local.Type)} = {e.Default(lr.Local.Type)};\n");
 			switch (op)
 			{
 				case IBlockOperation b:
@@ -610,8 +640,9 @@ class Emitter
 						foreach (var v in decl.Declarators)
 						{
 							var init = v.Initializer?.Value ?? decl.Initializer?.Value;
-							string val = init != null ? Value(init, v.Symbol.Type) : null;
-							sb.Append($"{p}let {LocalId(v.Symbol.Name)}: {e.Ts(v.Symbol.Type)}{(val != null ? " = " + val : "")};\n");
+							// (C# makes sure it's assigned before it's read: its default stands in till then.)
+							string val = init != null ? Value(init, v.Symbol.Type) : e.Default(v.Symbol.Type);
+							sb.Append($"{p}let {LocalId(v.Symbol.Name)}: {e.Ts(v.Symbol.Type)} = {val};\n");
 						}
 					break;
 				case IExpressionStatementOperation es:
@@ -754,7 +785,7 @@ class Emitter
 
 		string Literal(object v, ITypeSymbol t)
 		{
-			if (v == null) return "null";
+			if (v == null) return "null!";
 			switch (v)
 			{
 				case bool b: return b ? "true" : "false";
@@ -784,7 +815,8 @@ class Emitter
 				case IParenthesizedOperation pa: return Expr(pa.Operand);
 				case ILiteralOperation l: return Literal(l.ConstantValue.Value, l.Type);
 				case ILocalReferenceOperation lr: return LocalId(lr.Local.Name);
-				case IParameterReferenceOperation pr: return LocalId(pr.Parameter.Name);
+				case IParameterReferenceOperation pr: return LocalId(pr.Parameter.Name) + (pr.Parameter.RefKind is RefKind.Ref or RefKind.Out ? ".v" : "");
+				case IDeclarationExpressionOperation de: return Expr(de.Expression);
 				case IInstanceReferenceOperation: return "this";
 				case IDefaultValueOperation dv: return e.Default(dv.Type);
 				case IConversionOperation c: return Conversion(c);
@@ -792,6 +824,7 @@ class Emitter
 				case IUnaryOperation u: return Unary(u);
 				case IConditionalOperation c: return $"({Cond(c.Condition)} ? {Value(c.WhenTrue, c.Type)} : {Value(c.WhenFalse, c.Type)})";
 				case ICoalesceOperation co: return $"({Expr(co.Value)} ?? {Expr(co.WhenNull)})";
+				case ICoalesceAssignmentOperation ca: return $"({Expr(ca.Target)} ?? ({Assign(ca.Target, Value(ca.Value, ca.Target.Type))}, {Expr(ca.Target)}))";
 				case ISimpleAssignmentOperation { Target: IDiscardOperation } d: return $"void {Expr(d.Value)}";
 				case ISimpleAssignmentOperation a: return Assign(a.Target, Value(a.Value, a.Target.Type));
 				case ICompoundAssignmentOperation ca: return Compound(ca);
@@ -821,6 +854,14 @@ class Emitter
 						}
 						parts.Append($"$hole('no switch arm'))({v})");
 						return parts.ToString();
+					}
+				case IDelegateCreationOperation dc when dc.Target is IMethodReferenceOperation mref:
+					{
+						var tm = mref.Method;
+						if (!e.InSource(tm.ContainingType)) throw new Refused("a delegate to " + Key(tm), dc.Syntax);
+						e.Need(tm);
+						NoteStatic(tm);
+						return tm.IsStatic ? $"{e.TypeName(tm.ContainingType)}.{e.MemberName(tm)}" : $"{Receiver(mref.Instance)}.{e.MemberName(tm)}.bind({Receiver(mref.Instance)})";
 					}
 				case INameOfOperation n: return Literal(n.ConstantValue.Value, n.Type);
 				case IIsTypeOperation it: return IsType(it);
@@ -867,6 +908,11 @@ class Emitter
 				return ext;
 			}
 			if (IsHole(s)) return $"$hole({JsonSerializer.Serialize(key)})";
+			if (e.IsExternalMember(s))
+			{
+				e.externalUsed.Add(e.config.externalTypes[s.ContainingType.OriginalDefinition.ToDisplayString()] + "." + s.Name);
+				return s.IsStatic ? $"{e.Ts(s.ContainingType)}.{Id(s.Name)}" : $"{Receiver(f.Instance)}.{Id(s.Name)}";
+			}
 			if (!e.InSource(s.ContainingType)) throw new Refused("a field of " + s.ContainingType, f.Syntax);
 			e.Need(s, f.Syntax);
 			NoteStatic(s);
@@ -899,6 +945,7 @@ class Emitter
 			if (s.Name == "Length" && p.Instance?.Type is IArrayTypeSymbol) return $"{Expr(p.Instance)}.length";
 			if (s.Name == "Length" && p.Instance?.Type?.SpecialType == SpecialType.System_String) return $"{Expr(p.Instance)}.length";
 			if (s.Name == "Count" && IsList(p.Instance?.Type)) return $"{Expr(p.Instance)}.length";
+			if (s.Name == "Count" && IsSet(p.Instance?.Type)) return $"{Expr(p.Instance)}.size";
 			if (s.IsIndexer)
 			{
 				if (IsList(p.Instance?.Type)) return $"{Expr(p.Instance)}[{Expr(p.Arguments[0].Value)}]";
@@ -906,6 +953,11 @@ class Emitter
 				return $"{Receiver(p.Instance)}.get_Item({ArgsFor(s.Parameters, p.Arguments, s.GetMethod)})";
 			}
 			if (IsHole(s)) return $"$hole({JsonSerializer.Serialize(key)})";
+			if (e.IsExternalMember(s))
+			{
+				e.externalUsed.Add(e.config.externalTypes[s.ContainingType.OriginalDefinition.ToDisplayString()] + "." + s.Name);
+				return s.IsStatic ? $"{e.Ts(s.ContainingType)}.{Id(s.Name)}" : $"{Receiver(p.Instance)}.{Id(s.Name)}";
+			}
 			if (!e.InSource(s.ContainingType)) throw new Refused("a property " + key, p.Syntax);
 			e.Need(s);
 			NoteStatic(s);
@@ -913,7 +965,9 @@ class Emitter
 			return $"{Receiver(p.Instance)}.{Id(s.Name)}";
 		}
 
-		static bool IsList(ITypeSymbol t) => t is INamedTypeSymbol n && n.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.List<T>";
+		static string Generic(ITypeSymbol t) => t is INamedTypeSymbol n ? n.OriginalDefinition.ToDisplayString() : "";
+		static bool IsList(ITypeSymbol t) => Generic(t) is "System.Collections.Generic.List<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>";
+		static bool IsSet(ITypeSymbol t) => Generic(t) == "System.Collections.Generic.HashSet<T>";
 
 		string Assign(IOperation target, string value)
 		{
@@ -925,7 +979,9 @@ class Emitter
 				e.Need(p.Property);
 				return $"{Receiver(p.Instance)}.set_Item({ArgsFor(p.Property.Parameters, p.Arguments, p.Property.SetMethod)}, {value})";
 			}
-			return $"{Expr(target)} = {value}";
+			string t = Expr(target);
+			if (t.StartsWith("$hole(") && t.EndsWith(")") && t.IndexOf("$hole(", 1) < 0) return t;
+			return $"{t} = {value}";
 		}
 
 		/// An arithmetic result as the C# type has it.
@@ -951,7 +1007,7 @@ class Emitter
 			if (b.OperatorMethod != null)
 			{
 				e.Need(b.OperatorMethod);
-				return $"{e.TypeName(b.OperatorMethod.ContainingType)}.{b.OperatorMethod.Name}({Value(b.LeftOperand, null)}, {Value(b.RightOperand, null)})";
+				return $"{e.TypeName(b.OperatorMethod.ContainingType)}.{e.MemberName(b.OperatorMethod)}({Value(b.LeftOperand, null)}, {Value(b.RightOperand, null)})";
 			}
 			string l = Expr(b.LeftOperand), r = Expr(b.RightOperand);
 			var t = Under(b.Type);
@@ -1079,7 +1135,7 @@ class Emitter
 			if (ca.OperatorMethod != null)
 			{
 				e.Need(ca.OperatorMethod);
-				result = $"{e.TypeName(ca.OperatorMethod.ContainingType)}.{ca.OperatorMethod.Name}({read}, {Value(ca.Value, null)})";
+				result = $"{e.TypeName(ca.OperatorMethod.ContainingType)}.{e.MemberName(ca.OperatorMethod)}({read}, {Value(ca.Value, null)})";
 			}
 			else if (t.SpecialType == SpecialType.System_Boolean)
 				result = op == "&" ? $"$and({read}, {val})" : op == "|" ? $"$or({read}, {val})" : $"({read} !== {val})";
@@ -1159,10 +1215,24 @@ class Emitter
 					list.Add(arr?.Initializer != null ? "[" + string.Join(", ", arr.Initializer.ElementValues.Select(v => Value(v, null))) + "]" : "[]");
 					continue;
 				}
-				if (p.RefKind is RefKind.Ref or RefKind.Out) throw new Refused($"{p.RefKind} argument to {Key(m)}", a.Syntax);
+				if (p.RefKind is RefKind.Ref or RefKind.Out)
+				{
+					list.Add(Box(a.Value, p.Type));
+					continue;
+				}
 				list.Add(Value(a.Value, p.Type));
 			}
 			return string.Join(", ", list);
+		}
+
+		/// A ref or out argument: a box whose v reads and writes the variable (or field, element).
+		string Box(IOperation target, ITypeSymbol t)
+		{
+			if (target is IParameterReferenceOperation pr && pr.Parameter.RefKind is RefKind.Ref or RefKind.Out)
+				return LocalId(pr.Parameter.Name);
+			if (target is IDiscardOperation) return $"{{ v: {e.Default(t)} as {e.Ts(t)} }}";
+			if (target is IDeclarationExpressionOperation de) target = de.Expression;
+			return $"{{ get v() {{ return {Expr(target)}; }}, set v($v: {e.Ts(t)}) {{ {Assign(target, "$v")}; }} }}";
 		}
 
 		static readonly Dictionary<string, string> MathNames = new()
@@ -1199,6 +1269,8 @@ class Emitter
 				if (ext.StartsWith("@")) return $"{ext[1..]}({Receiver(inv.Instance)}{(a.Length > 0 ? ", " + a : "")})";
 				return $"{ext}({a})";
 			}
+			if (m.MethodKind == MethodKind.DelegateInvoke)
+				return $"{Expr(inv.Instance)}!({Args(m, inv.Arguments)})";
 			if (m.ContainingType.ToDisplayString() == "System.Math" && MathNames.TryGetValue(m.Name, out var mn))
 			{
 				string call = $"{mn}({Args(m, inv.Arguments)})";
@@ -1214,10 +1286,33 @@ class Emitter
 					"Clear" => $"({recv}.length = 0)",
 					"Contains" => $"{recv}.includes({a})",
 					"RemoveAt" => $"{recv}.splice({a}, 1)",
+					"Enqueue" or "Push" => $"{recv}.push({a})",
+					"Dequeue" => $"{recv}.shift()!",
+					"Pop" => $"{recv}.pop()!",
+					"Peek" => Generic(inv.Instance.Type).EndsWith("Stack<T>") ? $"{recv}[{recv}.length - 1]" : $"{recv}[0]",
 					_ => throw new Refused("List." + m.Name, inv.Syntax)
 				};
 			}
 			if (IsHole(def)) return $"$hole({JsonSerializer.Serialize(key)})";
+			if (e.IsExternalMember(def))
+			{
+				e.externalUsed.Add(e.config.externalTypes[def.ContainingType.OriginalDefinition.ToDisplayString()] + "." + e.MemberName(def));
+				string a = Args(m, inv.Arguments);
+				return def.IsStatic ? $"{e.Ts(def.ContainingType)}.{e.MemberName(def)}({a})" : $"{Receiver(inv.Instance)}.{e.MemberName(def)}({a})";
+			}
+			if (IsSet(inv.Instance?.Type))
+			{
+				string recv = Expr(inv.Instance);
+				string a = Args(m, inv.Arguments);
+				return m.Name switch
+				{
+					"Add" => $"(!{recv}.has({a}) && !!{recv}.add({a}))",
+					"Contains" => $"{recv}.has({a})",
+					"Remove" => $"{recv}.delete({a})",
+					"Clear" => $"{recv}.clear()",
+					_ => throw new Refused("HashSet." + m.Name, inv.Syntax)
+				};
+			}
 			if (!e.InSource(def.ContainingType)) throw new Refused("a call to " + key, inv.Syntax);
 			e.Need(def, inv.Syntax);
 			NoteStatic(def);
@@ -1232,7 +1327,10 @@ class Emitter
 		{
 			var t = (INamedTypeSymbol)oc.Type;
 			if (IsList(t)) return "[]";
+			if (IsSet(t)) return "new Set()";
 			if (IsHole(t)) return $"$hole({JsonSerializer.Serialize(t.ToDisplayString())})";
+			if (e.config.externalTypes.TryGetValue(t.OriginalDefinition.ToDisplayString(), out var extType))
+				return $"new {extType}({(oc.Constructor != null && oc.Constructor.Parameters.Length > 0 ? Args(oc.Constructor, oc.Arguments) : "")})";
 			if (!e.InSource(t)) throw new Refused("creating a " + t, oc.Syntax);
 			e.NeedType(t);
 			if (staticOwner != null && !SymbolEqualityComparer.Default.Equals(t, staticOwner.Type)) staticOwner.StaticDeps.Add(t);

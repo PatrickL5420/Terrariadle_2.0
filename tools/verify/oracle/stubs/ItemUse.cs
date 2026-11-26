@@ -34,12 +34,12 @@ public partial class TileObject
  * Item uses ItemCheck runs every frame, each of which starts by checking for its own items
  * (fishing poles, wires, instruments, buckets, the Rod of Discord, event and boss summons,
  * tree toppers, chest locks) and does nothing else for any other: for the items the oracle
- * holds (reviewed: the Copper Pickaxe, dirt and stone blocks, and nothing once a stack is
+ * holds (reviewed: the Copper Pickaxe and Axe, dirt, stone and clay blocks, and nothing once a stack is
  * used up) that's all they do here.
  */
 public partial class Player
 {
-	static bool Reviewed(Item item) => item.type is 3509 or 2 or 3 or 133 or 0; // 0: used up
+	static bool Reviewed(Item item) => item.type is 3509 or 3506 or 2 or 3 or 133 or 0; // 0: used up
 
 	static void Only(Item item, string what)
 	{

@@ -10,7 +10,8 @@ using Terraria.Utilities;
 namespace Oracle;
 
 /**
- * A case: a world (see WorldSetup), the player's start {"x", "y", "vx", "vy", "direction",
+ * A case: a world (see WorldSetup), "trees": [[x, y], ...] grown there (WorldGen.GrowTree, on
+ * grass at y), the player's start {"x", "y", "vx", "vy", "direction",
  * "releaseJump"},
  * the item {"item": type, "stack"}, and "frames": [bits, tileX, tileY] per frame, bits 1 = left,
  * 2 = right, 4 = jump, 8 = use (the mouse button); tileX / tileY is the tile under the cursor
@@ -23,7 +24,8 @@ namespace Oracle;
  * Result per frame: the player (as MovementFeature), the item use (itemAnimation, itemTime,
  * toolTime, rotation, location, the stack left), the tiles that changed since the last frame
  * ([i, j, type or -1, frameX, frameY, variant]), the pickaxe damage cached per tile
- * (Player.hitTile: [x, y, damage, timeToLive] for each), and the drops and sounds asked for.
+ * (Player.hitTile: [x, y, damage, timeToLive] for each), the drops, sounds and critters asked
+ * for, and where Main.rand has got to ([inext, SeedArray[inext]]).
  */
 public class ItemUseFeature : IFeature
 {
@@ -44,8 +46,14 @@ public class ItemUseFeature : IFeature
 			for (int j = 0; j < Main.maxTilesY; j++)
 				WorldGen.TileFrame(i, j);
 		Main.myPlayer = 0;
+		// No trees shaken yet (a tree shakes once a day: Main.UpdateTime_StartDay resets them).
+		WorldGen.ResetTreeShakes();
 		// Every random draw is the game's own (Main.rand, which WorldGen.genRand is too).
 		Main.rand = new UnifiedRandom(c.TryGetProperty("seed", out var s) ? s.GetInt32() : 0);
+		// Trees, grown by the game's GrowTree (with the random numbers just seeded).
+		if (c.TryGetProperty("trees", out var trees))
+			foreach (var tree in trees.EnumerateArray())
+				WorldGen.GrowTree(tree[0].GetInt32(), tree[1].GetInt32());
 		var p = new Player
 		{
 			whoAmI = 0,
@@ -114,10 +122,24 @@ public class ItemUseFeature : IFeature
 				tiles = changed,
 				hits,
 				drops = new List<object>(Recorder.Drops),
-				sounds = new List<object>(Recorder.Sounds)
+				sounds = new List<object>(Recorder.Sounds),
+				npcs = new List<object>(Recorder.Npcs),
+				rand = RandomState()
 			});
 		}
 		return frames;
+	}
+
+	static readonly System.Reflection.FieldInfo Inext =
+		typeof(UnifiedRandom).GetField("inext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+	static readonly System.Reflection.FieldInfo Seeds =
+		typeof(UnifiedRandom).GetField("SeedArray", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+	/** Where Main.rand is in its sequence: so a draw too many or too few shows on the frame it's made. */
+	static int[] RandomState()
+	{
+		uint i = (uint)Inext.GetValue(Main.rand);
+		return new[] { (int)i, ((int[])Seeds.GetValue(Main.rand))[i] };
 	}
 
 	static int[][] Snapshot(int w, int h)

@@ -45,6 +45,7 @@ namespace Terraria
 	public static class MapUpdateQueue
 	{
 		public static void Add(int x, int y) { }
+		public static void Add(Microsoft.Xna.Framework.Rectangle area) { }
 	}
 
 	public partial class Main
@@ -55,9 +56,6 @@ namespace Terraria
 
 	public partial class WorldGen
 	{
-		public static void TileFrameImportant(int i, int j, int type, Tile tile, bool resetFrame) =>
-			Stub.Hit("WorldGen.TileFrameImportant");
-
 		public static void CactusFrame(int i, int j) => Stub.Hit("WorldGen.CactusFrame");
 
 		public static bool CheckCactus(int i, int j)
@@ -97,26 +95,6 @@ namespace Terraria
 namespace Terraria.ID
 {
 	// Only their sizes are used (the counts from the game's ID classes).
-	public static class WallID
-	{
-		public static readonly ushort Count = 367;
-
-		public static class Sets
-		{
-			public static int[] BlendType = new int[Count];
-
-			/// Only read when placing plants: refuses the case.
-			public static bool[] AllowsPlantsToGrow
-			{
-				get
-				{
-					Oracle.Stub.Hit("WallID.Sets.AllowsPlantsToGrow");
-					return new bool[Count];
-				}
-			}
-		}
-	}
-
 	public static class NPCID
 	{
 		public static readonly short Count = 697;

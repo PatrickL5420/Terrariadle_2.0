@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { stepUp, tileCollision } from './collision';
-import { DIRT, GRASS, isSolid, STONE } from './framing';
-import { pickTile, type ItemWorld } from './item-check';
+import { AIR, DIRT, GRASS, isSolid, STONE, TREE } from './framing';
+import { itemCheck, pickTile, type ItemWorld } from './item-check';
+import { play, WorldGen } from './gen';
 import { LightMap, tileColor } from './light';
 import { Player } from './player';
 import { World } from './sim';
@@ -119,13 +120,12 @@ describe('mining (Player.PickTile with a Copper Pickaxe)', () => {
 		const sounds: string[] = [];
 		const drops: number[] = [];
 		let dust = 0;
-		const hands: ItemWorld = {
-			tiles: w.tiles,
-			variant: () => 0,
+		const hands: ItemWorld = { tiles: w.tiles, rand: w.rand, variant: () => 0, sound: () => {} };
+		play(w.tiles, w.rand, {
 			sound: (s) => sounds.push(s.type === 21 ? 'tink' : 'dig'),
 			drop: (d) => drops.push(d.type),
-			tileDust: (_i, _j, _type, n) => (dust += n)
-		};
+			tileDust: () => dust++
+		});
 		const hit = () => pickTile(w.player, hands, X + 2, j, 35);
 		return { w, j, sounds, drops, hit, dust: () => dust };
 	};
@@ -163,6 +163,42 @@ describe('mining (Player.PickTile with a Copper Pickaxe)', () => {
 	});
 });
 
+describe('chopping (a Copper Axe on a tree)', () => {
+	it('fells a whole tree in 13 hits, dropping wood', () => {
+		const w = new World(() => 0);
+		const i = X + 5;
+		const j = w.top(i);
+		// Clear the column's neighbours of anything above the ground, then grow a tree.
+		for (let x = i - 3; x <= i + 3; x++)
+			for (let y = 0; y < j; y++) if (w.tiles.at(x, y) !== AIR) w.tiles.kill(x, y);
+		for (let x = i - 2; x <= i + 2; x++) {
+			while (w.top(x) < j) w.tiles.kill(x, w.top(x));
+			while (w.top(x) > j) w.tiles.place(x, w.top(x) - 1, GRASS, 0);
+			w.tiles.convert(x, j, GRASS, 0);
+		}
+		expect(WorldGen.GrowTree(i, j, 0, false)).toBe(true);
+		const drops: number[] = [];
+		play(w.tiles, w.rand, { sound: () => {}, drop: (d) => drops.push(d.type) });
+		const p = w.player;
+		p.x = (i - 2) * 16;
+		p.y = j * 16 - p.h;
+		p.item = { type: 3506, stack: 1 };
+		p.tileTargetX = i;
+		p.tileTargetY = j - 1;
+		p.controls = { left: false, right: false, jump: false, use: true };
+		// A hit sets itemTime to the axe's useTime (21).
+		let hits = 0;
+		for (let f = 0; f < 400 && w.tiles.at(i, j - 1) === TREE; f++) {
+			itemCheck(p, w);
+			if (p.itemTime === 21) hits++;
+		}
+		expect(w.tiles.at(i, j - 1)).toBe(AIR);
+		expect(hits).toBe(13);
+		expect(drops.length).toBeGreaterThan(3);
+		expect(drops.every((d) => d === 9 || d === 27)).toBe(true);
+	});
+});
+
 describe('lighting', () => {
 	it('lights open sky fully and fades into the ground', () => {
 		const t = flat(6, 20, 4);
@@ -196,12 +232,14 @@ describe('the little world', () => {
 		expect(w.tiles.active).not.toEqual(start);
 	}, 60_000);
 
-	it('is made by the game’s world generation: grass over dirt and stone, clay, walls', () => {
+	it('is made by the game’s world generation: grass over dirt and stone, clay, walls, trees', () => {
 		const w = new World();
 		const types = new Set<number>();
 		for (let k = 0; k < w.width * w.height; k++) if (w.tiles.active[k]) types.add(w.tiles.type[k]);
-		expect([...types].sort((a, b) => a - b)).toEqual([0, 1, 2, 40]);
-		expect(w.tiles.wall.some((x) => x === 1)).toBe(true);
+		expect([...types].filter((t) => t !== 596 && t !== 616).sort((a, b) => a - b)).toEqual([
+			0, 1, 2, 5, 40
+		]);
+		expect(w.tiles.wall.some((x) => x === 2)).toBe(true);
 		expect(w.cols).toBe(150);
 	});
 });

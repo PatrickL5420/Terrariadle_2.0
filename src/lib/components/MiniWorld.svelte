@@ -2,7 +2,14 @@
 	import { onMount } from 'svelte';
 	import { skyLight } from '$lib/sky/light';
 	import { play } from '$lib/sound.svelte';
-	import { drawThings, drawTiles, loadTextures, type Textures } from '$lib/world/draw';
+	import {
+		drawThings,
+		drawTiles,
+		drawTrees,
+		loadTextures,
+		type Lit,
+		type Textures
+	} from '$lib/world/draw';
 	import { tileColor } from '$lib/world/light';
 	import { World, type Sound } from '$lib/world/sim';
 	import { MARGIN } from '$lib/world/tiles';
@@ -107,12 +114,13 @@
 			ctx.clearRect(0, 0, w, h);
 			ctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
 			// The tiles in view (and one more round, for walls overhanging into it).
-			drawTiles(ctx, world, textures, {
+			const view = {
 				i0: Math.floor(cam.x / 16) - 1,
 				j0: Math.floor(cam.y / 16) - 1,
 				i1: Math.ceil((cam.x + w) / 16) + 1,
 				j1: Math.ceil((cam.y + h) / 16) + 1
-			});
+			};
+			drawTiles(ctx, world, textures, view);
 			ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 			// Light: one pixel per tile, stretched smoothly over the tiles (like the game's
@@ -139,21 +147,26 @@
 			l.drawImage(lightTiles, -cam.x, -cam.y, world.width * 16, world.height * 16);
 			applyLight(scene);
 
-			// Items, the player and dust: each in its own tile's light.
+			// Trees' tops and branches, then items, the player and dust: each in its own tile's
+			// light, drawn on a layer of its own and lit there.
 			const tctx = things.getContext('2d')!;
 			tctx.imageSmoothingEnabled = false;
-			tctx.clearRect(0, 0, w, h);
-			tctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
-			const lit = drawThings(tctx, world, textures);
-			tctx.setTransform(1, 0, 0, 1, 0, 0);
-			l.globalCompositeOperation = 'source-over';
-			l.clearRect(0, 0, w, h);
-			for (const r of lit) {
-				l.fillStyle = `rgb(${lm.color(r.i, r.j).join()})`;
-				l.fillRect(r.x - cam.x, r.y - cam.y, r.w, r.h);
-			}
-			applyLight(things);
-			ctx.drawImage(things, 0, 0);
+			const layer = (paint: (c: CanvasRenderingContext2D) => Lit[]) => {
+				tctx.clearRect(0, 0, w, h);
+				tctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
+				const lit = paint(tctx);
+				tctx.setTransform(1, 0, 0, 1, 0, 0);
+				l.globalCompositeOperation = 'source-over';
+				l.clearRect(0, 0, w, h);
+				for (const r of lit) {
+					l.fillStyle = `rgb(${lm.color(r.i, r.j).join()})`;
+					l.fillRect(r.x - cam.x, r.y - cam.y, r.w, r.h);
+				}
+				applyLight(things);
+				ctx.drawImage(things, 0, 0);
+			};
+			layer((c) => drawTrees(c, world!, textures!, view));
+			layer((c) => drawThings(c, world!, textures!));
 
 			// Onto the page, at whole device pixels per game pixel where possible.
 			const k = Math.max(1, Math.round(devicePixelRatio || 1));

@@ -3,7 +3,7 @@
  * arrays and Math.Round, the world's tiles (Main.tile), and stand-ins for the progress bar,
  * settings, text and sounds of world generation, which only report.
  */
-import type { Tile } from './game';
+import { TileGrid } from '../framing';
 
 /** A C# 2D array, `T[,]`: a[i, j] is get(i, j). */
 export class Array2D<T> {
@@ -34,8 +34,248 @@ export class Array2D<T> {
 	}
 }
 
-/** The world being generated (Main.tile). */
-export const Rt = { tile: null as unknown as Array2D<Tile> };
+/**
+ * Terraria's Tile, as a view of one cell of a TileGrid (the site's tile arrays), so the
+ * converted game code works on the same tiles as the rest of the site. Only what the converted
+ * code uses: slopes, half blocks and paint aren't kept (setting one throws).
+ */
+export class Tile {
+	constructor(
+		private readonly g: TileGrid = new TileGrid(1, 1),
+		private readonly k = 0
+	) {}
+
+	get type() {
+		return this.g.type[this.k];
+	}
+	set type(v: number) {
+		this.g.type[this.k] = v;
+	}
+	get frameX() {
+		return this.g.frameX[this.k];
+	}
+	set frameX(v: number) {
+		this.g.frameX[this.k] = v;
+	}
+	get frameY() {
+		return this.g.frameY[this.k];
+	}
+	set frameY(v: number) {
+		this.g.frameY[this.k] = v;
+	}
+	get wall() {
+		return this.g.wall[this.k];
+	}
+	set wall(v: number) {
+		this.g.wall[this.k] = v;
+	}
+	get liquid() {
+		return this.g.liquid[this.k];
+	}
+	set liquid(v: number) {
+		this.g.liquid[this.k] = v;
+	}
+
+	active_() {
+		return this.g.active[this.k] === 1;
+	}
+	active_Boolean(v: boolean) {
+		this.g.active[this.k] = v ? 1 : 0;
+	}
+	frameNumber_() {
+		return this.g.frameNumber[this.k];
+	}
+	frameNumber_Byte(v: number) {
+		this.g.frameNumber[this.k] = v;
+	}
+	/** Tile.lava(): the liquid is lava (liquid type 1); lava(false) clears its bit. */
+	lava_() {
+		return this.g.liquidType[this.k] === 1;
+	}
+	lava_Boolean(v: boolean) {
+		this.g.liquidType[this.k] = v
+			? (this.g.liquidType[this.k] & 2) | 1
+			: this.g.liquidType[this.k] & 2;
+	}
+	honey_Boolean(v: boolean) {
+		this.g.liquidType[this.k] = v
+			? (this.g.liquidType[this.k] & 1) | 2
+			: this.g.liquidType[this.k] & 1;
+	}
+	/** Actuated (inActive): no actuators here. */
+	inActive_() {
+		return false;
+	}
+	inActive_Boolean(v: boolean) {
+		if (v) $hole('Tile.inActive(true)');
+	}
+	liquidType_Int32(v: number) {
+		this.g.liquidType[this.k] = v;
+	}
+	/** Active and not actuated (no actuators here). */
+	nactive() {
+		return this.active_();
+	}
+	/** No half blocks or slopes here. */
+	halfBrick_() {
+		return false;
+	}
+	slope_() {
+		return 0;
+	}
+	halfBrick_Boolean(v: boolean) {
+		if (v) $hole('Tile.halfBrick(true)');
+	}
+	slope_Byte(v: number) {
+		if (v) $hole('Tile.slope');
+	}
+	ClearSlope() {}
+	/** No paint or coatings here. */
+	color_Byte(_v: number) {}
+	wallColor_Byte(_v: number) {}
+	ClearBlockPaintAndCoating() {}
+	UseBlockColors(_cache: unknown) {}
+	/** The paint to copy onto another tile (UseBlockColors, which keeps none): nothing. */
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	BlockColorAndCoating(): any {
+		return { clone: () => null };
+	}
+
+	/** Copies another tile into this one (`Main.tile[i, j] = tile`). */
+	copyFrom(t: Tile) {
+		for (const a of [
+			'type',
+			'active',
+			'frameX',
+			'frameY',
+			'frameNumber',
+			'wall',
+			'liquid',
+			'liquidType'
+		] as const)
+			this.g[a][this.k] = t.g[a][t.k];
+	}
+}
+
+/** Main.tile: a TileGrid's cells as Tiles, `tile[i, j]` being get(i, j). */
+export class TileView {
+	constructor(readonly grid: TileGrid) {}
+
+	get(i: number, j: number): Tile {
+		const g = this.grid;
+		if (i < 0 || j < 0 || i >= g.width || j >= g.height)
+			throw new RangeError(`Index was outside the bounds of the array: [${i}, ${j}]`);
+		return new Tile(g, j * g.width + i);
+	}
+
+	set(i: number, j: number, t: Tile) {
+		this.get(i, j).copyFrom(t);
+	}
+}
+
+/** An item dropped (Item.NewItem): from a rectangle, x y w h, as KillTile drops. */
+export interface Drop {
+	type: number;
+	stack: number;
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+/** SoundEngine.PlaySound(type, x, y, style, volume, pitch). */
+export interface Sound {
+	type: number;
+	x: number;
+	y: number;
+	style: number;
+}
+
+/**
+ * An NPC, as a shaken tree asks for one (NPC.NewNPC): critters aren't simulated here, just
+ * reported (Rt.critter); the slot handed back is the spare one past the last, as when none is
+ * free, so what's set on it goes nowhere. tools/verify's oracle does the same.
+ */
+export class GameNPC {
+	velocity = { X: 0, Y: 0 };
+	ai = [0, 0, 0, 0];
+	netUpdate = false;
+	CanBeReplacedByOtherNPCs = false;
+	static goldCritterChance = 400;
+	/** No wind here. */
+	static TooWindyForButterflies = false;
+
+	static NewNPC(_source: unknown, x: number, y: number, type: number, ..._rest: unknown[]) {
+		Rt.critter({ type, x, y });
+		return 200;
+	}
+}
+
+/** A critter a shaken tree let out (NPC.NewNPC): its type, where. */
+export interface Critter {
+	type: number;
+	x: number;
+	y: number;
+}
+
+/**
+ * The world the converted code works on (Main.tile); where its dropped items and sounds go; and
+ * WorldGen.TileFrameCosmetic, the site's own framing of blocks (./framing, checked separately).
+ */
+export const Rt = {
+	tile: null as unknown as TileView,
+	/** Main.rand. */
+	rand: null as unknown as { Next_Int32(n: number): number },
+	/** Main.npc: only the spare slot NPC.NewNPC hands back here is ever written to. */
+	npc: Array.from({ length: 201 }, () => new GameNPC()),
+	drop: (_d: Drop) => {},
+	critter: (_c: Critter) => {},
+	sound: (_s: Sound) => {},
+	frameCosmetic: (i: number, j: number, _tile: Tile, resetFrame = false) => {
+		const g = Rt.tile.grid;
+		if (i <= 0 || j <= 0 || i >= g.width - 1 || j >= g.height - 1) return;
+		if (!g.active[j * g.width + i]) return;
+		if (resetFrame) g.frameNumber[j * g.width + i] = Rt.variant();
+		g.tileFrameCosmetic(i, j);
+	},
+	/** KillTile_MakeTileDust: one dust for the tile. */
+	tileDust: (_i: number, _j: number, _tile: Tile) => 0,
+	/** TileFrameCosmetic's reset: a new random variant (WorldGen.genRand.Next(3)). */
+	variant: () => 0
+};
+
+/**
+ * The player, as the converted world code asks about it (whoever's closest to a broken tile:
+ * there's one player). Its axe and accessories are set by the site.
+ */
+export class GamePlayer {
+	/** The held item (its axe power, for a tree's bonus wood). */
+	inventory = [{ axe: 0 }];
+	selectedItem = 0;
+	cordage = false;
+	staffOfRegrowthBonus = false;
+
+	static FindClosest(..._args: unknown[]) {
+		return 0;
+	}
+	/** Player.GetClosestRollLuck: Luck.RollLuck with the player's luck, 0 (Main.rand.Next(range)). */
+	static GetClosestRollLuck_Int32_Int32_Int32(_x: number, _y: number, range: number) {
+		return Rt.rand.Next_Int32(range);
+	}
+	HasItem_Int32(_type: number) {
+		return false;
+	}
+	InterruptItemUsageIfOverTile(_type: number) {}
+}
+
+/** Item.NewItem(source, x, y, w, h, type, stack = 1, ...) or (source, centre, type, stack = 1, ...). */
+export function $newItem(_source: unknown, ...a: unknown[]): number {
+	if (typeof a[0] === 'number') {
+		const [x, y, w, h, type, stack = 1] = a as number[];
+		Rt.drop({ type, stack, x, y, w, h });
+	} else $hole('Item.NewItem at a point');
+	return 0;
+}
 
 /** A bool[] table copied from the game, as a string of 0s and 1s. */
 export const $bools = (s: string): boolean[] => Array.from(s, (c) => c === '1');
@@ -69,8 +309,11 @@ export const $caught = (e: unknown): never => {
 	throw e;
 };
 
-/** Sounds while generating: none. */
-export const $sound = (..._args: unknown[]) => null;
+/** SoundEngine.PlaySound(type, x, y, style = 1, ...). */
+export const $sound = (type: number, x = -1, y = -1, style = 1, ..._rest: unknown[]) => {
+	if (typeof type === 'number') Rt.sound({ type, x, y, style });
+	return null;
+};
 
 /** Lang.gen: the progress messages. */
 export const $text = Array.from({ length: 100 }, () => ({ Value: '' }));

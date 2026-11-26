@@ -19,6 +19,11 @@ export const DIRT = 0;
 export const STONE = 1;
 export const GRASS = 2;
 export const CLAY = 40;
+/** Trees: forest trees, and the sakura and yellow willow (VanityTreeSakura, VanityTreeYellowWillow). */
+export const TREE = 5;
+export const TREES = [TREE, 596, 616];
+/** Main.tileFrameImportant, for the tiles here: the trees. */
+const FRAME_IMPORTANT = TREES;
 
 /**
  * The game's data about these blocks (Main.tile* and TileID.Sets), as the game sets it up
@@ -99,8 +104,11 @@ function dropNonSolid(n: Neighbours, myType: number) {
 }
 
 /**
- * Main.tile for the little world, with what framing reads: each tile's type (kept when it's
- * broken, like the game), whether it's there, its frame and its random variant (frameNumber).
+ * Main.tile for the little world: each tile's type (kept when it's broken, like the game),
+ * whether it's there, its frame and its random variant (frameNumber), which framing reads; and
+ * its wall (a WallID, 0 for none) and liquid (an amount, and which liquid: 0 water, 1 lava, 2
+ * honey, 3 shimmer). The game's code converted to TypeScript reads and writes these through
+ * Tile views ($lib/world/gen/runtime).
  */
 export class TileGrid {
 	readonly type: Int16Array;
@@ -108,6 +116,9 @@ export class TileGrid {
 	readonly frameX: Int16Array;
 	readonly frameY: Int16Array;
 	readonly frameNumber: Uint8Array;
+	readonly wall: Uint16Array;
+	readonly liquid: Uint8Array;
+	readonly liquidType: Uint8Array;
 
 	/** WorldGen.mergeUp etc.: set by the last frame picked, read by dirt beside stone. */
 	readonly merge: Merge = { up: false, down: false, left: false, right: false };
@@ -124,6 +135,9 @@ export class TileGrid {
 		this.frameX = new Int16Array(n);
 		this.frameY = new Int16Array(n);
 		this.frameNumber = new Uint8Array(n);
+		this.wall = new Uint16Array(n);
+		this.liquid = new Uint8Array(n);
+		this.liquidType = new Uint8Array(n);
 	}
 
 	/** The block at (i, j), AIR if none (or outside the world). */
@@ -177,10 +191,21 @@ export class TileGrid {
 		for (let x = i - 1; x <= i + 1; x++) for (let y = j - 1; y <= j + 1; y++) this.tileFrame(x, y);
 	}
 
+	/**
+	 * WorldGen.TileFrameImportant, for tiles framed by the game's own code (trees), once the
+	 * world's being played ($lib/world/gen: play). Until then their frames are left as they are.
+	 */
+	frameImportant?: (i: number, j: number) => void;
+
 	/** WorldGen.TileFrame: not within 5 of the edge; only blocks that are there. */
 	tileFrame(i: number, j: number) {
 		if (i <= 5 || j <= 5 || i >= this.width - 5 || j >= this.height - 5) return;
-		if (!this.active[j * this.width + i]) return;
+		const k = j * this.width + i;
+		if (!this.active[k]) return;
+		if (FRAME_IMPORTANT.includes(this.type[k])) {
+			this.frameImportant?.(i, j);
+			return;
+		}
 		// Not frame-important, solid, not falling: on to TileFrameCosmetic.
 		this.tileFrameCosmetic(i, j);
 	}
@@ -192,6 +217,7 @@ export class TileGrid {
 		const k = j * W + i;
 		if (!this.active[k]) return;
 		const num = this.type[k]; // no Main.tileStone types here
+		if (FRAME_IMPORTANT.includes(num)) return;
 		const frameX = this.frameX[k];
 		const frameY = this.frameY[k];
 		const n: Neighbours = {

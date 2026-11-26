@@ -69,9 +69,28 @@
 				"Caverer",
 				"SpreadGrass",
 				"digTunnel",
-				"IsTreeType"
+				"IsTreeType",
+				"AddTrees",
+				"GrowEpicTree",
+				"EmptyTileCheck",
+				"TryGrowingTreeByType",
+				"GrowPalmTree",
+				"GrowTree",
+				"GrowTreeSettings",
+				"GrowTreeWithSettings",
+				"CheckTree",
+				"CheckTreeWithSettings",
+				"CheckTreeSettings",
+				"VanityTreeGroundTest",
+				"KillTile_GetTreeDrops",
+				"ShakeTree",
+				"GetTreeBottom",
+				"GetTreeType",
+				"GetTreeLeaf",
+				"ResetTreeShakes"
 			],
 			"auto": [
+				"AshTreeGroundTest",
 				"AttemptFossilShattering",
 				"BroadcastText",
 				"CanBeClearedDuringGeneration",
@@ -80,15 +99,23 @@
 				"CheckBoulderChest",
 				"CheckExploitDestroyQueue",
 				"CheckTileBreakability_HasReasonToReturnEarly",
+				"DefaultTreeWallTest",
 				"ExploitDestroyQueue",
+				"GemTreeGroundTest",
+				"GemTreeWallTest",
 				"GetCampfireItemDrop",
+				"GetHollowTreeFoliageStyle",
 				"GetItemDrop_Bottles",
 				"GetItemSource_FromTileBreak",
+				"GetItemSource_FromTreeShake",
 				"GetItemSource_FromWallBreak",
+				"GetItemSource_ShakeTree",
 				"GetNPCSource_TileBreak",
 				"GetPlayerForTile",
+				"GetProjectileSource_ShakeTree",
 				"GetProjectileSource_TileBreak",
 				"GetRainbowPaintIDForPosition",
+				"GetTreeTypeAndTreeBottom",
 				"GetWorldSize",
 				"HasValidGroundForAbigailsFlowerBelowSpot",
 				"HasValidGroundForGlowTulipBelowSpot",
@@ -99,8 +126,11 @@
 				"IsFitToPlaceFlowerIn",
 				"IsHarvestableHerbWithSeed",
 				"IsLockedDoor",
+				"IsPalmOasisTree",
 				"IsRope",
+				"IsTileALeafyTreeTop",
 				"IsTileLoaded",
+				"IsTileTypeFitForTree",
 				"IsTreeType",
 				"KillTile_DropItems",
 				"KillTile_ShouldDropSeeds",
@@ -130,6 +160,7 @@
 				"PlaceWall",
 				"PlantSeaOat",
 				"PlatformProperTopFrame",
+				"RangeFrame",
 				"ReplaceTile",
 				"ReplaceTile_DoActualReplacement",
 				"ReplaceTile_DoActualReplacement_Area",
@@ -148,6 +179,9 @@
 				"SquareWallFrame",
 				"TileEmpty",
 				"TopEdgeCanBeAttachedTo",
+				"TreeTops",
+				"TreeTypeDropsAcorns",
+				"VanityTreeGroundTest",
 				"WouldTileReplacementWork",
 				"beachDistance",
 				"crimson",
@@ -160,8 +194,11 @@
 				"getGoodWorldGen",
 				"grassSpread",
 				"growGrassUnderground",
+				"hallowBG",
 				"isGeneratingOrLoadingWorld",
+				"maxTreeShakes",
 				"notTheBees",
+				"numTreeShakes",
 				"oceanDepths",
 				"oceanLevel",
 				"paintEffect",
@@ -170,7 +207,9 @@
 				"remixWorldGen",
 				"stopDrops",
 				"tenthAnniversaryWorldGen",
-				"tileReframeCount"
+				"tileReframeCount",
+				"treeShakeX",
+				"treeShakeY"
 			],
 			"refuse": [
 				"CheckAndAdjustMultiDirectionalTile",
@@ -181,7 +220,6 @@
 				"GetItemDrop_Platforms",
 				"GetStalactiteEchoDrop",
 				"GrowCatTail",
-				"KillTile_GetTreeDrops",
 				"KillWall",
 				"KillWall_GetItemDrops",
 				"KillWall_MakeWallDust",
@@ -216,7 +254,6 @@
 				"PlaceXmasTree",
 				"ReplaceTile_DoActualReplacement_Single",
 				"SeaOatWaterCheck",
-				"ShakeTree",
 				"dropXmasTree",
 				"paintCoatTile",
 				"paintCoatWall",
@@ -225,7 +262,7 @@
 				"PlaceObject",
 				"Convert"
 			],
-			"noop": ["KillTile_DropBait", "KillTile_MakeTileDust"],
+			"noop": ["KillTile_DropBait", "KillTile_MakeTileDust", "TreeGrowFX"],
 			"passes": [
 				"DirtWallBackgrounds",
 				"RocksInDirt",
@@ -236,9 +273,10 @@
 				"RockLayerCaves",
 				"SurfaceCaves",
 				"Grass",
-				"SpreadingGrassOnSurfaceSunflowersEvilsOnSurfaceAndLavaCleanup"
+				"SpreadingGrassOnSurfaceSunflowersEvilsOnSurfaceAndLavaCleanup",
+				"Trees"
 			],
-			"stubbed": ["TryConvertingOrKillingTreesAboveIfTheyWouldBecomeInvalid"]
+			"stubbed": ["TryConvertingOrKillingTreesAboveIfTheyWouldBecomeInvalid", "TileFrameImportant"]
 		},
 		{
 			"file": "Terraria/Tile.cs"
@@ -355,6 +393,7 @@
 				"gamePaused",
 				"getGoodWorld",
 				"gore",
+				"halloween",
 				"hardMode",
 				"hcColor",
 				"hslToRgb",
@@ -722,6 +761,7 @@
 				"GetArmorPenetration",
 				"GetBannerBuffEffect",
 				"GetBestPickaxe",
+				"GetClosestRollLuck",
 				"GetFloorTile",
 				"GetItemManaUsageDetails",
 				"GetItemSource_InventoryOverflow",
@@ -849,6 +889,7 @@
 				"RemoveAllGrapplingHooks",
 				"ResetFloorFlags",
 				"ResetMeleeHitCooldowns",
+				"RollLuck",
 				"RotateRelativePoint",
 				"SceneMetrics",
 				"SetCompositeArmBack",
@@ -1830,6 +1871,20 @@
 		},
 		{
 			"file": "Terraria.ID/GenPassNameID.cs"
+		},
+		{
+			"file": "Terraria.ID/WallID.cs"
+		},
+		{
+			"file": "Terraria.Enums/TreeTypes.cs",
+			"class": "TreeTypes"
+		},
+		{
+			"file": "Terraria.DataStructures/EntitySource_ShakeTree.cs",
+			"class": "EntitySource_ShakeTree"
+		},
+		{
+			"file": "Terraria.GameContent/Luck.cs"
 		}
 	],
 	"autostubs": {
@@ -1897,7 +1952,10 @@
 			"AnyDanger:staticmethod",
 			"AnyoneNearCultists:staticmethod",
 			"NewNPC:staticmethod",
-			"netUpdate:field"
+			"netUpdate:field",
+			"goldCritterChance:staticfield",
+			"CanBeReplacedByOtherNPCs:field",
+			"TooWindyForButterflies:staticfield"
 		],
 		"Projectile": [
 			"NewProjectile:staticmethod",
@@ -1921,7 +1979,8 @@
 			"aiStyle:field",
 			"netUpdate:field",
 			"soundDelay:field",
-			"CheckUsability:method"
+			"CheckUsability:method",
+			"npcProj:field"
 		],
 		"Vector2D": [
 			"X:field",
@@ -2360,7 +2419,9 @@
 		"DungeonUtils": [
 			"InAnyPotentialDungeonBounds:staticmethod",
 			"IsConsideredDungeonTile:staticmethod"
-		]
+		],
+		"Luck": ["RollLuck:staticmethod"],
+		"TreeTopsInfo": ["GetTreeStyle:method"]
 	},
 	"neverReal": ["CrashDump", "TileEntityType"],
 	"realNamespaces": ["Terraria.ID", "Terraria.Enums", "Terraria.DataStructures"]

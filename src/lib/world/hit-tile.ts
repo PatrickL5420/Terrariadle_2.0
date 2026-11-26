@@ -73,13 +73,19 @@ export class HitTile {
 	}
 
 	/** HitTile.AddDamage: the slot's damage after adding (or, not updating, what it would be). */
-	addDamage(tileId: number, damageAmount: number, updateAmount = true): number {
+	addDamage(
+		tileId: number,
+		damageAmount: number,
+		updateAmount = true,
+		rand?: { NextDouble(): number }
+	): number {
 		if (tileId < 0 || tileId > MAX) return 0;
 		if (tileId === this.#bufferLocation && damageAmount === 0) return 0;
 		const d = this.data[tileId];
 		if (!updateAmount) return d.damage + damageAmount;
-		// HitTileObject.AddDamage (and a random wobble direction, for the drawing).
+		// HitTileObject.AddDamage (and a random wobble direction, Main.rand.NextFloat(), for the drawing).
 		d.damage += damageAmount;
+		rand?.NextDouble();
 		d.timeToLive = 60;
 		d.animationTimeElapsed = 0;
 		this.#sortSlots(tileId);

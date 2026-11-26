@@ -164,6 +164,20 @@ public partial class NPC
 	public static bool peddlersSatchelWasUsed;
 	public static bool downedBoss3;
 	public static bool downedGolemBoss;
+
+	// Critters a tree drops when shaken (WorldGen.ShakeTree): recorded, not simulated. The slot
+	// returned is the spare one past the last (Main.npc[Main.maxNPCs]), as when none is free.
+	public float[] ai = new float[4];
+	public bool netUpdate;
+	public bool CanBeReplacedByOtherNPCs;
+	public static int goldCritterChance = 400;
+	public static bool TooWindyForButterflies => false; // no wind here
+
+	public static int NewNPC(IEntitySource source, int X, int Y, int Type, int Start = 0, float ai0 = 0f, float ai1 = 0f, float ai2 = 0f, float ai3 = 0f, int Target = 255)
+	{
+		Recorder.Npcs.Add(new { type = Type, x = X, y = Y });
+		return 200;
+	}
 }
 
 public partial class Projectile

@@ -19,7 +19,8 @@ namespace Oracle;
  * world, so the terrain runs the full width (the world is a slice of a bigger one). The passes run
  * in the order given.
  *
- * Result: the crop's tiles, row by row ("type": -1 for none, "wall", "liquid"), and the
+ * Result: the crop's tiles, row by row ("type": -1 for none, "wall", "liquid", "frameX",
+ * "frameY": trees are framed as they grow), and the
  * heights the passes worked out (GenVars and Main's surface and rock layer).
  */
 public class WorldGenFeature : IFeature
@@ -55,6 +56,8 @@ public class WorldGenFeature : IFeature
 		var type = new List<int>();
 		var wall = new List<int>();
 		var liquid = new List<int>();
+		var frameX = new List<int>();
+		var frameY = new List<int>();
 		for (int j = y0; j < y1; j++)
 			for (int i = x0; i < x1; i++)
 			{
@@ -62,12 +65,16 @@ public class WorldGenFeature : IFeature
 				type.Add(t.active() ? t.type : -1);
 				wall.Add(t.wall);
 				liquid.Add(t.liquid);
+				frameX.Add(t.frameX);
+				frameY.Add(t.frameY);
 			}
 		return new
 		{
 			type,
 			wall,
 			liquid,
+			frameX,
+			frameY,
 			worldSurface = Main.worldSurface,
 			rockLayer = Main.rockLayer,
 			worldSurfaceLow = GenVars.worldSurfaceLow,

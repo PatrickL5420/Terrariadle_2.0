@@ -14,13 +14,11 @@ export const MARGIN = 6;
  * are shown; the player and items are kept in there (its sides and floor are solid).
  */
 export class Tiles extends TileGrid implements TileMap {
-	/** Whether there's a dirt wall behind (Main.tile.wall, wall 2 only), and its variant. */
-	readonly wall: Uint8Array;
+	/** Each wall's random variant (the walls are TileGrid.wall: only dirt walls, 2, here). */
 	readonly wallVariant: Uint8Array;
 
 	constructor(width: number, height: number, rand: (n: number) => number) {
 		super(width, height);
-		this.wall = new Uint8Array(width * height);
 		this.wallVariant = Uint8Array.from({ length: width * height }, () => rand(3));
 	}
 
@@ -49,7 +47,7 @@ export class Tiles extends TileGrid implements TileMap {
 	hasWall(i: number, j: number) {
 		if (j < 0) return false;
 		if (i < 0 || i >= this.width || j >= this.height) return true;
-		return this.wall[j * this.width + i] === 1;
+		return this.wall[j * this.width + i] > 0;
 	}
 
 	/**
@@ -89,6 +87,8 @@ export class Tiles extends TileGrid implements TileMap {
 			'frameY',
 			'frameNumber',
 			'wall',
+			'liquid',
+			'liquidType',
 			'wallVariant'
 		] as const;
 		for (let j = 0; j < rows; j++) {

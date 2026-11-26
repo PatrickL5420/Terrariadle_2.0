@@ -20,7 +20,7 @@ describe('item use, as the game does it', () => {
 			const game = froundItemFrames(r.game);
 			// (Recorded as JSON, which writes -0 as 0: compared the same way.)
 			const json = (v: unknown) => JSON.parse(JSON.stringify(v));
-			expect(json(runItemUse(r.case, game))).toEqual(json(game));
+			expect(json(runItemUse(r.case))).toEqual(json(game));
 		}
 	});
 });

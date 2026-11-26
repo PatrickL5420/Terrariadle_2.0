@@ -4,12 +4,26 @@
  * checked against it (tools/verify/worldgen.verify.ts): the same seed makes the same world.
  *
  * Only the forest surface: the terrain, the dirt walls behind it, rocks in the dirt and dirt in
- * the rocks, clay, small holes and caves (some with water), and grass. The world is a slice of a
+ * the rocks, clay, small holes and caves (some with water), grass, and trees (forest trees, and
+ * the odd sakura or yellow willow). The world is a slice of a
  * bigger one: generated wider than it's used (the passes keep away from a world's edges) and
  * as tall as a small world (the passes place things by fractions of its height), with no beaches.
  */
-import { GenVars, Main, TerrainPass, Tile, UnifiedRandom, WorldGen } from './game';
-import { Array2D, GameConfiguration, Progress, Rt } from './runtime';
+import { TileGrid } from '../framing';
+import { GenVars, Main, TerrainPass, UnifiedRandom, WorldGen } from './game';
+import {
+	GameConfiguration,
+	GamePlayer,
+	Progress,
+	Rt,
+	TileView,
+	type Critter,
+	type Drop,
+	type Sound,
+	type Tile
+} from './runtime';
+
+export { WorldGen, UnifiedRandom };
 
 /** The passes, in GenerateWorld's order. */
 export const PASSES = [
@@ -23,11 +37,12 @@ export const PASSES = [
 	'RockLayerCaves',
 	'SurfaceCaves',
 	'Grass',
-	'SpreadingGrassOnSurfaceSunflowersEvilsOnSurfaceAndLavaCleanup'
+	'SpreadingGrassOnSurfaceSunflowersEvilsOnSurfaceAndLavaCleanup',
+	'Trees'
 ] as const;
 
 export interface Generated {
-	tiles: Array2D<Tile>;
+	tiles: TileView;
 	/** Main.worldSurface and rockLayer, and the passes' GenVars heights. */
 	worldSurface: number;
 	rockLayer: number;
@@ -46,8 +61,11 @@ export function generate(
 ): Generated {
 	Main.maxTilesX = w;
 	Main.maxTilesY = h;
-	Rt.tile = new Array2D(w, h, () => new Tile());
+	Rt.tile = new TileView(new TileGrid(w, h));
 	Main.rand = new UnifiedRandom(seed);
+	Rt.rand = Main.rand;
+	Main.myPlayer = 0;
+	Main.player[0] = new GamePlayer();
 	WorldGen.isGeneratingOrLoadingWorld = true;
 	WorldGen.generatingWorld = true;
 	GenVars.leftBeachEnd = -100;
@@ -71,4 +89,49 @@ export function generate(
 		rockLayerLow: GenVars.rockLayerLow,
 		rockLayerHigh: GenVars.rockLayerHigh
 	};
+}
+
+/** Where the game's code, run on a world being played, sends what it makes. */
+export interface PlayHooks {
+	drop(d: Drop): void;
+	sound(s: Sound): void;
+	/** NPC.NewNPC: a critter let out of a shaken tree (not simulated). */
+	critter?(c: Critter): void;
+	/** KillTile_MakeTileDust: one dust for tile (i, j) of `type`. */
+	tileDust?(i: number, j: number, type: number): void;
+}
+
+/**
+ * Points the game's converted code (./game.ts) at a world being played: `grid` is Main.tile,
+ * `rand` Main.rand (and WorldGen.genRand), and its drops, sounds and dust go to `hooks`. Tiles
+ * whose framing is the game's own (trees: TileFrameImportant) are framed by the converted code
+ * from then on. One world at a time, like the game.
+ */
+export function play(grid: TileGrid, rand: UnifiedRandom, hooks: PlayHooks) {
+	Main.maxTilesX = grid.width;
+	Main.maxTilesY = grid.height;
+	Rt.tile = new TileView(grid);
+	Main.rand = rand;
+	Rt.rand = rand;
+	Main.myPlayer = 0;
+	Main.player[0] = new GamePlayer();
+	Main.gameMenu = false;
+	WorldGen.isGeneratingOrLoadingWorld = false;
+	WorldGen.generatingWorld = false;
+	Rt.drop = (d) => hooks.drop(d);
+	Rt.sound = (s) => hooks.sound(s);
+	Rt.critter = (c) => hooks.critter?.(c);
+	Rt.tileDust = (i: number, j: number, t: Tile) => {
+		hooks.tileDust?.(i, j, t.type);
+		return 0;
+	};
+	Rt.variant = () => rand.Next_Int32_Int32(0, 3);
+	// No trees shaken yet (each shakes once a day).
+	WorldGen.ResetTreeShakes();
+	grid.frameImportant = (i, j) => WorldGen.TileFrame(i, j, false, false);
+}
+
+/** The held item's axe power, as the game's tree drops read it (Player.inventory[selectedItem]). */
+export function holding(axe: number) {
+	(Main.player[0] as GamePlayer).inventory[0].axe = axe;
 }

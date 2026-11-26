@@ -19,6 +19,8 @@ export interface WorldGenResult {
 	type: number[];
 	wall: number[];
 	liquid: number[];
+	frameX: number[];
+	frameY: number[];
 	worldSurface: number;
 	rockLayer: number;
 	worldSurfaceLow: number;
@@ -33,15 +35,19 @@ export function runWorldGen(c: WorldGenCase): WorldGenResult {
 	const type: number[] = [];
 	const wall: number[] = [];
 	const liquid: number[] = [];
+	const frameX: number[] = [];
+	const frameY: number[] = [];
 	for (let j = y0; j < y1; j++)
 		for (let i = x0; i < x1; i++) {
 			const t = g.tiles.get(i, j);
 			type.push(t.active_() ? t.type : -1);
 			wall.push(t.wall);
 			liquid.push(t.liquid);
+			frameX.push(t.frameX);
+			frameY.push(t.frameY);
 		}
 	const { tiles: _, ...heights } = g;
-	return { type, wall, liquid, ...heights };
+	return { type, wall, liquid, frameX, frameY, ...heights };
 }
 
 /** The site's world: 250 wide (the middle 150 used) and a small world's height, around the surface. */
@@ -60,6 +66,6 @@ export function fingerprint(r: WorldGenResult): string {
 		h ^= n & 0xffff;
 		h = Math.imul(h, 0x01000193);
 	};
-	for (const a of [r.type, r.wall, r.liquid]) for (const n of a) mix(n);
+	for (const a of [r.type, r.wall, r.liquid, r.frameX, r.frameY]) for (const n of a) mix(n);
 	return `${(h >>> 0).toString(16)} ${r.worldSurface} ${r.rockLayer} ${r.worldSurfaceLow} ${r.worldSurfaceHigh} ${r.rockLayerLow} ${r.rockLayerHigh}`;
 }

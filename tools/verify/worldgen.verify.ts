@@ -22,7 +22,7 @@ function* seeds(): Generator<WorldGenCase> {
 	for (let n = 0; n < SEEDS; n++) yield worldGenCase(n * 7919 + 1);
 }
 
-it('the worlds have what the site uses: dirt, stone, clay, grass, walls, caves', () => {
+it('the worlds have what the site uses: dirt, stone, clay, grass, trees, walls, caves', () => {
 	const seen = new Set<string>();
 	for (let n = 0; n < 5; n++) {
 		const r = runWorldGen(worldGenCase(n * 7919 + 1));
@@ -30,7 +30,7 @@ it('the worlds have what the site uses: dirt, stone, clay, grass, walls, caves',
 		if (r.wall.some((w) => w > 0)) seen.add('walls');
 		if (r.liquid.some((l) => l > 0)) seen.add('water');
 	}
-	for (const k of ['type -1', 'type 0', 'type 1', 'type 2', 'type 40', 'walls', 'water'])
+	for (const k of ['type -1', 'type 0', 'type 1', 'type 2', 'type 5', 'type 40', 'walls', 'water'])
 		expect(seen, k).toContain(k);
 });
 

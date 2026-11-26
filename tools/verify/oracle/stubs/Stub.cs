@@ -20,10 +20,12 @@ public static class Recorder
 {
 	public static readonly List<object> Drops = new();
 	public static readonly List<object> Sounds = new();
+	public static readonly List<object> Npcs = new();
 
 	public static void Clear()
 	{
 		Drops.Clear();
 		Sounds.Clear();
+		Npcs.Clear();
 	}
 }

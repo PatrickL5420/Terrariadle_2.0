@@ -33,6 +33,17 @@ namespace Terraria
 			public static readonly Seed dualDungeons = new();
 			public static readonly Seed digExtraHoles = new();
 			public static readonly Seed roundLandmasses = new();
+			public static readonly Seed errorWorld = new();
+			public static readonly Seed extraLivingTrees = new();
+
+			public static class Variations
+			{
+				public static int errorWorldAdjustment(double value)
+				{
+					Stub.Hit("SecretSeed.Variations.errorWorldAdjustment");
+					return 1;
+				}
+			}
 
 			public static void DoDigExtraHoles() => Stub.Hit("SecretSeed.DoDigExtraHoles");
 			public static void DoRoundLandMasses() => Stub.Hit("SecretSeed.DoRoundLandMasses");
@@ -53,11 +64,42 @@ namespace Terraria
 			return false;
 		}
 
+		/// WorldGen.TileFrameImportant dispatches on the tile's type (a chain of switches and type
+		/// sets); for the trees here that's all it does: CheckTree for a forest tree (5), and for the
+		/// sakura and yellow willow (596, 616) CheckTreeWithSettings with VanityTreeGroundTest.
+		private static void TileFrameImportant(int i, int j, int type, Tile tileCache, bool resetFrame)
+		{
+			if (TileID.Sets.Torches[type] || TileID.Sets.IsADripTile[type])
+			{
+				Stub.Hit($"WorldGen.TileFrameImportant({type})");
+				return;
+			}
+			switch (type)
+			{
+				case 5:
+					CheckTree(i, j);
+					return;
+				case 596:
+				case 616:
+					CheckTreeWithSettings(i, j, new CheckTreeSettings { IsGroundValid = VanityTreeGroundTest });
+					return;
+			}
+			Stub.Hit($"WorldGen.TileFrameImportant({type})");
+		}
+
 		/// The Skyblock seed's generator: off.
 		public static class Skyblock
 		{
 			public static bool denyAllGeneration => false;
+			public static bool denySomeGeneration => false;
 		}
+	}
+
+	/// What the secret seeds change about a world: nothing, here.
+	public partial class SpecialSeedFeatures
+	{
+		public static bool ShouldDropExtraWood => false;
+		public static bool RainbowSandAndBlackSandWalls => false;
 	}
 
 	/// Text shown while generating (the progress messages): empty.
