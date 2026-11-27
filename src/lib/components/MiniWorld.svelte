@@ -14,12 +14,17 @@
 		type Textures
 	} from '$lib/world/draw';
 	import { tileColor } from '$lib/world/light';
-	import { World, type Sound } from '$lib/world/sim';
+	import type { Sound } from '$lib/world/sim';
 	import { MARGIN } from '$lib/world/tiles';
+	import { Mirror, type Frame, type Scene } from '$lib/world/view';
+	import type { Request } from '$lib/world/worker';
+	import WorldWorker from '$lib/world/worker?worker';
 
 	/**
 	 * A little Terraria world beside the game, just to watch (see $lib/world): a player digs and
 	 * builds in a stretch of forest made by the game's own world generation, lit by the page's sky.
+	 * The world runs in a worker ($lib/world/worker), and is drawn here from what it sends back
+	 * ($lib/world/view). It only runs while it's on screen.
 	 * Drawn at the game's 1x, one game pixel per CSS pixel: the column it's in, or the whole
 	 * window with the fullscreen button, shows part of it, following the player like the game's
 	 * camera.
@@ -45,12 +50,18 @@
 
 	onMount(() => {
 		const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-		let world: World | null = null;
+		let world: Mirror | null = null;
 		let textures: Textures | null = null;
 		let raf = 0;
 		let last = 0;
 		let pending = 0;
 		let stopped = false;
+		/** Whether it's on screen (not scrolled off), and a size it can be drawn at. */
+		let onScreen = true;
+		let fits = false;
+		/** The worker, and whether it's busy with the last steps asked for. */
+		let worker: Worker | null = null;
+		let busy = false;
 		// Game-pixel canvases: the scene, and its light (Lighting.GetColor per tile, smoothed).
 		const scene = document.createElement('canvas');
 		const things = document.createElement('canvas');
@@ -87,16 +98,30 @@
 		const fit = () => {
 			vw = Math.floor(box.clientWidth);
 			vh = Math.floor(box.clientHeight);
-			if (vw < 64 || vh < 128) return false;
-			world ??= new World();
-			return true;
+			return vw >= 64 && vh >= 128;
+		};
+
+		/** Asks the worker for `steps` more steps (0 just to hear how it is). */
+		const ask = (steps: number) => {
+			if (!worker) {
+				worker = new WorldWorker();
+				worker.onmessage = (e: MessageEvent<Frame>) => {
+					busy = false;
+					if (world) world.apply(e.data);
+					else world = new Mirror(e.data);
+					for (const s of e.data.sounds) sound(s);
+					if (reduceMotion) draw();
+				};
+			}
+			busy = true;
+			worker.postMessage({ steps, sky: tileColor(skyLight.color) } satisfies Request);
 		};
 
 		/**
 		 * Main.screenPosition: centred on the player, kept within the world's shown part. A view
 		 * bigger than the world shows it centred, ground at the bottom, and nothing round it.
 		 */
-		const camera = (world: World) => {
+		const camera = (world: Scene) => {
 			const left = MARGIN * 16;
 			const width = world.cols * 16;
 			const height = world.rows * 16;
@@ -218,40 +243,48 @@
 			out.drawImage(scene, 0, 0, w * k, h * k);
 		};
 
-		const step = () => world!.update(tileColor(skyLight.color), sound);
-
 		const loop = (now: number) => {
 			if (stopped) return;
 			raf = requestAnimationFrame(loop);
-			if (!world) return;
+			// The steps due (no more than 4 frames' worth: a slow frame isn't caught up on), asked
+			// for once the worker's done with the last.
 			pending = Math.min(pending + now - last, STEP_MS * 4);
 			last = now;
-			while (pending >= STEP_MS) {
-				step();
-				pending -= STEP_MS;
+			const steps = Math.floor(pending / STEP_MS);
+			if (!busy && steps > 0) {
+				ask(steps);
+				pending -= steps * STEP_MS;
 			}
 			draw();
 		};
 
-		// Only runs while the column is showing (it's hidden on narrow screens).
-		const observer = new ResizeObserver(() => {
-			if (!fit()) {
+		/** Runs while it's showing (the column is hidden on narrow screens, and while closed) and
+		 * on screen; otherwise it's paused, the world kept. */
+		const run = () => {
+			if (!textures || stopped) return;
+			if (!fits || !onScreen) {
 				cancelAnimationFrame(raf);
 				raf = 0;
-				return;
-			}
-			if (reduceMotion) {
-				step();
-				draw();
-			} else if (!raf && textures) {
+			} else if (reduceMotion) {
+				if (!busy) ask(1);
+			} else if (!raf) {
 				last = performance.now();
 				raf = requestAnimationFrame(loop);
 			}
+		};
+		const observer = new ResizeObserver(() => {
+			fits = fit();
+			run();
+		});
+		const seen = new IntersectionObserver(([e]) => {
+			onScreen = e.isIntersecting;
+			run();
 		});
 		loadTextures().then((t) => {
 			if (stopped) return;
 			textures = t;
 			observer.observe(box);
+			seen.observe(box);
 		});
 
 		// Esc goes back to the column.
@@ -264,6 +297,8 @@
 			stopped = true;
 			cancelAnimationFrame(raf);
 			observer.disconnect();
+			seen.disconnect();
+			worker?.terminate();
 			removeEventListener('keydown', onKey);
 		};
 	});

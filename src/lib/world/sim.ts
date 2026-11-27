@@ -169,6 +169,11 @@ export class World implements ItemWorld {
 		return this.#task;
 	}
 
+	/** The blocks with damage on them (for their cracks). */
+	get hits() {
+		return [...this.player.hitTile.blocks()];
+	}
+
 	/** How many columns and rows are shown (the rest is MARGIN). */
 	get cols() {
 		return this.width - MARGIN * 2;

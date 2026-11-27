@@ -25,8 +25,8 @@ import {
 import { TileObjectData } from './gen/game';
 import { stats } from './item-check';
 import type { RGB } from './light';
-import type { World } from './sim';
 import { TileChanges } from './tiles';
+import type { Scene } from './view';
 
 type Img = HTMLImageElement | HTMLCanvasElement;
 
@@ -285,7 +285,7 @@ export interface View {
 }
 
 /** Walls and blocks in `view` (all of them by default). Lit per tile afterwards. */
-export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textures, view?: View) {
+export function drawTiles(ctx: CanvasRenderingContext2D, world: Scene, t: Textures, view?: View) {
 	const { tiles } = world;
 	const i0 = Math.max(0, view?.i0 ?? 0);
 	const j0 = Math.max(0, view?.j0 ?? 0);
@@ -352,14 +352,14 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 }
 
 /** Cracks on blocks being mined, and the miner's wobble (drawn over the tiles every frame). */
-export function drawHits(ctx: CanvasRenderingContext2D, world: World, t: Textures) {
+export function drawHits(ctx: CanvasRenderingContext2D, world: Scene, t: Textures) {
 	const { tiles } = world;
 	// Cracks on blocks being mined: four stages by damage (Main.DrawTileCracks).
 	const crackRect = (damage: number, style: number): [number, number, number, number] => {
 		const stage = damage >= 80 ? 3 : damage >= 60 ? 2 : damage >= 40 ? 1 : 0;
 		return [style * 18, stage * 18, 16, 16];
 	};
-	const hits = [...world.player.hitTile.blocks()];
+	const hits = world.hits;
 	for (const h of hits) {
 		const type = tiles.at(h.x, h.y);
 		if (h.damage < 20 || !(isSolid(type) || TREES.includes(type))) continue;
@@ -421,7 +421,7 @@ function rowHeight(type: number, frameY: number): number {
  */
 export function drawFlames(
 	ctx: CanvasRenderingContext2D,
-	world: World,
+	world: Scene,
 	t: Textures,
 	view: View,
 	frameSeed: bigint
@@ -479,7 +479,7 @@ function randomInt(seed: { s: bigint }, min: number, max: number): number {
  */
 export function drawTrees(
 	ctx: CanvasRenderingContext2D,
-	world: World,
+	world: Scene,
 	t: Textures,
 	view: View
 ): Lit[] {
@@ -523,7 +523,7 @@ export function drawTrees(
  * Dropped items, the player and dust. Each is lit by one colour, its tile's
  * (Lighting.GetColor at its centre); returns where each was drawn, for that.
  */
-export function drawThings(ctx: CanvasRenderingContext2D, world: World, t: Textures): Lit[] {
+export function drawThings(ctx: CanvasRenderingContext2D, world: Scene, t: Textures): Lit[] {
 	const lit: Lit[] = [];
 	const at = (x: number, y: number, r: number): Lit => ({
 		x: Math.floor(x - r),
@@ -568,7 +568,7 @@ export function drawThings(ctx: CanvasRenderingContext2D, world: World, t: Textu
 }
 
 /** PlayerDrawLayers for a player in default clothes, with the composite body. */
-function drawPlayer(ctx: CanvasRenderingContext2D, world: World, t: Textures) {
+function drawPlayer(ctx: CanvasRenderingContext2D, world: Scene, t: Textures) {
 	const p = world.player;
 	const flip = p.direction === -1;
 	const sheet = t.player;
@@ -660,7 +660,7 @@ export class Terrain {
 	#changes = new TileChanges(['type', 'active', 'frameX', 'frameY', 'wall', 'wallVariant']);
 
 	/** Brings the canvas up to date with the world's tiles. */
-	sync(world: World, t: Textures) {
+	sync(world: Scene, t: Textures) {
 		const { tiles } = world;
 		const changed = this.#changes.take(tiles);
 		const ctx = this.canvas.getContext('2d')!;

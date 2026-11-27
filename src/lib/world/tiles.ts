@@ -137,16 +137,17 @@ export class TileChanges {
 			for (const f of this.fields) this.#copies[f] = tiles[f].slice();
 			return 'all';
 		}
-		const out: number[] = [];
+		const out = new Set<number>();
 		for (const f of this.fields) {
 			const a = tiles[f];
 			const c = this.#copies[f];
 			for (let k = 0; k < a.length; k++)
 				if (a[k] !== c[k]) {
 					c[k] = a[k];
-					out.push(k);
+					out.add(k);
 				}
 		}
-		return out;
+		// Each tile once, however many of its fields changed.
+		return [...out];
 	}
 }

@@ -5,7 +5,8 @@ import { itemCheck, pickTile, type ItemWorld } from './item-check';
 import { play, WorldGen } from './gen';
 import { LightMap, tileColor } from './light';
 import { Player } from './player';
-import { World } from './sim';
+import { World, type Sound } from './sim';
+import { Mirror, Recorder } from './view';
 import { MARGIN, TileChanges, Tiles } from './tiles';
 
 /**
@@ -335,5 +336,23 @@ describe('the little world', () => {
 		for (const t of types) expect([0, 1, 2, 5, 40, 596, 616]).toContain(t);
 		expect(w.tiles.wall.some((x) => x === 2)).toBe(true);
 		expect(w.cols).toBe(150);
+	});
+});
+
+describe('the world seen from the page (view)', () => {
+	it('keeps a Mirror the same as the World its Frames come from', () => {
+		const w = new World();
+		const rec = new Recorder();
+		const sounds: Sound[] = [];
+		const m = new Mirror(rec.frame(w, []));
+		for (let n = 0; n < 40; n++) {
+			for (let s = 0; s < 60; s++) w.update([255, 255, 255], (s) => sounds.push(s));
+			m.apply(rec.frame(w, sounds.splice(0)));
+		}
+		for (const f of ['type', 'active', 'frameX', 'frameY', 'wall', 'wallVariant'] as const)
+			expect(m.tiles[f]).toEqual(w.tiles[f]);
+		expect(m.light.r).toEqual(w.light.r);
+		expect(m.player.center).toEqual(w.player.center);
+		expect(m.drops.length).toBe(w.drops.length);
 	});
 });
