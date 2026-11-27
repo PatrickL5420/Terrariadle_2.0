@@ -356,3 +356,53 @@ describe('the world seen from the page (view)', () => {
 		expect(m.drops.length).toBe(w.drops.length);
 	});
 });
+
+describe('dropped items (WorldItem.UpdateItem)', () => {
+	const drop = (w: World, item: number, stack: number, x: number) => {
+		w.drop({ type: item, stack, x, y: 16, w: 16, h: 16 });
+		const d = w.drops.at(-1)!;
+		d.vx = d.vy = 0;
+		return d;
+	};
+
+	it('stacks drops of the same item lying near each other (TryCombiningIntoNearbyItems)', () => {
+		const w = new World();
+		// Out of the player's reach: well away from it.
+		const x = w.player.x > 1000 ? 200 : 2000;
+		drop(w, 9, 2, x);
+		drop(w, 9, 1, x + 20);
+		drop(w, 27, 1, x + 10);
+		drop(w, 9, 1, x + 200);
+		w.update([255, 255, 255], quiet);
+		expect(w.drops.map((d) => [d.item, d.stack])).toEqual([
+			[9, 3],
+			[27, 1],
+			[9, 1]
+		]);
+		// Moved two thirds of the way to the one it took in: weighted by how much each had.
+		expect(w.drops[0].x).toBeCloseTo(x + 2 + (20 * 2) / 3, 5);
+	});
+
+	it('stops at the max stack (100 for copper coins)', () => {
+		const w = new World();
+		const x = w.player.x > 1000 ? 200 : 2000;
+		drop(w, 71, 80, x);
+		drop(w, 71, 50, x + 4);
+		w.update([255, 255, 255], quiet);
+		expect(w.drops.map((d) => d.stack)).toEqual([100, 30]);
+	});
+});
+
+describe('sounds', () => {
+	it('plays each sound once a frame, however many times the game asks (a tree falling)', () => {
+		const w = new World();
+		w.player.update = () => {
+			for (let n = 0; n < 5; n++) w.sound({ type: 0, x: 0, y: 0, style: 1 });
+			w.sound({ type: 21, x: 0, y: 0, style: 1 });
+		};
+		const heard: Sound[] = [];
+		w.update([255, 255, 255], (s) => heard.push(s));
+		w.update([255, 255, 255], (s) => heard.push(s));
+		expect(heard).toEqual(['dig', 'tink', 'dig', 'tink']);
+	});
+});

@@ -88,6 +88,11 @@ export interface Drop extends Moving {
 	grabbed: boolean;
 }
 
+/** Item.maxStack: 9999 for everything dropped here but coins (copper to gold 100, platinum 999). */
+function maxStack(item: number) {
+	return item >= 71 && item <= 73 ? 100 : item === 74 ? 999 : 9999;
+}
+
 /** Dust (Dust.NewDust / UpdateDust) for dust types 0-2, which just fly off and shrink away. */
 export interface Dust {
 	type: number;
@@ -215,7 +220,15 @@ export class World implements ItemWorld {
 
 	/** One game frame. `sky` is the sky's colour (Main.ColorOfTheSkies); `sound` plays a sound. */
 	update(sky: RGB, sound: (s: Sound, at: { x: number; y: number }) => void) {
-		this.#sound = sound;
+		// The game plays each sound through instances that restart when played again (a dig sound
+		// stops the same one already playing): many in one frame, like a tree's tiles breaking
+		// all at once, sound as one.
+		const heard = new Set<Sound>();
+		this.#sound = (s, at) => {
+			if (heard.has(s)) return;
+			heard.add(s);
+			sound(s, at);
+		};
 		this.#think();
 		// Player.Update: doors walked into open, and close behind (DoorOpeningHelper).
 		this.#doors.Update(Main.player[0]);
@@ -336,14 +349,43 @@ export class World implements ItemWorld {
 			}
 		}
 		this.drops = this.drops.filter((d) => d.item);
-		for (const d of this.drops) {
+		for (let n = 0; n < this.drops.length; n++) {
+			const d = this.drops[n];
 			if (d.grabbed) {
 				d.grabbed = false;
 				d.x += d.vx;
 				d.y += d.vy;
 				continue;
 			}
+			this.#combine(n);
 			fallItem(d, (c) => tileCollision(this.tiles, c));
+		}
+		this.drops = this.drops.filter((d) => d.stack > 0);
+	}
+
+	/**
+	 * WorldItem.TryCombiningIntoNearbyItems: later drops of the same item within 30 px (by
+	 * position, summed across x and y) join this one, up to its max stack, which moves toward
+	 * them by how much of the stack they make up. (The page's own win coins, $lib/coins, don't.)
+	 */
+	#combine(n: number) {
+		const d = this.drops[n];
+		const max = maxStack(d.item);
+		if (d.stack >= max) return;
+		for (let m = n + 1; m < this.drops.length; m++) {
+			const o = this.drops[m];
+			if (o.item !== d.item || o.stack <= 0) continue;
+			if (Math.abs(d.x - o.x) + Math.abs(d.y - o.y) > 30) continue;
+			const moved = Math.min(o.stack, max - d.stack);
+			o.stack -= moved;
+			d.stack += moved;
+			// Vector2.Lerp(other, this, moved / stack).
+			const t = moved / d.stack;
+			d.x = o.x + (d.x - o.x) * t;
+			d.y = o.y + (d.y - o.y) * t;
+			d.vx = o.vx + (d.vx - o.vx) * t;
+			d.vy = o.vy + (d.vy - o.vy) * t;
+			if (d.stack >= max) return;
 		}
 	}
 
