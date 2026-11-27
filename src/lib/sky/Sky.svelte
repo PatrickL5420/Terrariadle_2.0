@@ -10,7 +10,7 @@
 		skyColors,
 		type GameTime
 	} from './clock';
-	import { SpriteRenderer } from './gl';
+	import { SpriteRenderer } from '$lib/gl/sprites';
 	import { skyLight } from './light';
 	import { loadTextures, SkyScene, type Moment } from './scene';
 

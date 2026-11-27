@@ -27,7 +27,7 @@ import {
 	type RGB,
 	type RGBA
 } from './clock';
-import { SpriteRenderer, type Target, type Texture } from './gl';
+import { loadTexture, SpriteRenderer, type Target, type Texture } from '$lib/gl/sprites';
 import { forestLayout, forestTextures, type LayerDraw } from './forest';
 import { Clouds, CLOUD_SIZES, Stars } from './sim';
 
@@ -58,14 +58,7 @@ export async function loadTextures(
 	files = FILES
 ): Promise<Record<string, Texture>> {
 	const entries = await Promise.all(
-		files.map(async (name) => {
-			const blob = await (await fetch(`/sky/${name}.png`)).blob();
-			const img = await createImageBitmap(blob, {
-				premultiplyAlpha: 'none',
-				colorSpaceConversion: 'none'
-			});
-			return [name, r.texture(img)] as const;
-		})
+		files.map(async (name) => [name, await loadTexture(r, `/sky/${name}.png`)] as const)
 	);
 	return Object.fromEntries(entries);
 }

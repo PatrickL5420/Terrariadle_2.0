@@ -2,17 +2,8 @@
 	import { onMount } from 'svelte';
 	import { skyLight } from '$lib/sky/light';
 	import { play } from '$lib/sound.svelte';
-	import {
-		drawFlames,
-		drawHits,
-		drawThings,
-		drawTrees,
-		loadTextures,
-		nextSeed,
-		Terrain,
-		type Lit,
-		type Textures
-	} from '$lib/world/draw';
+	import { SpriteRenderer, type Texture } from '$lib/gl/sprites';
+	import { drawWorld, lightBytes, loadTextures, nextSeed, type Textures } from '$lib/world/draw';
 	import { tileColor } from '$lib/world/light';
 	import type { Sound } from '$lib/world/sim';
 	import { MARGIN } from '$lib/world/tiles';
@@ -62,28 +53,13 @@
 		/** The worker, and whether it's busy with the last steps asked for. */
 		let worker: Worker | null = null;
 		let busy = false;
-		// Game-pixel canvases: the scene, and its light (Lighting.GetColor per tile, smoothed).
-		const scene = document.createElement('canvas');
-		const things = document.createElement('canvas');
-		const lightTiles = document.createElement('canvas');
-		/** The walls and blocks, kept drawn (see Terrain), and the light map last put in lightTiles. */
-		const terrain = new Terrain();
+		// The game's SpriteBatch on the canvas ($lib/gl/sprites, shared with the sky), and the light
+		// map as a texture (a texel per tile), uploaded when it's worked out again.
+		const gl = canvas.getContext('webgl2', { antialias: false });
+		const renderer = gl ? new SpriteRenderer(gl) : null;
+		let light: Texture | undefined;
+		let lightData: Uint8Array | undefined;
 		let lightVersion = -1;
-		const light = document.createElement('canvas');
-
-		/** Multiplies `target` by `light`, where `target` has anything drawn (within `box`). */
-		const applyLight = (
-			target: HTMLCanvasElement,
-			[x, y, w, h] = [0, 0, target.width, target.height]
-		) => {
-			const l = light.getContext('2d')!;
-			l.globalCompositeOperation = 'destination-in';
-			l.drawImage(target, x, y, w, h, x, y, w, h);
-			const ctx = target.getContext('2d')!;
-			ctx.globalCompositeOperation = 'multiply';
-			ctx.drawImage(light, x, y, w, h, x, y, w, h);
-			ctx.globalCompositeOperation = 'source-over';
-		};
 
 		const sound = (s: Sound) => play(s, VOLUME[s]);
 
@@ -139,28 +115,26 @@
 		let drawCycle = 0;
 
 		const draw = () => {
-			if (!world || !textures) return;
+			if (!world || !textures || !renderer) return;
 			if (drawCycle === 0) frameSeed = nextSeed(frameSeed);
 			drawCycle = (drawCycle + 1) % 5;
 			const w = vw;
 			const h = vh;
 			const cam = camera(world);
-			for (const c of [scene, things, light]) {
-				if (c.width !== w) c.width = w;
-				if (c.height !== h) c.height = h;
+			// At whole device pixels per game pixel where possible.
+			const k = Math.max(1, Math.round(devicePixelRatio || 1));
+			if (canvas.width !== w * k) canvas.width = w * k;
+			if (canvas.height !== h * k) canvas.height = h * k;
+			canvas.style.width = `${w}px`;
+			canvas.style.height = `${h}px`;
+			const lm = world.light;
+			if (lm.version !== lightVersion || !light) {
+				lightVersion = lm.version;
+				lightData = lightBytes(lm, lightData);
+				light = renderer.data(lm.width, lm.height, lightData, true, light);
 			}
-			const ctx = scene.getContext('2d')!;
-			ctx.imageSmoothingEnabled = false;
-			ctx.clearRect(0, 0, w, h);
-			terrain.sync(world, textures);
-			// The part of the terrain in view (clipped to it: the view can be bigger than the world).
-			const sx = Math.max(0, cam.x);
-			const sy = Math.max(0, cam.y);
-			const sw = Math.min(terrain.canvas.width, cam.x + w) - sx;
-			const sh = Math.min(terrain.canvas.height, cam.y + h) - sy;
-			if (sw > 0 && sh > 0)
-				ctx.drawImage(terrain.canvas, sx, sy, sw, sh, sx - cam.x, sy - cam.y, sw, sh);
-			ctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
+			renderer.begin(null, canvas.width, canvas.height, [0, 0, 0, 0]);
+			renderer.transform(k, -cam.x * k, -cam.y * k);
 			// The tiles in view (and one more round, for what overhangs into it).
 			const view = {
 				i0: Math.floor(cam.x / 16) - 1,
@@ -168,79 +142,7 @@
 				i1: Math.ceil((cam.x + w) / 16) + 1,
 				j1: Math.ceil((cam.y + h) / 16) + 1
 			};
-			drawHits(ctx, world, textures);
-			ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-			// Light: one pixel per tile, stretched smoothly over the tiles (like the game's
-			// corner-blended tile lighting), kept only where something was drawn, multiplied in.
-			const lm = world.light;
-			if (lm.version !== lightVersion) {
-				lightVersion = lm.version;
-				lightTiles.width = world.width;
-				lightTiles.height = world.height;
-				const lctx = lightTiles.getContext('2d')!;
-				const img = lctx.createImageData(world.width, world.height);
-				for (let i = 0; i < world.width; i++) {
-					for (let j = 0; j < world.height; j++) {
-						const [r, g, b] = lm.color(i, j);
-						const k = (j * world.width + i) * 4;
-						img.data[k] = r;
-						img.data[k + 1] = g;
-						img.data[k + 2] = b;
-						img.data[k + 3] = 255;
-					}
-				}
-				lctx.putImageData(img, 0, 0);
-			}
-			const l = light.getContext('2d')!;
-			l.globalCompositeOperation = 'copy';
-			l.imageSmoothingEnabled = true;
-			l.drawImage(lightTiles, -cam.x, -cam.y, world.width * 16, world.height * 16);
-			applyLight(scene);
-			// Torch flames, unlit.
-			ctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
-			drawFlames(ctx, world, textures, view, frameSeed);
-			ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-			// Trees' tops and branches, then items, the player and dust: each in its own tile's
-			// light, drawn on a layer of its own and lit there.
-			const tctx = things.getContext('2d')!;
-			tctx.imageSmoothingEnabled = false;
-			const layer = (paint: (c: CanvasRenderingContext2D) => Lit[]) => {
-				tctx.clearRect(0, 0, w, h);
-				tctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
-				const lit = paint(tctx);
-				tctx.setTransform(1, 0, 0, 1, 0, 0);
-				l.globalCompositeOperation = 'source-over';
-				l.clearRect(0, 0, w, h);
-				// Lit only where the light is (the area the colours cover, on screen).
-				let [x0, y0, x1, y1] = [w, h, 0, 0];
-				for (const r of lit) {
-					const x = r.x - cam.x;
-					const y = r.y - cam.y;
-					l.fillStyle = `rgb(${lm.color(r.i, r.j).join()})`;
-					l.fillRect(x, y, r.w, r.h);
-					[x0, y0] = [Math.min(x0, x), Math.min(y0, y)];
-					[x1, y1] = [Math.max(x1, x + r.w), Math.max(y1, y + r.h)];
-				}
-				[x0, y0] = [Math.max(0, Math.floor(x0)), Math.max(0, Math.floor(y0))];
-				[x1, y1] = [Math.min(w, Math.ceil(x1)), Math.min(h, Math.ceil(y1))];
-				if (x1 > x0 && y1 > y0) applyLight(things, [x0, y0, x1 - x0, y1 - y0]);
-				ctx.drawImage(things, 0, 0);
-			};
-			layer((c) => drawTrees(c, world!, textures!, view));
-			layer((c) => drawThings(c, world!, textures!));
-
-			// Onto the page, at whole device pixels per game pixel where possible.
-			const k = Math.max(1, Math.round(devicePixelRatio || 1));
-			if (canvas.width !== w * k) canvas.width = w * k;
-			if (canvas.height !== h * k) canvas.height = h * k;
-			canvas.style.width = `${w}px`;
-			canvas.style.height = `${h}px`;
-			const out = canvas.getContext('2d')!;
-			out.imageSmoothingEnabled = false;
-			out.clearRect(0, 0, canvas.width, canvas.height);
-			out.drawImage(scene, 0, 0, w * k, h * k);
+			drawWorld(renderer, world, textures, view, light, frameSeed);
 		};
 
 		const loop = (now: number) => {
@@ -280,12 +182,14 @@
 			onScreen = e.isIntersecting;
 			run();
 		});
-		loadTextures().then((t) => {
-			if (stopped) return;
-			textures = t;
-			observer.observe(box);
-			seen.observe(box);
-		});
+		// Without WebGL2 there's no world to see (only the sky's colour, as the sky does).
+		if (renderer)
+			loadTextures(renderer).then((t) => {
+				if (stopped) return;
+				textures = t;
+				observer.observe(box);
+				seen.observe(box);
+			});
 
 		// Esc goes back to the column.
 		const onKey = (e: KeyboardEvent) => {

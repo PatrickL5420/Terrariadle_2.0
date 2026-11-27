@@ -102,6 +102,13 @@ export function generate(
 
 let objectData = false;
 
+/** Multi-tile objects' placing rules and sizes (TileObjectData, set up by Main.Initialize), once. */
+export function initObjectData() {
+	if (objectData) return;
+	TileObjectData.Initialize();
+	objectData = true;
+}
+
 /** Where the game's code, run on a world being played, sends what it makes. */
 export interface PlayHooks {
 	/** The player (Main.player[0]): where it is and how it moves. */
@@ -134,11 +141,7 @@ export function play(grid: TileGrid, rand: UnifiedRandom, hooks: PlayHooks) {
 		(_, k) => new GamePlayer(k === 0 ? () => hooks.player : undefined)
 	);
 	Main.gameMenu = false;
-	// Multi-tile objects' placing rules (Main.Initialize), once.
-	if (!objectData) {
-		TileObjectData.Initialize();
-		objectData = true;
-	}
+	initObjectData();
 	WorldGen.isGeneratingOrLoadingWorld = false;
 	WorldGen.generatingWorld = false;
 	Rt.drop = (d) => hooks.drop(d);

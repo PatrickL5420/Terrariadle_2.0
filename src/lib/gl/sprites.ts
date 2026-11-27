@@ -1,13 +1,19 @@
 /**
- * A small WebGL2 copy of XNA's SpriteBatch, enough to draw the menu sky the way the game does:
- * textures are premultiplied, drawn with premultiplied "over" blending (BlendState.AlphaBlend)
- * and point sampling (SamplerState.PointClamp), each multiplied by a byte colour.
+ * A small WebGL2 copy of XNA's SpriteBatch, enough to draw the menu sky (../sky) and the little
+ * world (../world/draw) the way the game does: textures are premultiplied, drawn with
+ * premultiplied "over" blending (BlendState.AlphaBlend) and point sampling
+ * (SamplerState.PointClamp), each multiplied by a byte colour. A colour with alpha 0 adds
+ * (how the game draws glows). Positions can be put through a scale and offset (a camera).
+ *
+ * The world's blocks and walls use the "lit" program: each pixel is also multiplied by the light
+ * map at that spot (a texture with a texel per tile, smoothly sampled), like the game's lighting.
  *
  * Two of the game's pixel shaders (from Content/PixelShader.xnb, translated with MojoShader)
  * come along: "HorizonClouds", which lights the edges of clouds facing the sun or moon, and
  * "LensFlare", which dims the flare by how much of the sun is covered.
  */
-import type { RGB, RGBA } from './clock';
+export type RGB = [number, number, number];
+export type RGBA = [number, number, number, number];
 
 export type Color = RGB | RGBA;
 
@@ -30,12 +36,13 @@ layout(location = 2) in vec4 aColor;
 layout(location = 3) in vec2 aDrawPos;
 uniform vec2 uSize;
 uniform float uFlipY;
+uniform vec3 uTransform;
 out vec2 vUV;
 out vec4 vColor;
 out vec2 vPos;
 out vec2 vDrawPos;
 void main() {
-	vec2 clip = aPos / uSize * 2.0 - 1.0;
+	vec2 clip = (aPos * uTransform.x + uTransform.yz) / uSize * 2.0 - 1.0;
 	gl_Position = vec4(clip.x, -clip.y * uFlipY, 0.0, 1.0);
 	vUV = aUV;
 	vColor = aColor;
@@ -58,6 +65,23 @@ vec4 sampleTex(vec2 uv) {
 }
 void main() {
 	outColor = sampleTex(vUV) * vColor;
+}`;
+
+/** A sprite in the light map's light at each of its pixels (vPos: where it is, in light-map texels times 16). */
+const LIT = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform sampler2D uLight;
+uniform vec2 uLightSize;
+in vec2 vUV;
+in vec4 vColor;
+in vec2 vPos;
+out vec4 outColor;
+void main() {
+	vec4 t = texture(uTex, vUV);
+	t.rgb *= t.a;
+	vec3 light = texture(uLight, vPos / uLightSize).rgb;
+	outColor = t * vColor * vec4(light, 1.0);
 }`;
 
 /**
@@ -175,7 +199,7 @@ void main() {
 const FLOATS_PER_VERTEX = 7; // x, y, u, v, colour (4 bytes packed), drawX, drawY
 const MAX_SPRITES = 2048;
 
-type ProgramName = 'sprite' | 'clouds' | 'lens';
+type ProgramName = 'sprite' | 'clouds' | 'lens' | 'lit';
 
 export class SpriteRenderer {
 	readonly gl: WebGL2RenderingContext;
@@ -193,13 +217,19 @@ export class SpriteRenderer {
 	cloudColor: RGB = [255, 255, 255];
 	cloudData: [number, number, number, number] = [0, 0, 0, 0];
 	visibility: Texture | null = null;
+	/** The lit program's light map, and the size it covers (in the units sprites are placed in). */
+	light: Texture | null = null;
+	lightSize: [number, number] = [1, 1];
+	/** Positions are scaled by [0] then moved by [1], [2]. */
+	#transform: [number, number, number] = [1, 0, 0];
 
 	constructor(gl: WebGL2RenderingContext) {
 		this.gl = gl;
 		this.#programs = {
 			sprite: this.#compile(SPRITE),
 			clouds: this.#compile(CLOUDS),
-			lens: this.#compile(LENS)
+			lens: this.#compile(LENS),
+			lit: this.#compile(LIT)
 		};
 		this.#buffer = gl.createBuffer()!;
 		const vao = gl.createVertexArray();
@@ -245,7 +275,18 @@ export class SpriteRenderer {
 		gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fragment));
 		gl.linkProgram(p);
 		if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) ?? '');
-		const names = ['uSize', 'uFlipY', 'uTex', 'uPremultiplied', 'uColor', 'uData', 'uVisibility'];
+		const names = [
+			'uSize',
+			'uFlipY',
+			'uTransform',
+			'uTex',
+			'uPremultiplied',
+			'uColor',
+			'uData',
+			'uVisibility',
+			'uLight',
+			'uLightSize'
+		];
 		this.#uniforms.set(p, Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(p, n)])));
 		return p;
 	}
@@ -258,6 +299,26 @@ export class SpriteRenderer {
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
 		this.#sampling(gl.NEAREST);
 		return { tex, width: img.width, height: img.height };
+	}
+
+	/**
+	 * A texture from raw bytes (RGBA, already premultiplied: opaque), smoothly sampled if
+	 * `linear`. Pass it back with new bytes of the same size to change it.
+	 */
+	data(width: number, height: number, bytes: Uint8Array, linear: boolean, t?: Texture): Texture {
+		const gl = this.gl;
+		this.flush();
+		if (t && t.width === width && t.height === height) {
+			gl.bindTexture(gl.TEXTURE_2D, t.tex);
+			gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+			return t;
+		}
+		if (t) gl.deleteTexture(t.tex);
+		const tex = gl.createTexture()!;
+		gl.bindTexture(gl.TEXTURE_2D, tex);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+		this.#sampling(linear ? gl.LINEAR : gl.NEAREST);
+		return { tex, width, height, premultiplied: true };
 	}
 
 	#sampling(filter: number, minFilter = filter) {
@@ -321,6 +382,21 @@ export class SpriteRenderer {
 		this.gl.generateMipmap(this.gl.TEXTURE_2D);
 	}
 
+	/** Positions from here on are scaled by `scale`, then moved by (x, y): a camera. */
+	transform(scale = 1, x = 0, y = 0) {
+		const [a, b, c] = this.#transform;
+		if (a === scale && b === x && c === y) return;
+		this.flush();
+		this.#transform = [scale, x, y];
+	}
+
+	/** The blending: "over" (AlphaBlend, the default), or nothing (Opaque). */
+	blend(on: boolean) {
+		this.flush();
+		if (on) this.gl.enable(this.gl.BLEND);
+		else this.gl.disable(this.gl.BLEND);
+	}
+
 	use(program: ProgramName) {
 		if (program !== this.#program) this.flush();
 		this.#program = program;
@@ -361,12 +437,43 @@ export class SpriteRenderer {
 			[0, sh, u0, v1],
 			[sw, sh, u1, v1]
 		];
-		const quad = corners.map(([cx, cy, u, v]) => {
+		this.#begin(t);
+		const [dpx, dpy] = o.drawPos ?? [x, y];
+		for (let n = 0; n < 4; n++) {
+			const [cx, cy, u, v] = corners[n];
 			const dx = (cx - ox) * kx;
 			const dy = (cy - oy) * ky;
-			return [x + dx * cos - dy * sin, y + dx * sin + dy * cos, u, v] as const;
-		});
-		this.#push(t, quad, color, o.drawPos ?? [x, y]);
+			this.#vertex(n, x + dx * cos - dy * sin, y + dx * sin + dy * cos, u, v, color, dpx, dpy);
+		}
+		this.#count++;
+	}
+
+	/**
+	 * The commonest Draw: `src` of `t` (whole if not given) with its top-left at (x, y), mirrored
+	 * left-right if `flipX`, nothing else (no making of arrays for it: there are thousands).
+	 */
+	blit(
+		t: Texture,
+		x: number,
+		y: number,
+		color: Color,
+		sx = 0,
+		sy = 0,
+		sw = t.width,
+		sh = t.height,
+		flipX = false
+	) {
+		this.#begin(t);
+		let u0 = sx / t.width;
+		let u1 = (sx + sw) / t.width;
+		const v0 = sy / t.height;
+		const v1 = (sy + sh) / t.height;
+		if (flipX) [u0, u1] = [u1, u0];
+		this.#vertex(0, x, y, u0, v0, color, x, y);
+		this.#vertex(1, x + sw, y, u1, v0, color, x, y);
+		this.#vertex(2, x, y + sh, u0, v1, color, x, y);
+		this.#vertex(3, x + sw, y + sh, u1, v1, color, x, y);
+		this.#count++;
 	}
 
 	/** SpriteBatch.Draw(texture, destinationRectangle, color[, effects]). */
@@ -374,31 +481,35 @@ export class SpriteRenderer {
 		this.draw(t, x, y, color, { scale: [w / t.width, h / t.height], flipX });
 	}
 
-	#push(
-		t: Texture,
-		quad: (readonly [number, number, number, number])[],
-		color: Color,
-		drawPos: [number, number]
-	) {
+	/** Starts a sprite of `t` (drawing what's batched first if it's another texture, or full). */
+	#begin(t: Texture) {
 		if (this.#texture !== t || this.#count >= MAX_SPRITES) this.flush();
 		this.#texture = t;
-		const a = color.length > 3 ? (color as RGBA)[3] : 255;
-		let i = this.#count * 4 * FLOATS_PER_VERTEX;
-		for (const [px, py, u, v] of quad) {
-			this.#f32[i] = px;
-			this.#f32[i + 1] = py;
-			this.#f32[i + 2] = u;
-			this.#f32[i + 3] = v;
-			const b = (i + 4) * 4;
-			this.#u8[b] = color[0];
-			this.#u8[b + 1] = color[1];
-			this.#u8[b + 2] = color[2];
-			this.#u8[b + 3] = a;
-			this.#f32[i + 5] = drawPos[0];
-			this.#f32[i + 6] = drawPos[1];
-			i += FLOATS_PER_VERTEX;
-		}
-		this.#count++;
+	}
+
+	/** Corner `n` of the sprite being added. */
+	#vertex(
+		n: number,
+		px: number,
+		py: number,
+		u: number,
+		v: number,
+		color: Color,
+		dpx: number,
+		dpy: number
+	) {
+		const i = (this.#count * 4 + n) * FLOATS_PER_VERTEX;
+		this.#f32[i] = px;
+		this.#f32[i + 1] = py;
+		this.#f32[i + 2] = u;
+		this.#f32[i + 3] = v;
+		const b = (i + 4) * 4;
+		this.#u8[b] = color[0];
+		this.#u8[b + 1] = color[1];
+		this.#u8[b + 2] = color[2];
+		this.#u8[b + 3] = color.length > 3 ? (color as RGBA)[3] : 255;
+		this.#f32[i + 5] = dpx;
+		this.#f32[i + 6] = dpy;
 	}
 
 	flush() {
@@ -409,6 +520,7 @@ export class SpriteRenderer {
 		gl.useProgram(p);
 		gl.uniform2f(u.uSize, this.#target.width, this.#target.height);
 		gl.uniform1f(u.uFlipY, this.#target.flip);
+		gl.uniform3f(u.uTransform, ...this.#transform);
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, this.#texture.tex);
 		gl.uniform1i(u.uTex, 0);
@@ -416,6 +528,12 @@ export class SpriteRenderer {
 		if (this.#program === 'clouds') {
 			gl.uniform3f(u.uColor, ...(this.cloudColor.map((c) => c / 255) as RGB));
 			gl.uniform4f(u.uData, ...this.cloudData);
+		}
+		if (this.#program === 'lit' && this.light) {
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, this.light.tex);
+			gl.uniform1i(u.uLight, 1);
+			gl.uniform2f(u.uLightSize, ...this.lightSize);
 		}
 		if (this.#program === 'lens' && this.visibility) {
 			gl.activeTexture(gl.TEXTURE1);
@@ -427,4 +545,14 @@ export class SpriteRenderer {
 		gl.drawElements(gl.TRIANGLES, this.#count * 6, gl.UNSIGNED_SHORT, 0);
 		this.#count = 0;
 	}
+}
+
+/** An image from the site, as a texture (straight alpha, no colour conversion, like the game's). */
+export async function loadTexture(r: SpriteRenderer, url: string): Promise<Texture> {
+	const blob = await (await fetch(url)).blob();
+	const img = await createImageBitmap(blob, {
+		premultiplyAlpha: 'none',
+		colorSpaceConversion: 'none'
+	});
+	return r.texture(img);
 }
