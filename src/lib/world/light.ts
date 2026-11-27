@@ -6,7 +6,7 @@
  * the torch's colour) before the blur. A block is drawn in its tile's light.
  */
 import { TORCH } from './framing';
-import type { Tiles } from './tiles';
+import { TileChanges, type Tiles } from './tiles';
 
 /** A Torch's light (TorchID.TorchColor(Torch)). */
 const TORCH_LIGHT: RGB = [1, 0.95, 0.8];
@@ -28,6 +28,10 @@ export class LightMap {
 	readonly g: Float32Array;
 	readonly b: Float32Array;
 	#solid: Uint8Array;
+	/** Counts the times it's been worked out (for whoever draws it). */
+	version = 0;
+	#changes = new TileChanges(['type', 'active', 'wall']);
+	#key = '';
 
 	constructor(
 		readonly width: number,
@@ -45,6 +49,12 @@ export class LightMap {
 	 * they're held (tile positions).
 	 */
 	update(tiles: Tiles, sky: RGB, held: [number, number][] = []) {
+		// The same blocks, walls, sky and held torches give the same light: kept.
+		const key = `${sky.join()};${held.join(';')}`;
+		const changed = this.#changes.take(tiles);
+		if (changed !== 'all' && !changed.length && key === this.#key) return;
+		this.#key = key;
+		this.version++;
 		const { width: W, height: H } = this;
 		const [sr, sg, sb] = sky.map((v) => v / 255);
 		const avg = (sr + sg + sb) / 3;

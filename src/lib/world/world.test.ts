@@ -6,7 +6,7 @@ import { play, WorldGen } from './gen';
 import { LightMap, tileColor } from './light';
 import { Player } from './player';
 import { World } from './sim';
-import { MARGIN, Tiles } from './tiles';
+import { MARGIN, TileChanges, Tiles } from './tiles';
 
 /**
  * A flat world showing `cols` x `rows` (plus the margin around it): air above row `ground`, dirt
@@ -199,6 +199,21 @@ describe('chopping (a Copper Axe on a tree)', () => {
 	});
 });
 
+describe('tile changes', () => {
+	it('lists the tiles changed since last asked', () => {
+		const t = flat();
+		const c = new TileChanges(['type', 'active', 'wall']);
+		expect(c.take(t)).toBe('all');
+		expect(c.take(t)).toEqual([]);
+		// A block dug out of the ground (row 8 down), and a wall put up in the air.
+		const dug = 9 * t.width + 3;
+		t.active[dug] = 0;
+		t.wall[5] = 4;
+		expect(c.take(t)).toEqual([dug, 5]);
+		expect(c.take(t)).toEqual([]);
+	});
+});
+
 describe('lighting', () => {
 	it('lights open sky fully and fades into the ground', () => {
 		const t = flat(6, 20, 4);
@@ -209,6 +224,25 @@ describe('lighting', () => {
 		const deep = l.color(X + 2, 12)[0];
 		expect(surface).toBeGreaterThan(200);
 		expect(deep).toBeLessThan(10);
+	});
+
+	it('is worked out again only when the blocks, walls, sky or held torches change', () => {
+		const t = flat(6, 20, 4);
+		const l = new LightMap(t.width, t.height);
+		l.update(t, [255, 255, 255]);
+		const v = l.version;
+		l.update(t, [255, 255, 255]);
+		expect(l.version).toBe(v);
+		// Digging out a block lets light in further.
+		const k = 4 * t.width + X + 2;
+		const before = l.color(X + 2, 5)[0];
+		t.active[k] = 0;
+		l.update(t, [255, 255, 255]);
+		expect(l.version).toBe(v + 1);
+		expect(l.color(X + 2, 5)[0]).toBeGreaterThan(before);
+		l.update(t, [100, 100, 100]);
+		l.update(t, [100, 100, 100], [[X + 2, 10]]);
+		expect(l.version).toBe(v + 3);
 	});
 
 	it('washes the sky colour toward grey for tiles (ApplyColorOfTheSkiesToTiles)', () => {

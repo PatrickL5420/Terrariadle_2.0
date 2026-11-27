@@ -4,11 +4,12 @@
 	import { play } from '$lib/sound.svelte';
 	import {
 		drawFlames,
+		drawHits,
 		drawThings,
-		drawTiles,
 		drawTrees,
 		loadTextures,
 		nextSeed,
+		Terrain,
 		type Lit,
 		type Textures
 	} from '$lib/world/draw';
@@ -54,16 +55,22 @@
 		const scene = document.createElement('canvas');
 		const things = document.createElement('canvas');
 		const lightTiles = document.createElement('canvas');
+		/** The walls and blocks, kept drawn (see Terrain), and the light map last put in lightTiles. */
+		const terrain = new Terrain();
+		let lightVersion = -1;
 		const light = document.createElement('canvas');
 
-		/** Multiplies `target` by `light`, where `target` has anything drawn. */
-		const applyLight = (target: HTMLCanvasElement) => {
+		/** Multiplies `target` by `light`, where `target` has anything drawn (within `box`). */
+		const applyLight = (
+			target: HTMLCanvasElement,
+			[x, y, w, h] = [0, 0, target.width, target.height]
+		) => {
 			const l = light.getContext('2d')!;
 			l.globalCompositeOperation = 'destination-in';
-			l.drawImage(target, 0, 0);
+			l.drawImage(target, x, y, w, h, x, y, w, h);
 			const ctx = target.getContext('2d')!;
 			ctx.globalCompositeOperation = 'multiply';
-			ctx.drawImage(light, 0, 0);
+			ctx.drawImage(light, x, y, w, h, x, y, w, h);
 			ctx.globalCompositeOperation = 'source-over';
 		};
 
@@ -120,35 +127,46 @@
 			const ctx = scene.getContext('2d')!;
 			ctx.imageSmoothingEnabled = false;
 			ctx.clearRect(0, 0, w, h);
+			terrain.sync(world, textures);
+			// The part of the terrain in view (clipped to it: the view can be bigger than the world).
+			const sx = Math.max(0, cam.x);
+			const sy = Math.max(0, cam.y);
+			const sw = Math.min(terrain.canvas.width, cam.x + w) - sx;
+			const sh = Math.min(terrain.canvas.height, cam.y + h) - sy;
+			if (sw > 0 && sh > 0)
+				ctx.drawImage(terrain.canvas, sx, sy, sw, sh, sx - cam.x, sy - cam.y, sw, sh);
 			ctx.setTransform(1, 0, 0, 1, -cam.x, -cam.y);
-			// The tiles in view (and one more round, for walls overhanging into it).
+			// The tiles in view (and one more round, for what overhangs into it).
 			const view = {
 				i0: Math.floor(cam.x / 16) - 1,
 				j0: Math.floor(cam.y / 16) - 1,
 				i1: Math.ceil((cam.x + w) / 16) + 1,
 				j1: Math.ceil((cam.y + h) / 16) + 1
 			};
-			drawTiles(ctx, world, textures, view);
+			drawHits(ctx, world, textures);
 			ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 			// Light: one pixel per tile, stretched smoothly over the tiles (like the game's
 			// corner-blended tile lighting), kept only where something was drawn, multiplied in.
 			const lm = world.light;
-			lightTiles.width = world.width;
-			lightTiles.height = world.height;
-			const lctx = lightTiles.getContext('2d')!;
-			const img = lctx.createImageData(world.width, world.height);
-			for (let i = 0; i < world.width; i++) {
-				for (let j = 0; j < world.height; j++) {
-					const [r, g, b] = lm.color(i, j);
-					const k = (j * world.width + i) * 4;
-					img.data[k] = r;
-					img.data[k + 1] = g;
-					img.data[k + 2] = b;
-					img.data[k + 3] = 255;
+			if (lm.version !== lightVersion) {
+				lightVersion = lm.version;
+				lightTiles.width = world.width;
+				lightTiles.height = world.height;
+				const lctx = lightTiles.getContext('2d')!;
+				const img = lctx.createImageData(world.width, world.height);
+				for (let i = 0; i < world.width; i++) {
+					for (let j = 0; j < world.height; j++) {
+						const [r, g, b] = lm.color(i, j);
+						const k = (j * world.width + i) * 4;
+						img.data[k] = r;
+						img.data[k + 1] = g;
+						img.data[k + 2] = b;
+						img.data[k + 3] = 255;
+					}
 				}
+				lctx.putImageData(img, 0, 0);
 			}
-			lctx.putImageData(img, 0, 0);
 			const l = light.getContext('2d')!;
 			l.globalCompositeOperation = 'copy';
 			l.imageSmoothingEnabled = true;
@@ -170,11 +188,19 @@
 				tctx.setTransform(1, 0, 0, 1, 0, 0);
 				l.globalCompositeOperation = 'source-over';
 				l.clearRect(0, 0, w, h);
+				// Lit only where the light is (the area the colours cover, on screen).
+				let [x0, y0, x1, y1] = [w, h, 0, 0];
 				for (const r of lit) {
+					const x = r.x - cam.x;
+					const y = r.y - cam.y;
 					l.fillStyle = `rgb(${lm.color(r.i, r.j).join()})`;
-					l.fillRect(r.x - cam.x, r.y - cam.y, r.w, r.h);
+					l.fillRect(x, y, r.w, r.h);
+					[x0, y0] = [Math.min(x0, x), Math.min(y0, y)];
+					[x1, y1] = [Math.max(x1, x + r.w), Math.max(y1, y + r.h)];
 				}
-				applyLight(things);
+				[x0, y0] = [Math.max(0, Math.floor(x0)), Math.max(0, Math.floor(y0))];
+				[x1, y1] = [Math.min(w, Math.ceil(x1)), Math.min(h, Math.ceil(y1))];
+				if (x1 > x0 && y1 > y0) applyLight(things, [x0, y0, x1 - x0, y1 - y0]);
 				ctx.drawImage(things, 0, 0);
 			};
 			layer((c) => drawTrees(c, world!, textures!, view));

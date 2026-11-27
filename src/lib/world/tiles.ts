@@ -117,3 +117,36 @@ export class Tiles extends TileGrid implements TileMap {
 }
 
 export { AIR };
+
+type Field = 'type' | 'active' | 'frameX' | 'frameY' | 'frameNumber' | 'wall' | 'wallVariant';
+
+/**
+ * Which tiles changed since last asked, by some of their fields: a copy is kept and compared
+ * (the game's code writes the arrays directly, so there's nothing else to hook).
+ */
+export class TileChanges {
+	#tiles: Tiles | null = null;
+	#copies: Record<string, Int16Array | Uint8Array | Uint16Array> = {};
+
+	constructor(readonly fields: readonly Field[]) {}
+
+	/** The tiles (indices, j * width + i) changed since the last call; 'all' the first time. */
+	take(tiles: Tiles): number[] | 'all' {
+		if (this.#tiles !== tiles) {
+			this.#tiles = tiles;
+			for (const f of this.fields) this.#copies[f] = tiles[f].slice();
+			return 'all';
+		}
+		const out: number[] = [];
+		for (const f of this.fields) {
+			const a = tiles[f];
+			const c = this.#copies[f];
+			for (let k = 0; k < a.length; k++)
+				if (a[k] !== c[k]) {
+					c[k] = a[k];
+					out.push(k);
+				}
+		}
+		return out;
+	}
+}

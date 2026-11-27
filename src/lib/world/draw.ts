@@ -26,6 +26,7 @@ import { TileObjectData } from './gen/game';
 import { stats } from './item-check';
 import type { RGB } from './light';
 import type { World } from './sim';
+import { TileChanges } from './tiles';
 
 type Img = HTMLImageElement | HTMLCanvasElement;
 
@@ -241,11 +242,22 @@ function sprite(
 	scale = 1,
 	flip = false
 ) {
+	const [ox, oy] = origin;
+	if (!rotation && scale === 1) {
+		// Most sprites: no turning or scaling, so no saving and restoring the context.
+		if (!flip) ctx.drawImage(img, sx, sy, sw, sh, x - ox, y - oy, sw, sh);
+		else {
+			ctx.scale(-1, 1);
+			ctx.drawImage(img, sx, sy, sw, sh, -(x - ox + sw), y - oy, sw, sh);
+			ctx.scale(-1, 1);
+		}
+		return;
+	}
 	ctx.save();
 	ctx.translate(x, y);
 	if (rotation) ctx.rotate(rotation);
 	if (scale !== 1) ctx.scale(scale, scale);
-	ctx.translate(-origin[0], -origin[1]);
+	ctx.translate(-ox, -oy);
 	if (flip) {
 		ctx.translate(sw, 0);
 		ctx.scale(-1, 1);
@@ -272,7 +284,7 @@ export interface View {
 	j1: number;
 }
 
-/** Walls and blocks in `view` (all of them by default), with cracks. Lit per tile afterwards. */
+/** Walls and blocks in `view` (all of them by default). Lit per tile afterwards. */
 export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textures, view?: View) {
 	const { tiles } = world;
 	const i0 = Math.max(0, view?.i0 ?? 0);
@@ -337,7 +349,11 @@ export function drawTiles(ctx: CanvasRenderingContext2D, world: World, t: Textur
 			sprite(ctx, t.tiles[type], [tiles.frameX[k], tiles.frameY[k], 16, 16], i * 16, j * 16);
 		}
 	}
+}
 
+/** Cracks on blocks being mined, and the miner's wobble (drawn over the tiles every frame). */
+export function drawHits(ctx: CanvasRenderingContext2D, world: World, t: Textures) {
+	const { tiles } = world;
 	// Cracks on blocks being mined: four stages by damage (Main.DrawTileCracks).
 	const crackRect = (damage: number, style: number): [number, number, number, number] => {
 		const stage = damage >= 80 ? 3 : damage >= 60 ? 2 : damage >= 40 ? 1 : 0;
@@ -628,5 +644,57 @@ function drawPlayer(ctx: CanvasRenderingContext2D, world: World, t: Textures) {
 	} else {
 		shoulder();
 		arm();
+	}
+}
+
+/** The terrain cache's chunks: 8x8 tiles. */
+const CHUNK = 8;
+
+/**
+ * The whole world's walls and blocks (drawTiles), drawn once onto a canvas of their own and
+ * kept: only the chunks round tiles that changed are drawn again. Each frame copies the part in
+ * view from it.
+ */
+export class Terrain {
+	readonly canvas = document.createElement('canvas');
+	#changes = new TileChanges(['type', 'active', 'frameX', 'frameY', 'wall', 'wallVariant']);
+
+	/** Brings the canvas up to date with the world's tiles. */
+	sync(world: World, t: Textures) {
+		const { tiles } = world;
+		const changed = this.#changes.take(tiles);
+		const ctx = this.canvas.getContext('2d')!;
+		if (changed === 'all') {
+			this.canvas.width = tiles.width * 16;
+			this.canvas.height = tiles.height * 16;
+			ctx.imageSmoothingEnabled = false;
+			drawTiles(ctx, world, t);
+			return;
+		}
+		if (!changed.length) return;
+		// A tile's sprite reaches into the tiles beside it (walls overhang them by half a tile, a
+		// torch hangs lower under a block), and theirs depend on it (a wall's frame on the walls
+		// round it): what's drawn can change up to 2 tiles away, so those chunks too.
+		const cw = Math.ceil(tiles.width / CHUNK);
+		const dirty = new Set<number>();
+		for (const k of changed) {
+			const i = k % tiles.width;
+			const j = (k - i) / tiles.width;
+			for (const cj of [Math.floor((j - 2) / CHUNK), Math.floor((j + 2) / CHUNK)])
+				for (const ci of [Math.floor((i - 2) / CHUNK), Math.floor((i + 2) / CHUNK)])
+					if (ci >= 0 && cj >= 0) dirty.add(cj * cw + ci);
+		}
+		for (const c of dirty) {
+			const i0 = (c % cw) * CHUNK;
+			const j0 = Math.floor(c / cw) * CHUNK;
+			ctx.save();
+			ctx.beginPath();
+			ctx.rect(i0 * 16, j0 * 16, CHUNK * 16, CHUNK * 16);
+			ctx.clip();
+			ctx.clearRect(i0 * 16, j0 * 16, CHUNK * 16, CHUNK * 16);
+			// Everything whose sprite can reach into the chunk.
+			drawTiles(ctx, world, t, { i0: i0 - 2, j0: j0 - 2, i1: i0 + CHUNK + 2, j1: j0 + CHUNK + 2 });
+			ctx.restore();
+		}
 	}
 }
